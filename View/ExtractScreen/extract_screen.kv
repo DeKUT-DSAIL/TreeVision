@@ -1,0 +1,78 @@
+<ExtractScreenView>:
+    camera: left_camera
+    verify: verify
+    left_select: left_select
+    right_select: right_select
+
+    MDBoxLayout:
+        size: root.size
+        orientation: "vertical"
+        MDBoxLayout:
+            orientation: "horizontal"
+            Camera:
+                id: left_camera
+                index: 0
+                resolution: (1280, 720)
+                play: False
+        MDBoxLayout:
+            orientation: "horizontal"
+            size_hint_y: 0.5
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.3
+                MDGridLayout:
+                    cols: 2
+                    size_hint_y: None
+                    height: "30dp"
+                    MDLabel:
+                        text: "Project name: "
+                        color: 0, 0, 0, 1
+                    TextInput:
+                        multiline: False
+                MDGridLayout:
+                    cols: 2
+                    MDLabel:
+                        text: "Upload:"
+                    MDGridLayout:
+                        cols: 2
+                        MDLabel:
+                            text: "Verify"
+                        MDCheckbox:
+                            id: verify
+                            active: True
+                MDGridLayout:
+                    cols: 2
+                    spacing: "0dp", "10dp"
+                    MDLabel:
+                        text: "Left Images:"
+                    MDRectangleFlatIconButton:
+                        id: left_select
+                        text: "Load"
+                        icon: "folder"
+                        size_hint_x: 1
+                        on_release: root.controller.file_manager_open('left')
+                    MDLabel:
+                        text: "Right Images:"
+                    MDRectangleFlatIconButton:
+                        id: right_select
+                        text: "Load"
+                        icon: "folder"
+                        size_hint_x: 1
+                        on_release: root.controller.file_manager_open('right')
+                MDGridLayout:
+                    size_hint_y: None
+                    height: "10dp"
+            MDLabel:
+                text: "Configurations"
+                color: 0,0,0,1
+                halign: "center"
+                size_hint_x: 0.3
+            MDLabel:
+                text: "Logs"
+                color: 0,0,0,1
+                halign: "center"
+        MDBoxLayout:
+            size_hint_y: None
+            height: "20dp"
+            md_bg_color: app.theme_cls.primary_dark
+
