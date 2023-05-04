@@ -12,7 +12,7 @@ import View.ExtractScreen.extract_screen
 # changes made to the code on a subsequent hot reload.
 # If you no longer need a hot reload, you can delete this instruction.
 importlib.reload(View.ExtractScreen.extract_screen)
-
+from kivy.uix.image import Image
 
 
 
@@ -70,7 +70,6 @@ class ExtractScreenController:
             if self.manager_open:
                 self.file_manager.back()
         return True
-
-    def select(self):
-        print(f"Left: {self.view.left_select.path}")
-        print(f"Right: {self.view.right_select.path}")
+    
+    def show_next_image(self):
+        pass

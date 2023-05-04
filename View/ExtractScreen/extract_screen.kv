@@ -1,25 +1,47 @@
 <ExtractScreenView>:
-    camera: left_camera
-    verify: verify
-    left_select: left_select
-    right_select: right_select
+    image_plane: image_plane
 
     MDBoxLayout:
         size: root.size
         orientation: "vertical"
         MDBoxLayout:
+            id: image_plane
             orientation: "horizontal"
-            Camera:
-                id: left_camera
-                index: 0
-                resolution: (1280, 720)
-                play: False
+            size_hint_y: 1
+
+            # This canvas is a dark overlay over the images
+            canvas.after:
+                Color:
+                    rgba: 0, 0, 0, 0.5
+                Rectangle:
+                    pos: self.pos
+                    size: (self.width, 0.2*self.height)
+
+            # left and right images
+            Image:
+                source: "/home/cedric/kieni-species-annotation/13-03-2023/IMG_20230309_103936_RIGHT.jpg"
+                size: self.texture_size
+                allow_stretch: True
+            Image:
+                source: "/home/cedric/kieni-species-annotation/13-03-2023/IMG_20230309_103936_RIGHT.jpg"
+                size: self.texture_size
+                allow_stretch: True
+                keep_ration: False
+        # Configurations and logging
+        MDBoxLayout:
+            size_hint_y: None
+            height: 0.05*self.parent.height
+            padding: "10dp", "10dp"
+            md_bg_color: app.theme_cls.primary_color
+            MDLabel:
+                text: "Configs"
         MDBoxLayout:
             orientation: "horizontal"
             size_hint_y: 0.5
             MDBoxLayout:
                 orientation: "vertical"
                 size_hint_x: 0.3
+                padding: "10dp", "10dp"
                 MDGridLayout:
                     cols: 2
                     size_hint_y: None
@@ -59,9 +81,6 @@
                         icon: "folder"
                         size_hint_x: 1
                         on_release: root.controller.file_manager_open('right')
-                MDGridLayout:
-                    size_hint_y: None
-                    height: "10dp"
             MDLabel:
                 text: "Configurations"
                 color: 0,0,0,1
@@ -71,8 +90,9 @@
                 text: "Logs"
                 color: 0,0,0,1
                 halign: "center"
+        
+        # This is the bottom strip
         MDBoxLayout:
-            size_hint_y: None
-            height: "20dp"
+            size_hint_y: 0.05
+            pos_hint: {"x": self.x}
             md_bg_color: app.theme_cls.primary_dark
-
