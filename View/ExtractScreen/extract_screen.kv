@@ -1,13 +1,14 @@
 <ExtractScreenView>:
     image_plane: image_plane
 
-    MDBoxLayout:
+    FloatLayout:
         size: root.size
         orientation: "vertical"
         MDBoxLayout:
             id: image_plane
             orientation: "horizontal"
-            size_hint_y: 1
+            size_hint: 1, .6
+            pos_hint: {'top': 0.995}
 
             # This canvas is a dark overlay over the images
             canvas.after:
@@ -15,29 +16,38 @@
                     rgba: 0, 0, 0, 0.5
                 Rectangle:
                     pos: self.pos
-                    size: (self.width, 0.2*self.height)
+                    size: (self.parent.width, 0.2*self.parent.height)
 
             # left and right images
             Image:
+                id: left_im
                 source: "/home/cedric/kieni-species-annotation/13-03-2023/IMG_20230309_103936_RIGHT.jpg"
                 size: self.texture_size
                 allow_stretch: True
             Image:
+                id: right_im
                 source: "/home/cedric/kieni-species-annotation/13-03-2023/IMG_20230309_103936_RIGHT.jpg"
                 size: self.texture_size
                 allow_stretch: True
                 keep_ration: False
+        
+        MDFloatingActionButton:
+            icon: 'arrow-right-circle-outline'
+            md_bg_color: app.theme_cls.primary_color
+            pos_hint: {"center_x": .5, "center_y": .5}
+
         # Configurations and logging
         MDBoxLayout:
-            size_hint_y: None
-            height: 0.05*self.parent.height
+            size_hint: 1, 0.05
+            pos_hint: {'top': 0.395}
             padding: "10dp", "10dp"
             md_bg_color: app.theme_cls.primary_color
             MDLabel:
                 text: "Configs"
         MDBoxLayout:
             orientation: "horizontal"
-            size_hint_y: 0.5
+            size_hint: 1, 0.3
+            pos_hint: {'top': 0.345}
             MDBoxLayout:
                 orientation: "vertical"
                 size_hint_x: 0.3
@@ -93,6 +103,6 @@
         
         # This is the bottom strip
         MDBoxLayout:
-            size_hint_y: 0.05
-            pos_hint: {"x": self.x}
+            size_hint: 1, 0.045
+            pos_hint: {"top": 0.045}
             md_bg_color: app.theme_cls.primary_dark

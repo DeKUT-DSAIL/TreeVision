@@ -1,5 +1,6 @@
 import os
 import importlib
+from glob import glob
 
 from kivy.core.window import Window
 
@@ -30,7 +31,7 @@ class ExtractScreenController:
         # Window.bind(on_keyboard = self.events)
         self.manager_open = False
         self.file_manager = None
-        self.folder_paths = {}
+        self.folder_paths = {"left": "", "right": ""}
 
     def get_view(self) -> View.ExtractScreen.extract_screen:
         return self.view
@@ -55,7 +56,7 @@ class ExtractScreenController:
         self.folder_paths[button_id] = path
         self.exit_manager()
         toast(path)
-        print(self.folder_paths)
+        self.load_stereo_images()
     
     def exit_manager(self, *args):
         '''Called when the user reaches the root of the directory tree.'''
@@ -73,3 +74,9 @@ class ExtractScreenController:
     
     def show_next_image(self):
         pass
+
+    def load_stereo_images(self):
+        left_ims = glob(self.folder_paths['left'] + "/*.jpg")
+        right_ims = glob(self.folder_paths['right'] + "/*.jpg")
+
+        return (left_ims, right_ims)
