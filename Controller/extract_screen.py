@@ -3,8 +3,12 @@ import importlib
 from glob import glob
 
 from kivy.core.window import Window
+from kivy.metrics import dp
+from kivy.properties import StringProperty
 
 from kivymd.uix.filemanager import MDFileManager
+from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.list import OneLineIconListItem
 from kivymd.toast import toast
 
 import View.ExtractScreen.extract_screen
@@ -15,7 +19,7 @@ import View.ExtractScreen.extract_screen
 importlib.reload(View.ExtractScreen.extract_screen)
 from kivy.uix.image import Image
 
-
+from kivymd.uix.dropdownitem.dropdownitem import MDDropDownItem
 
 class ExtractScreenController:
     """
@@ -34,6 +38,42 @@ class ExtractScreenController:
         self.manager_open = False
         self.file_manager = None
         self.folder_paths = {"left": "", "right": ""}
+
+        self.parameter_menu_items = [
+            {
+                "viewclass": "IconListItem",
+                "icon": "git",
+                "text": "DBH",
+                "height": dp(56),
+                "on_release": lambda x="DBH": self.set_item(x),
+            },
+            {
+                "viewclass": "IconListItem",
+                "icon": "git",
+                "text": "CD",
+                "height": dp(56),
+                "on_release": lambda x="CD": self.set_item(x),
+            },
+            {
+                "viewclass": "IconListItem",
+                "icon": "git",
+                "text": "TH",
+                "height": dp(56),
+                "on_release": lambda x="TH": self.set_item(x),
+            }
+        ]
+
+        self.menu = MDDropdownMenu(
+            caller=self.view.dropdown_item,
+            items=self.parameter_menu_items,
+            position="center",
+            width_mult=2,
+        )
+        self.menu.bind()
+    
+    def set_item(self, text_item):
+        self.view.dropdown_item.set_item(text_item)
+        self.menu.dismiss()
 
     def get_view(self) -> View.ExtractScreen.extract_screen:
         return self.view
@@ -93,13 +133,13 @@ class ExtractScreenController:
         
 
     def on_button_press(self, instance):
-        if instance == 'right':
+        if instance == 'next':
             self.image_index += 1
             return True
-        elif instance == 'left' and self.image_index > 0:
+        elif instance == 'previous' and self.image_index > 0:
             self.image_index -= 1
             return True
-        elif instance == 'left' and self.image_index == 0:
+        elif instance == 'previous' and self.image_index == 0:
             toast("This is the first image")
             return False
 
@@ -115,3 +155,7 @@ class ExtractScreenController:
             else:
                 self.view.left_im.source = left[self.image_index]
                 self.view.right_im.source = right[self.image_index]
+
+
+class IconListItem(OneLineIconListItem):
+    icon = StringProperty()

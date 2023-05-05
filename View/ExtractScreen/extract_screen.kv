@@ -3,6 +3,7 @@
     left_im: left_im
     right_im: right_im
     verify_checkbox: verify_checkbox
+    dropdown_item: dropdown_item
 
     FloatLayout:
         size: root.size
@@ -38,13 +39,13 @@
             icon: 'arrow-left-circle-outline'
             md_bg_color: app.theme_cls.primary_color
             pos_hint: {"center_x": .47, "center_y": .5}
-            on_release: root.controller.show_next_image('left')
+            on_release: root.controller.show_next_image('previous')
 
         MDFloatingActionButton:
             icon: 'arrow-right-circle-outline'
             md_bg_color: app.theme_cls.primary_color
             pos_hint: {"center_x": .53, "center_y": .5}
-            on_release: root.controller.show_next_image('right')
+            on_release: root.controller.show_next_image('next')
 
         # Configurations and logging
         MDBoxLayout:
@@ -58,6 +59,8 @@
             orientation: "horizontal"
             size_hint: 1, 0.3
             pos_hint: {'top': 0.345}
+
+            # COLUMN: LOADING IMAGES
             MDBoxLayout:
                 orientation: "vertical"
                 size_hint_x: 0.3
@@ -101,11 +104,26 @@
                         icon: "folder"
                         size_hint_x: 1
                         on_release: root.controller.file_manager_open('right')
-            MDLabel:
-                text: "Configurations"
-                color: 0,0,0,1
-                halign: "center"
+            
+            # COLUMN: GENERAL CONFIGURATIONS 
+            MDBoxLayout:
+                orientation: "vertical"
                 size_hint_x: 0.3
+                padding: '10dp', '10dp'
+
+                MDGridLayout:
+                    cols: 2
+                    MDLabel:
+                        text: "Select parameter"
+                    MDDropDownItem:
+                        id: dropdown_item
+                        size_hint_x: 0.5
+                        pos_hint: {'center_x': .5, 'center_y': .5}
+                        text: 'DBH'
+                        on_release: root.controller.menu.open()
+
+            
+            # LOGGING INFORMATION
             MDLabel:
                 text: "Logs"
                 color: 0,0,0,1
