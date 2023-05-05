@@ -24,6 +24,8 @@ class ExtractScreenController:
     The controller implements the strategy pattern. The controller connects to
     the view to control its actions.
     """
+
+    image_index = 0
     image_path = None
 
     def __init__(self):
@@ -49,7 +51,7 @@ class ExtractScreenController:
             exit_manager = self.exit_manager,
             select_path = lambda path: self.store_folder_paths(path, button_id)
         )
-        self.file_manager.show(os.path.expanduser("~"))
+        self.file_manager.show(os.path.expanduser("/"))
         self.manager_open = True
     
     def store_folder_paths(self, path, button_id):
@@ -71,12 +73,45 @@ class ExtractScreenController:
             if self.manager_open:
                 self.file_manager.back()
         return True
-    
-    def show_next_image(self):
-        pass
+
+    def verify_images(self, left_ims, right_ims):
+        return len(left_ims) == len(right_ims)
 
     def load_stereo_images(self):
         left_ims = glob(self.folder_paths['left'] + "/*.jpg")
         right_ims = glob(self.folder_paths['right'] + "/*.jpg")
 
-        return (left_ims, right_ims)
+        verify_required = self.view.verify_checkbox.active
+
+        if verify_required and self.verify_images(left_ims, right_ims):
+            return (left_ims, right_ims)
+        elif verify_required and not self.verify_images(left_ims, right_ims):
+            toast("Number of Left and Right Images Not equal")
+        elif not verify_required and (len(left_ims) > 0 and len(right_ims) > 0):
+            toast("Number of Left and Right images not verified!")
+            return (left_ims, right_ims)
+        
+
+    def on_button_press(self, instance):
+        if instance == 'right':
+            self.image_index += 1
+            return True
+        elif instance == 'left' and self.image_index > 0:
+            self.image_index -= 1
+            return True
+        elif instance == 'left' and self.image_index == 0:
+            toast("This is the first image")
+            return False
+
+
+    def show_next_image(self, button_id):
+        left, right = self.load_stereo_images()
+
+        if self.on_button_press(button_id):
+            if len(left) == 0:
+                toast("Select the left and right images folder first")
+            elif len(right) == 0:
+                toast("Select the left and right images folder first")
+            else:
+                self.view.left_im.source = left[self.image_index]
+                self.view.right_im.source = right[self.image_index]

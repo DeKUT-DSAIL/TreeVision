@@ -1,5 +1,8 @@
 <ExtractScreenView>:
     image_plane: image_plane
+    left_im: left_im
+    right_im: right_im
+    verify_checkbox: verify_checkbox
 
     FloatLayout:
         size: root.size
@@ -32,9 +35,16 @@
                 keep_ration: False
         
         MDFloatingActionButton:
+            icon: 'arrow-left-circle-outline'
+            md_bg_color: app.theme_cls.primary_color
+            pos_hint: {"center_x": .47, "center_y": .5}
+            on_release: root.controller.show_next_image('left')
+
+        MDFloatingActionButton:
             icon: 'arrow-right-circle-outline'
             md_bg_color: app.theme_cls.primary_color
-            pos_hint: {"center_x": .5, "center_y": .5}
+            pos_hint: {"center_x": .53, "center_y": .5}
+            on_release: root.controller.show_next_image('right')
 
         # Configurations and logging
         MDBoxLayout:
@@ -70,7 +80,7 @@
                         MDLabel:
                             text: "Verify"
                         MDCheckbox:
-                            id: verify
+                            id: verify_checkbox
                             active: True
                 MDGridLayout:
                     cols: 2

@@ -3,4 +3,7 @@ from kivy.properties import ObjectProperty
 
 
 class ExtractScreenView(BaseScreenView):
-    pass
+    image_plane = ObjectProperty()
+    left_im = ObjectProperty()
+    right_im = ObjectProperty()
+    verify_checkbox = ObjectProperty()
