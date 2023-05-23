@@ -31,6 +31,7 @@ class ExtractScreenController:
 
     image_index = 0
     image_path = None
+    num_of_images = 0
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -41,39 +42,61 @@ class ExtractScreenController:
 
         self.parameter_menu_items = [
             {
-                "viewclass": "IconListItem",
-                "icon": "git",
+                "viewclass": "OneLineListItem",
                 "text": "DBH",
                 "height": dp(56),
-                "on_release": lambda x="DBH": self.set_item(x),
+                "on_release": lambda x="DBH": self.set_item(self.parameter_menu, self.view.parameter_dropdown_item, x),
             },
             {
-                "viewclass": "IconListItem",
-                "icon": "git",
+                "viewclass": "OneLineListItem",
                 "text": "CD",
                 "height": dp(56),
-                "on_release": lambda x="CD": self.set_item(x),
+                "on_release": lambda x="CD": self.set_item(self.parameter_menu, self.view.parameter_dropdown_item, x),
             },
             {
-                "viewclass": "IconListItem",
-                "icon": "git",
+                "viewclass": "OneLineListItem",
                 "text": "TH",
                 "height": dp(56),
-                "on_release": lambda x="TH": self.set_item(x),
+                "on_release": lambda x="TH": self.set_item(self.parameter_menu, self.view.parameter_dropdown_item, x),
             }
         ]
 
-        self.menu = MDDropdownMenu(
-            caller=self.view.dropdown_item,
+        self.segmentation_menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": "Raw CNN",
+                "height": dp(56),
+                "on_release": lambda x="Raw CNN": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": "U-Net",
+                "height": dp(56),
+                "on_release": lambda x="U-Net": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
+            }
+        ]
+
+        self.parameter_menu = MDDropdownMenu(
+            caller=self.view.parameter_dropdown_item,
             items=self.parameter_menu_items,
             position="center",
+            background_color='brown',
             width_mult=2,
         )
-        self.menu.bind()
+        self.parameter_menu.bind()
+
+        self.segmentation_menu = MDDropdownMenu(
+            caller=self.view.segmentation_dropdown_item,
+            items=self.segmentation_menu_items,
+            position="center",
+            background_color='brown',
+            width_mult=2,
+        )
+        self.segmentation_menu.bind()
     
-    def set_item(self, text_item):
-        self.view.dropdown_item.set_item(text_item)
-        self.menu.dismiss()
+    def set_item(self, menu, dropdown_item, text_item):
+        dropdown_item.set_item(text_item)
+        menu.dismiss()
 
     def get_view(self) -> View.ExtractScreen.extract_screen:
         return self.view
@@ -121,6 +144,8 @@ class ExtractScreenController:
         left_ims = glob(self.folder_paths['left'] + "/*.jpg")
         right_ims = glob(self.folder_paths['right'] + "/*.jpg")
 
+        self.num_of_images = len(left_ims)
+
         verify_required = self.view.verify_checkbox.active
 
         if verify_required and self.verify_images(left_ims, right_ims):
@@ -133,15 +158,16 @@ class ExtractScreenController:
         
 
     def on_button_press(self, instance):
+        if self.num_of_images == 0:
+            toast("Select Left and Right image folders first")
+            return
         if instance == 'next':
-            self.image_index += 1
+            self.image_index = (self.image_index + 1) % self.num_of_images
             return True
-        elif instance == 'previous' and self.image_index > 0:
-            self.image_index -= 1
+        elif instance == 'previous':
+            self.image_index = (self.image_index - 1) % self.num_of_images
             return True
-        elif instance == 'previous' and self.image_index == 0:
-            toast("This is the first image")
-            return False
+
 
 
     def show_next_image(self, button_id):

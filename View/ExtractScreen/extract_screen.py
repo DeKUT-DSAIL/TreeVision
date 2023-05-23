@@ -7,4 +7,5 @@ class ExtractScreenView(BaseScreenView):
     left_im = ObjectProperty()
     right_im = ObjectProperty()
     verify_checkbox = ObjectProperty()
-    dropdown_item = ObjectProperty()
+    segmentation_dropdown_item = ObjectProperty()
+    parameter_dropdown_item = ObjectProperty()
