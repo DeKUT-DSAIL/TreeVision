@@ -4,6 +4,7 @@
     image_plane: image_plane
     left_im: left_im
     right_im: right_im
+    project_name: project_name
     verify_checkbox: verify_checkbox
     parameter_dropdown_item: parameter_dropdown_item
     segmentation_dropdown_item: segmentation_dropdown_item
@@ -77,6 +78,7 @@
                         text: "Project name: "
                         color: 0, 0, 0, 1
                     TextInput:
+                        id: project_name
                         multiline: False
                 MDGridLayout:
                     cols: 2
@@ -167,6 +169,7 @@
                             MDRaisedButton:
                                 text: "Extract"
                                 md_bg_color: "green"
+                                on_release: root.controller.on_press_extract()
                         AnchorLayout:
                             anchor_x: 'right'
                             MDRaisedButton:

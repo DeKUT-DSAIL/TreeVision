@@ -12,6 +12,9 @@ from kivymd.uix.list import OneLineIconListItem
 from kivymd.toast import toast
 
 import View.ExtractScreen.extract_screen
+from . import algorithms
+import cv2
+import numpy as np
 
 # We have to manually reload the view module in order to apply the
 # changes made to the code on a subsequent hot reload.
@@ -32,6 +35,10 @@ class ExtractScreenController:
     image_index = 0
     image_path = None
     num_of_images = 0
+
+    ASSET_DIR = 'assets'
+    PROJECT_DIR = 'assets/projects'
+    DISPARITY_MAPS_DIR = ''
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -167,6 +174,38 @@ class ExtractScreenController:
         elif instance == 'previous':
             self.image_index = (self.image_index - 1) % self.num_of_images
             return True
+    
+
+    def on_press_extract(self):
+
+        self.create_disparity_directory()
+
+        left_path = self.view.left_im.source
+        left = cv2.imread(left_path, 0)
+        right = cv2.imread(self.view.right_im.source, 0)
+        mask = ''
+        sel = np.ones((40,1), np.uint8)
+
+        dmap = extract(left, right, mask, sel)
+        dmap_filename = left_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
+        dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
+
+        cv2.imwrite(dmap_path, dmap)
+        self.view.right_im.source = dmap_path
+        toast("Extraction complete")
+
+
+
+    def create_disparity_directory(self):
+        project = self.view.project_name.text
+        if project == '':
+            toast("Please provide the project name!")
+        else:
+            path = os.path.join(self.PROJECT_DIR, f'{project}/disparity_maps')
+            if not os.path.exists(path):
+                os.makedirs(path)
+                self.DISPARITY_MAPS_DIR = path
+            toast("Directories created")
 
 
 
@@ -174,14 +213,19 @@ class ExtractScreenController:
         left, right = self.load_stereo_images()
 
         if self.on_button_press(button_id):
-            if len(left) == 0:
-                toast("Select the left and right images folder first")
-            elif len(right) == 0:
-                toast("Select the left and right images folder first")
-            else:
-                self.view.left_im.source = left[self.image_index]
-                self.view.right_im.source = right[self.image_index]
+            self.view.left_im.source = left[self.image_index]
+            self.view.right_im.source = right[self.image_index]
 
+def extract(left_im, right_im, mask, sel):
+    '''
+    Extracts the disparity map and returns it
+    '''
+    dmap = algorithms.compute_depth_map(
+        imgL = left_im,
+        imgR = right_im
+    )
+
+    return dmap['O']
 
 class IconListItem(OneLineIconListItem):
     icon = StringProperty()
