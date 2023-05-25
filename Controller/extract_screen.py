@@ -1,4 +1,5 @@
 import os
+import time
 import importlib
 from glob import glob
 
@@ -10,6 +11,7 @@ from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.list import OneLineIconListItem
 from kivymd.toast import toast
+from kivy.clock import Clock
 
 import View.ExtractScreen.extract_screen
 from . import algorithms
@@ -176,24 +178,12 @@ class ExtractScreenController:
             return True
     
 
-    def on_press_extract(self):
+    def show_next_image(self, button_id):
+        left, right = self.load_stereo_images()
 
-        self.create_disparity_directory()
-
-        left_path = self.view.left_im.source
-        left = cv2.imread(left_path, 0)
-        right = cv2.imread(self.view.right_im.source, 0)
-        mask = ''
-        sel = np.ones((40,1), np.uint8)
-
-        dmap = extract(left, right, mask, sel)
-        dmap_filename = left_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
-        dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
-
-        cv2.imwrite(dmap_path, dmap)
-        self.view.right_im.source = dmap_path
-        toast("Extraction complete")
-
+        if self.on_button_press(button_id):
+            self.view.left_im.source = left[self.image_index]
+            self.view.right_im.source = right[self.image_index]
 
 
     def create_disparity_directory(self):
@@ -205,18 +195,55 @@ class ExtractScreenController:
             if not os.path.exists(path):
                 os.makedirs(path)
                 self.DISPARITY_MAPS_DIR = path
-            toast("Directories created")
+            else:
+                pass
 
 
+    def save_and_display_disparity(self, left_img_path=None, right_img_path=None):
 
-    def show_next_image(self, button_id):
-        left, right = self.load_stereo_images()
+        left_img_path = self.view.left_im.source
+        right_img_path = self.view.right_im.source
 
-        if self.on_button_press(button_id):
-            self.view.left_im.source = left[self.image_index]
-            self.view.right_im.source = right[self.image_index]
+        left = cv2.imread(left_img_path, 0)
+        right = cv2.imread(right_img_path, 0)
 
-def extract(left_im, right_im, mask, sel):
+        dmap = extract(left, right)
+        dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
+        dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
+
+        cv2.imwrite(dmap_path, dmap)
+        self.view.right_im.source = dmap_path
+
+
+    def on_extract(self):
+
+        self.create_disparity_directory()
+        self.save_and_display_disparity()
+
+
+    def on_batch_extract(self, dt):
+        
+        self.create_disparity_directory()
+
+        left_ims, right_ims = self.load_stereo_images()
+        left_img = left_ims[self.image_index]
+        right_img = right_ims[self.image_index]
+
+        self.view.left_im.source = left_img
+        self.view.right_im.source = right_img
+
+        self.save_and_display_disparity(
+                left_img_path=left_img,
+                right_img_path=right_img
+            )
+
+        self.image_index += 1
+    
+    def update_on_batch_extract(self):
+        Clock.schedule_interval(self.on_batch_extract, 2)
+
+
+def extract(left_im, right_im):
     '''
     Extracts the disparity map and returns it
     '''

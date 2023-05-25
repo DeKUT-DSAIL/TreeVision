@@ -169,12 +169,13 @@
                             MDRaisedButton:
                                 text: "Extract"
                                 md_bg_color: "green"
-                                on_release: root.controller.on_press_extract()
+                                on_release: root.controller.on_extract()
                         AnchorLayout:
                             anchor_x: 'right'
                             MDRaisedButton:
                                 text: "Batch Extract"
                                 md_bg_color: "green"
+                                on_release: root.controller.update_on_batch_extract()
 
 
             # LOGGING INFORMATION
