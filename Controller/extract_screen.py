@@ -130,7 +130,6 @@ class ExtractScreenController:
         self.folder_paths[button_id] = path
         self.exit_manager()
         toast(path)
-        self.load_stereo_images()
     
     def exit_manager(self, *args):
         '''Called when the user reaches the root of the directory tree.'''
@@ -179,7 +178,7 @@ class ExtractScreenController:
     
 
     def show_next_image(self, button_id):
-        left, right = self.load_stereo_images()
+        left, right, _ = self.load_stereo_images()
 
         if self.on_button_press(button_id):
             self.view.left_im.source = left[self.image_index]
@@ -204,10 +203,16 @@ class ExtractScreenController:
         left_img_path = self.view.left_im.source
         right_img_path = self.view.right_im.source
 
+        main_folder_path = os.path.dirname(os.path.dirname(left_img_path))
+        left_img_filename = os.path.basename(left_img_path)
+        mask_path =  main_folder_path + '/masks/' + left_img_filename.split(".")[0] + "_mask.png"
+
         left = cv2.imread(left_img_path, 0)
         right = cv2.imread(right_img_path, 0)
+        mask = cv2.imread(mask_path, 0)
+        kernel = np.ones((3,3),np.uint8)
 
-        dmap = extract(left, right)
+        dmap = extract(left, right, mask, kernel)
         dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
         dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
 
@@ -237,22 +242,27 @@ class ExtractScreenController:
                 right_img_path=right_img
             )
 
-        self.image_index += 1
+        if self.image_index < len(left_ims) - 1:
+            self.image_index += 1
+        elif self.image_index == len(left_ims) - 1:
+            toast("Batch extraction complete")
     
     def update_on_batch_extract(self):
         Clock.schedule_interval(self.on_batch_extract, 2)
 
 
-def extract(left_im, right_im):
+def extract(left_im, right_im, mask, sel):
     '''
     Extracts the disparity map and returns it
     '''
     dmap = algorithms.compute_depth_map(
         imgL = left_im,
-        imgR = right_im
+        imgR = right_im,
+        mask = mask,
+        sel= sel
     )
 
-    return dmap['O']
+    return dmap['R']
 
 class IconListItem(OneLineIconListItem):
     icon = StringProperty()

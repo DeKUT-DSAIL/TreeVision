@@ -168,7 +168,7 @@ def morphology(mask, kernel):
 
 
 
-def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray):
+def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel: np.ndarray):
         '''
         This function extracts the disparity map from left and right images of a stereo image pair. \n
         @param imgL The left image of the stereo pair \n
@@ -221,8 +221,8 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray):
 
         imgL_rectified = cv2.remap(imgL, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
         imgR_rectified = cv2.remap(imgR, xmap2, ymap2, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
-        # mask_rectified = cv2.remap(mask, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
-        # mask_rectified = morphology(mask_rectified, sel)
+        mask_rectified = cv2.remap(mask, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+        mask_rectified = morphology(mask_rectified, sel)
 
         # -------------------------------- #
         # COMPUTE DISPARITY MAP
@@ -275,7 +275,7 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray):
 
         # mask the disparity maps
         # filtered[mask_rectified == 0] = 0
-        # disp_closed[mask_rectified == 0] = 0
+        disp_closed[mask_rectified == 0] = 0
         
         # R - Raw (before filtering);  F - Filtered;  O - Full (before masking)
         return {'R': disp_closed, 'O': full}
