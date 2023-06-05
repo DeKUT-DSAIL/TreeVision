@@ -105,6 +105,7 @@ class ExtractScreenController:
     
     def set_item(self, menu, dropdown_item, text_item):
         dropdown_item.set_item(text_item)
+        self.view.parameter_dropdown_item.text = text_item
         menu.dismiss()
 
     def get_view(self) -> View.ExtractScreen.extract_screen:
@@ -127,6 +128,15 @@ class ExtractScreenController:
         self.manager_open = True
     
     def store_folder_paths(self, path, button_id):
+        '''
+        Stores the paths the folders containing the left and right images in a dictionary with keys "left" and "right" \n
+        The folders are selected using file manager buttons on the user interface. There are separate buttons for selecting \n
+        the left and right folders and they have the IDs "left" and "right" respectively.
+
+        @param path The path to the folder
+        @param button_id The ID of the folder selection button. It takes one of the values "left" or "right"
+        '''
+
         self.folder_paths[button_id] = path
         self.exit_manager()
         toast(path)
@@ -149,6 +159,10 @@ class ExtractScreenController:
         return len(left_ims) == len(right_ims)
 
     def load_stereo_images(self):
+        '''
+        Returns two lists for all paths to the images contained in the left and right folders. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
+        '''
+
         left_ims = glob(self.folder_paths['left'] + "/*.jpg")
         right_ims = glob(self.folder_paths['right'] + "/*.jpg")
 
@@ -166,6 +180,11 @@ class ExtractScreenController:
         
 
     def on_button_press(self, instance):
+        '''
+        Enables scrolling forward and backward to facilitate viewing the corresponding images in the left and right folders. There are two buttons on the user interface, one for scrolling forward and another for scrolling backward.\n
+        @param instance The instance of the button pressed to scroll. It takes the values "next" or "previous"
+        '''
+
         if self.num_of_images == 0:
             toast("Select Left and Right image folders first")
             return
@@ -178,6 +197,11 @@ class ExtractScreenController:
     
 
     def show_next_image(self, button_id):
+        '''
+        Displays the next image in the sequence once the scroll buttons are clicked
+        @param button_id The ID of the scroll button clicked. It takes the values "next" or "previous"
+        '''
+
         left, right, _ = self.load_stereo_images()
 
         if self.on_button_press(button_id):
@@ -186,6 +210,10 @@ class ExtractScreenController:
 
 
     def create_disparity_directory(self):
+        '''
+        Creates a directory in the "assets" folder of the app for the project. This is the directory where the extracted disparity maps will be saved
+        '''
+
         project = self.view.project_name.text
         if project == '':
             toast("Please provide the project name!")
@@ -199,6 +227,12 @@ class ExtractScreenController:
 
 
     def save_and_display_disparity(self, left_img_path=None, right_img_path=None):
+        '''
+        Saves the extracted disparity map in the project folder and displays it in the user interface on the position initially occupied by the right image.
+        
+        @param left_img_path The path to the left image
+        @param right_img_path The path to the right image
+        '''
 
         left_img_path = self.view.left_im.source
         right_img_path = self.view.right_im.source
@@ -221,9 +255,13 @@ class ExtractScreenController:
 
 
     def on_extract(self):
+        '''
+        Called when the "Extract" button is pressed on the user interface
+        '''
 
         self.create_disparity_directory()
         self.save_and_display_disparity()
+        self.compute_parameter()
 
 
     def on_batch_extract(self, dt):
@@ -249,6 +287,20 @@ class ExtractScreenController:
     
     def update_on_batch_extract(self):
         Clock.schedule_interval(self.on_batch_extract, 2)
+
+    
+    def compute_parameter(self):
+        parameter = self.view.parameter_dropdown_item.text
+        print(f"Parameter: {parameter}")
+        dmap = cv2.imread(self.view.right_im.source, 0)
+        
+        if parameter == "DBH":
+            algorithms.compute_dbh(dmap)
+        elif parameter == "CD":
+            algorithms.compute_cd(dmap)
+        elif parameter == "TH":
+            algorithms.compute_th(dmap)
+
 
 
 def extract(left_im, right_im, mask, sel):
