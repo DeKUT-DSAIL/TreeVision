@@ -39,8 +39,9 @@ class ExtractScreenController:
     num_of_images = 0
 
     ASSET_DIR = 'assets'
-    PROJECT_DIR = 'assets/projects'
-    DISPARITY_MAPS_DIR = ''
+    PROJECT_DIR = os.path.join(ASSET_DIR, 'projects')
+    DISPARITY_MAPS_DIR = None
+    RESULTS_DIR = None
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -209,21 +210,29 @@ class ExtractScreenController:
             self.view.right_im.source = right[self.image_index]
 
 
-    def create_disparity_directory(self):
+    def create_project_directories(self):
         '''
         Creates a directory in the "assets" folder of the app for the project. This is the directory where the extracted disparity maps will be saved
         '''
 
         project = self.view.project_name.text
+
         if project == '':
-            toast("Please provide the project name!")
+            toast("Please provide a project name!")
+            return False
+        
         else:
-            path = os.path.join(self.PROJECT_DIR, f'{project}/disparity_maps')
-            if not os.path.exists(path):
-                os.makedirs(path)
-                self.DISPARITY_MAPS_DIR = path
-            else:
-                pass
+            dmaps_path = os.path.join(self.PROJECT_DIR, f'{project}/disparity_maps')
+            results_path = os.path.join(self.PROJECT_DIR, f'{project}/results')
+
+            self.DISPARITY_MAPS_DIR = dmaps_path
+            self.RESULTS_DIR = results_path
+
+            os.makedirs(dmaps_path) if not os.path.exists(results_path) else None
+            os.makedirs(results_path) if not os.path.exists(results_path) else None
+
+            return True
+
 
 
     def save_and_display_disparity(self, left_img_path=None, right_img_path=None):
@@ -239,14 +248,17 @@ class ExtractScreenController:
 
         main_folder_path = os.path.dirname(os.path.dirname(left_img_path))
         left_img_filename = os.path.basename(left_img_path)
-        mask_path =  main_folder_path + '/masks/' + left_img_filename.split(".")[0] + "_mask.png"
+        masks_folder_path = os.path.join(main_folder_path, 'masks')
+        mask_filename = left_img_filename.split(".")[0] + "_mask.png"
+
+        mask_path =  os.path.join(masks_folder_path, mask_filename)
 
         left = cv2.imread(left_img_path, 0)
         right = cv2.imread(right_img_path, 0)
         mask = cv2.imread(mask_path, 0)
-        kernel = np.ones((3,3),np.uint8)
+        kernel = np.ones((3,3), np.uint8)
 
-        dmap = extract(left, right, mask, kernel)
+        dmap = algorithms.extract(left, right, mask, kernel)
         dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
         dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
 
@@ -259,14 +271,17 @@ class ExtractScreenController:
         Called when the "Extract" button is pressed on the user interface
         '''
 
-        self.create_disparity_directory()
-        self.save_and_display_disparity()
-        self.compute_parameter()
+        if self.create_project_directories():
+            self.save_and_display_disparity()
+            self.compute_parameter()
+        else:
+            toast("Provide a project name to extract measurements!")
+
 
 
     def on_batch_extract(self, dt):
         
-        self.create_disparity_directory()
+        self.create_project_directories()
 
         left_ims, right_ims = self.load_stereo_images()
         left_img = left_ims[self.image_index]
@@ -289,6 +304,7 @@ class ExtractScreenController:
         Clock.schedule_interval(self.on_batch_extract, 2)
 
     
+
     def compute_parameter(self):
         parameter = self.view.parameter_dropdown_item.text
         print(f"Parameter: {parameter}")
@@ -302,19 +318,6 @@ class ExtractScreenController:
             algorithms.compute_th(dmap)
 
 
-
-def extract(left_im, right_im, mask, sel):
-    '''
-    Extracts the disparity map and returns it
-    '''
-    dmap = algorithms.compute_depth_map(
-        imgL = left_im,
-        imgR = right_im,
-        mask = mask,
-        sel= sel
-    )
-
-    return dmap['R']
 
 class IconListItem(OneLineIconListItem):
     icon = StringProperty()

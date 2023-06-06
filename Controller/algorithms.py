@@ -121,6 +121,25 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
 
 
 
+def extract(left_im, right_im, mask, sel):
+    '''
+    Extracts the disparity map and returns it
+    @param left_im: The left image
+    @param right_im: The right image
+    @param mask: The segmentation mask of the image used as the base for the disparity map (usually the left image)
+    @param sel: The structuring element to be used for morphological processing
+    '''
+    dmap = compute_depth_map(
+        imgL = left_im,
+        imgR = right_im,
+        mask = mask,
+        sel= sel
+    )
+
+    return dmap['R']
+
+
+
 def disp_to_dist(x):
     '''
     Resolves the distance from a given disparity value based on a curve fitted to the \n
@@ -130,6 +149,8 @@ def disp_to_dist(x):
             43, 42, 41, 40, 39, 38, 37, 37, 35, 35, 33, 33, 31, 31]
 
     dist = np.linspace(3.0, 12.6, 33)
+
+    @param x: The disparity value (usually the greyscale intensity of a pixel in the disparity map) to be resolved into distance in m
     '''
     y = (346*x**2 -116.7*x - 1.961) / (x**3 - 5.863*x**2 + 47.24*x + 487.6)
     return y
@@ -139,6 +160,8 @@ def disp_to_dist(x):
 def convex_hull(img):
     '''
     Finds edge pixels on the left, right, base and top of the image
+
+    @param img: Source image, usually the segmented disparity map
     '''
     rows, cols = img.nonzero()
     base = (rows.max(), cols[np.where(rows == rows.max())][0])
@@ -151,6 +174,12 @@ def convex_hull(img):
 
 
 def median_top_pixel(image):
+    '''
+    Returns the median pixel intensity from the region of interest at the top of the tree in the disparity map
+
+    @param image: Source image, usually the segmented disparity map
+    '''
+
     pixels = []
     top = convex_hull(image)[1]
 
@@ -167,6 +196,12 @@ def median_top_pixel(image):
 
 
 def median_base_pixel(image):
+    '''
+    Returns the median pixel intensity from the region of interest at the base of the tree in the disparity map
+
+    @param image: Source image, usually the segmented disparity map
+    '''
+
     pixels = []
     base = convex_hull(image)[0]
 
@@ -183,6 +218,11 @@ def median_base_pixel(image):
 
 
 def median_bh_pixels(image):
+    '''
+    Returns the median pixel intensity from the region of interest at the breast height of the tree in the disparity map
+
+    @param image: Source image, usually the segmented disparity map
+    '''
 
     pixels = []
     zc = disp_to_dist(median_base_pixel(image))
@@ -203,6 +243,12 @@ def median_bh_pixels(image):
 
 
 def median_crown_pixel(image):
+    '''
+    Returns the median pixel intensity from the region of interest at the crown edges of the tree in the disparity map
+
+    @param image: Source image, usually the segmented disparity map
+    '''
+
     pixels = []
     left = convex_hull(image)[2]
 
