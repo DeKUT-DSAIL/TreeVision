@@ -1,6 +1,7 @@
 import os
 import time
 import importlib
+import csv
 from glob import glob
 
 from kivy.core.window import Window
@@ -17,6 +18,7 @@ import View.ExtractScreen.extract_screen
 from . import algorithms
 import cv2
 import numpy as np
+import pandas as pd
 
 # We have to manually reload the view module in order to apply the
 # changes made to the code on a subsequent hot reload.
@@ -125,7 +127,7 @@ class ExtractScreenController:
             exit_manager = self.exit_manager,
             select_path = lambda path: self.store_folder_paths(path, button_id)
         )
-        self.file_manager.show(os.path.expanduser("/"))
+        self.file_manager.show(os.path.expanduser("."))
         self.manager_open = True
     
     def store_folder_paths(self, path, button_id):
@@ -183,7 +185,8 @@ class ExtractScreenController:
     def on_button_press(self, instance):
         '''
         Enables scrolling forward and backward to facilitate viewing the corresponding images in the left and right folders. There are two buttons on the user interface, one for scrolling forward and another for scrolling backward.\n
-        @param instance The instance of the button pressed to scroll. It takes the values "next" or "previous"
+        
+        @param instance: The instance of the button pressed to scroll. It takes the values "next" or "previous"
         '''
 
         if self.num_of_images == 0:
@@ -200,14 +203,18 @@ class ExtractScreenController:
     def show_next_image(self, button_id):
         '''
         Displays the next image in the sequence once the scroll buttons are clicked
-        @param button_id The ID of the scroll button clicked. It takes the values "next" or "previous"
+
+        @param button_id: The ID of the scroll button clicked. It takes the values "next" or "previous"
         '''
 
-        left, right, _ = self.load_stereo_images()
+        left, right = self.load_stereo_images()
+        left = sorted(left)
+        right = sorted(right)
 
         if self.on_button_press(button_id):
             self.view.left_im.source = left[self.image_index]
             self.view.right_im.source = right[self.image_index]
+
 
 
     def create_project_directories(self):
@@ -227,10 +234,16 @@ class ExtractScreenController:
 
             self.DISPARITY_MAPS_DIR = dmaps_path
             self.RESULTS_DIR = results_path
-
+            
             os.makedirs(dmaps_path) if not os.path.exists(results_path) else None
             os.makedirs(results_path) if not os.path.exists(results_path) else None
 
+            results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
+
+            if not os.path.exists(results_file):
+                results_df = pd.DataFrame(data=[], columns=['Filename', 'DBH', 'CD', 'TH'])
+                results_df.to_csv(results_file)
+            
             return True
 
 
@@ -264,7 +277,7 @@ class ExtractScreenController:
 
         cv2.imwrite(dmap_path, dmap)
         self.view.right_im.source = dmap_path
-
+        
 
     def on_extract(self):
         '''
@@ -273,7 +286,17 @@ class ExtractScreenController:
 
         if self.create_project_directories():
             self.save_and_display_disparity()
-            self.compute_parameter()
+            parameter, value = self.compute_parameter()
+
+            left_filename = os.path.basename(self.view.left_im.source)
+            new_row = {'Filename': left_filename, parameter: round(value, 2)}
+
+            results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
+
+            results_df = pd.read_csv(results_file)
+            results_df.loc[len(results_df)] = new_row
+            results_df.to_csv(results_file, index=False)
+        
         else:
             toast("Provide a project name to extract measurements!")
 
@@ -284,6 +307,9 @@ class ExtractScreenController:
         self.create_project_directories()
 
         left_ims, right_ims = self.load_stereo_images()
+        left_ims = sorted(left_ims)
+        right_ims = sorted(right_ims)
+
         left_img = left_ims[self.image_index]
         right_img = right_ims[self.image_index]
 
@@ -295,27 +321,43 @@ class ExtractScreenController:
                 right_img_path=right_img
             )
 
+        parameter, value = self.compute_parameter()
+
+        left_filename = os.path.basename(self.view.left_im.source)
+
+        new_row = {'Filename': left_filename, parameter: round(value, 2)}
+        results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
+
+        results_df = pd.read_csv(results_file)
+        results_df.loc[len(results_df)] = new_row
+        results_df.to_csv(results_file, index=False)
+
         if self.image_index < len(left_ims) - 1:
             self.image_index += 1
-        elif self.image_index == len(left_ims) - 1:
-            toast("Batch extraction complete")
+        else:
+            toast('Batch extraction complete')
+            self.unschedule_batch_extraction()
     
+
+
     def update_on_batch_extract(self):
         Clock.schedule_interval(self.on_batch_extract, 2)
+    
+    def unschedule_batch_extraction(self):
+        Clock.unschedule(self.on_batch_extract)
 
     
 
     def compute_parameter(self):
         parameter = self.view.parameter_dropdown_item.text
-        print(f"Parameter: {parameter}")
         dmap = cv2.imread(self.view.right_im.source, 0)
         
         if parameter == "DBH":
-            algorithms.compute_dbh(dmap)
+            return parameter, algorithms.compute_dbh(dmap)
         elif parameter == "CD":
-            algorithms.compute_cd(dmap)
+            return parameter, algorithms.compute_cd(dmap)
         elif parameter == "TH":
-            algorithms.compute_th(dmap)
+            return parameter, algorithms.compute_th(dmap)
 
 
 
