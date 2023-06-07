@@ -124,6 +124,7 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
 def extract(left_im, right_im, mask, sel):
     '''
     Extracts the disparity map and returns it
+
     @param left_im: The left image
     @param right_im: The right image
     @param mask: The segmentation mask of the image used as the base for the disparity map (usually the left image)
@@ -136,7 +137,36 @@ def extract(left_im, right_im, mask, sel):
         sel= sel
     )
 
-    return dmap['R']
+    depth = threshold_disparity(dmap['R'])
+
+    return depth
+
+
+
+def threshold_disparity(image):
+    '''
+    Performs two-level thresholding on the segmented disparity map. Some disparity maps have pixel intensities that exhibit \n
+    a multi-modal histograms with most pixelintensities around the largest peak in the histogram. Values slightly below and \n
+    slightly above this peak are considered backgrond pixels and are removed using this appraoch.
+
+    @param image: Segmented disparity map
+    '''
+
+    mask = np.asarray(image > 10, dtype=np.uint8)
+
+    hist = cv2.calcHist(images=[image], channels=[0], mask=mask, histSize=[256], ranges=[0,255])
+    hist = np.squeeze(hist)
+
+    peak_index = np.argmax(hist)
+
+    thresh1 = np.where(hist == hist[peak_index])[0][0] - 10
+    thresh2 = np.where(hist == hist[peak_index])[0][0] + 10
+
+    thresholded = image.copy()
+    thresholded[image < thresh1] = 0
+    thresholded[image > thresh2] = 0
+
+    return thresholded
 
 
 
