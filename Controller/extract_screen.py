@@ -241,7 +241,8 @@ class ExtractScreenController:
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
             if not os.path.exists(results_file):
-                results_df = pd.DataFrame(data=[], columns=['Filename', 'DBH', 'CD', 'TH'])
+                results_df = pd.DataFrame(columns=['DBH', 'CD', 'TH'])
+                results_df.index.name = 'Filename'
                 results_df.to_csv(results_file)
             
             return True
@@ -289,13 +290,14 @@ class ExtractScreenController:
             parameter, value = self.compute_parameter()
 
             left_filename = os.path.basename(self.view.left_im.source)
-            new_row = {'Filename': left_filename, parameter: round(value, 2)}
+            new_row = {parameter: round(value, 2)}
 
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
-            results_df = pd.read_csv(results_file)
-            results_df.loc[len(results_df)] = new_row
-            results_df.to_csv(results_file, index=False)
+            results_df = pd.read_csv(results_file, index_col='Filename')
+            results_df.loc[left_filename] = new_row
+            print(results_df)
+            results_df.to_csv(results_file)
         
         else:
             toast("Provide a project name to extract measurements!")
@@ -325,12 +327,12 @@ class ExtractScreenController:
 
         left_filename = os.path.basename(self.view.left_im.source)
 
-        new_row = {'Filename': left_filename, parameter: round(value, 2)}
+        new_row = {parameter: round(value, 2)}
         results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
-        results_df = pd.read_csv(results_file)
-        results_df.loc[len(results_df)] = new_row
-        results_df.to_csv(results_file, index=False)
+        results_df = pd.read_csv(results_file, index_col='Filename')
+        results_df.loc[left_filename] = new_row
+        results_df.to_csv(results_file)
 
         if self.image_index < len(left_ims) - 1:
             self.image_index += 1
@@ -343,6 +345,8 @@ class ExtractScreenController:
     def update_on_batch_extract(self):
         Clock.schedule_interval(self.on_batch_extract, 2)
     
+
+
     def unschedule_batch_extraction(self):
         Clock.unschedule(self.on_batch_extract)
 
