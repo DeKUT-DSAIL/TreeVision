@@ -111,7 +111,16 @@ class ExtractScreenController:
             width_mult=2,
         )
         self.segmentation_menu.bind()
+        self.resize_icons()
+
     
+
+    def resize_icons(self):
+        if self.IMAGES_DIR == None:
+            self.view.overlay_layout.remove_widget(self.view.next_arrow)
+            self.view.overlay_layout.remove_widget(self.view.previous_arrow)
+        else:
+            pass
 
 
     def set_item(self, menu, dropdown_item, text_item):
@@ -145,6 +154,7 @@ class ExtractScreenController:
         '''
 
         self.IMAGES_DIR = path
+        self.resize_icons()
         self.exit_manager()
         toast(self.IMAGES_DIR)
 
@@ -177,7 +187,7 @@ class ExtractScreenController:
         '''
         Returns two lists for all paths to the images contained in the left and right folders. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
         '''
-
+        
         left_ims = glob(os.path.join(self.IMAGES_DIR, 'left/*.jpg'))
         right_ims = glob(os.path.join(self.IMAGES_DIR, 'right/*.jpg'))
 
@@ -197,9 +207,6 @@ class ExtractScreenController:
         @param instance: The instance of the button pressed to scroll. It takes the values "next" or "previous"
         '''
 
-        if self.num_of_images == 0:
-            toast("Select Left and Right image folders first")
-            return
         if instance == 'next':
             self.image_index = (self.image_index + 1) % self.num_of_images
             return True
@@ -215,6 +222,7 @@ class ExtractScreenController:
 
         @param button_id: The ID of the scroll button clicked. It takes the values "next" or "previous"
         '''
+
 
         left, right = self.load_stereo_images()
         left = sorted(left)

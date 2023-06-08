@@ -4,6 +4,10 @@
     image_plane: image_plane
     left_im: left_im
     right_im: right_im
+    overlay_layout: overlay_layout
+    overlay: overlay
+    previous_arrow: previous_arrow
+    next_arrow: next_arrow
     project_name: project_name
     images_select: images_select
     verify_checkbox: verify_checkbox
@@ -13,45 +17,58 @@
 
     FloatLayout:
         size: root.size
-        orientation: "vertical"
-        MDBoxLayout:
-            id: image_plane
-            orientation: "horizontal"
+        FloatLayout:
             size_hint_y: .6
-            pos_hint: {'top': 0.995}
-
-            # This canvas is a dark overlay over the images
-            canvas.after:
-                Color:
-                    rgba: 0, 0, 0, 0.5
-                Rectangle:
-                    pos: self.pos
-                    size: (self.parent.width, 0.2*self.parent.height)
+            pos_hint: {'top': 1}
 
             # left and right images
-            Image:
-                id: left_im
-                source: "/mnt/kieni/kieni-13-03-2023/left/IMG_20230309_103936_RIGHT.jpg"
-                size: self.texture_size
-                allow_stretch: True
-            Image:
-                id: right_im
-                source: "/mnt/kieni/kieni-13-03-2023/right/IMG_20230309_103936_LEFT.jpg"
-                size: self.texture_size
-                allow_stretch: True
-                keep_ration: False
-        
-        MDFloatingActionButton:
-            icon: 'arrow-left-circle-outline'
-            md_bg_color: app.theme_cls.primary_color
-            pos_hint: {"center_x": .47, "center_y": .5}
-            on_release: root.controller.show_next_image('previous')
+            MDBoxLayout:
+                id: image_plane
+                pos_hint: {'top': 1}
+                AnchorLayout:
+                    anchor_x: 'left'
+                    Image:
+                        id: left_im
+                        source: "/mnt/kieni/kieni-13-03-2023/left/IMG_20230309_103936_RIGHT.jpg"
+                        size: self.texture_size
+                        allow_stretch: True
+                AnchorLayout:
+                    anchor_x: 'right'
+                    Image:
+                        id: right_im
+                        source: "/mnt/kieni/kieni-13-03-2023/right/IMG_20230309_103936_LEFT.jpg"
+                        size: self.texture_size
+                        allow_stretch: True
+            
+            FloatLayout:
+                id: overlay_layout
+                pos_hint: {'y': 0}
+                size_hint_y: None
+                height: self.parent.height * 0.15
 
-        MDFloatingActionButton:
-            icon: 'arrow-right-circle-outline'
-            md_bg_color: app.theme_cls.primary_color
-            pos_hint: {"center_x": .53, "center_y": .5}
-            on_release: root.controller.show_next_image('next')
+                Widget:
+                    id: overlay
+                    canvas.before:
+                        Color:
+                            rgba: 0,0,0,0.5
+                        Rectangle:
+                            pos: self.parent.pos
+                            size: self.parent.size
+        
+                MDIconButton:
+                    id: previous_arrow
+                    icon: 'arrow-left-circle-outline'
+                    md_bg_color: app.theme_cls.primary_color
+                    pos_hint: {"center_x": .47, "center_y": .5}
+                    on_release: root.controller.show_next_image('previous')
+
+
+                MDIconButton:
+                    id: next_arrow
+                    icon: 'arrow-right-circle-outline'
+                    md_bg_color: app.theme_cls.primary_color
+                    pos_hint: {"center_x": .53, "center_y": .5}
+                    on_release: root.controller.show_next_image('next')
 
         # Configurations and logging
         MDBoxLayout:
