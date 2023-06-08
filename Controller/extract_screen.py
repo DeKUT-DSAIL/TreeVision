@@ -44,13 +44,19 @@ class ExtractScreenController:
     PROJECT_DIR = os.path.join(ASSET_DIR, 'projects')
     DISPARITY_MAPS_DIR = None
     RESULTS_DIR = None
+    IMAGES_DIR = None
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
         # Window.bind(on_keyboard = self.events)
         self.manager_open = False
         self.file_manager = None
-        self.folder_paths = {"left": "", "right": ""}
+
+        self.file_manager = MDFileManager(
+            selector = "folder",
+            exit_manager = self.exit_manager,
+            select_path = self.select_path
+        )
 
         self.parameter_menu_items = [
             {
@@ -106,49 +112,51 @@ class ExtractScreenController:
         )
         self.segmentation_menu.bind()
     
+
+
     def set_item(self, menu, dropdown_item, text_item):
         dropdown_item.set_item(text_item)
         self.view.parameter_dropdown_item.text = text_item
         menu.dismiss()
 
+
+
     def get_view(self) -> View.ExtractScreen.extract_screen:
         return self.view
     
-    def toggle_cameras(self, widget):
-        if widget.state == 'normal':
-            self.view.camera.play = False
-        else:
-            self.view.camera.play = True
     
 
-    def file_manager_open(self, button_id):
-        self.file_manager = MDFileManager(
-            selector = "folder",
-            exit_manager = self.exit_manager,
-            select_path = lambda path: self.store_folder_paths(path, button_id)
-        )
+    def file_manager_open(self):
+        '''
+        Opens the file manager when the triggering event in the user interface happens
+        '''
+
         self.file_manager.show(os.path.expanduser("."))
         self.manager_open = True
+
     
-    def store_folder_paths(self, path, button_id):
-        '''
-        Stores the paths the folders containing the left and right images in a dictionary with keys "left" and "right" \n
-        The folders are selected using file manager buttons on the user interface. There are separate buttons for selecting \n
-        the left and right folders and they have the IDs "left" and "right" respectively.
 
-        @param path The path to the folder
-        @param button_id The ID of the folder selection button. It takes one of the values "left" or "right"
+    def select_path(self, path: str):
+        '''
+        It will be called when you click on the file name
+        or the catalog selection button.
+
+        @param path: path to the selected directory or file;
         '''
 
-        self.folder_paths[button_id] = path
+        self.IMAGES_DIR = path
         self.exit_manager()
-        toast(path)
+        toast(self.IMAGES_DIR)
+
+
     
     def exit_manager(self, *args):
         '''Called when the user reaches the root of the directory tree.'''
 
         self.manager_open = False
         self.file_manager.close()
+
+
     
     def events(self, instance, keyboard, keycode, text, modifiers):
         '''Called when buttons are pressed on the mobile device.'''
@@ -157,30 +165,30 @@ class ExtractScreenController:
             if self.manager_open:
                 self.file_manager.back()
         return True
+    
+
 
     def verify_images(self, left_ims, right_ims):
         return len(left_ims) == len(right_ims)
+    
+
 
     def load_stereo_images(self):
         '''
         Returns two lists for all paths to the images contained in the left and right folders. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
         '''
 
-        left_ims = glob(self.folder_paths['left'] + "/*.jpg")
-        right_ims = glob(self.folder_paths['right'] + "/*.jpg")
+        left_ims = glob(os.path.join(self.IMAGES_DIR, 'left/*.jpg'))
+        right_ims = glob(os.path.join(self.IMAGES_DIR, 'right/*.jpg'))
 
         self.num_of_images = len(left_ims)
 
-        verify_required = self.view.verify_checkbox.active
-
-        if verify_required and self.verify_images(left_ims, right_ims):
-            return (left_ims, right_ims)
-        elif verify_required and not self.verify_images(left_ims, right_ims):
-            toast("Number of Left and Right Images Not equal")
-        elif not verify_required and (len(left_ims) > 0 and len(right_ims) > 0):
-            toast("Number of Left and Right images not verified!")
+        if self.verify_images(left_ims, right_ims):
             return (left_ims, right_ims)
         
+        toast("Number of Left and Right Images Not equal")
+    
+
 
     def on_button_press(self, instance):
         '''
@@ -199,6 +207,7 @@ class ExtractScreenController:
             self.image_index = (self.image_index - 1) % self.num_of_images
             return True
     
+
 
     def show_next_image(self, button_id):
         '''

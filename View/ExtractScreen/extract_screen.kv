@@ -5,6 +5,7 @@
     left_im: left_im
     right_im: right_im
     project_name: project_name
+    images_select: images_select
     verify_checkbox: verify_checkbox
     parameter_dropdown_item: parameter_dropdown_item
     segmentation_dropdown_item: segmentation_dropdown_item
@@ -95,21 +96,13 @@
                     cols: 2
                     spacing: "0dp", "10dp"
                     MDLabel:
-                        text: "Left Images:"
+                        text: "Images:"
                     MDRectangleFlatIconButton:
-                        id: left_select
+                        id: images_select
                         text: "Load"
                         icon: "folder"
                         size_hint_x: 1
-                        on_release: root.controller.file_manager_open('left')
-                    MDLabel:
-                        text: "Right Images:"
-                    MDRectangleFlatIconButton:
-                        id: right_select
-                        text: "Load"
-                        icon: "folder"
-                        size_hint_x: 1
-                        on_release: root.controller.file_manager_open('right')
+                        on_release: root.controller.file_manager_open()
             
             # COLUMN: GENERAL CONFIGURATIONS 
             MDBoxLayout:
