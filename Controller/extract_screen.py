@@ -11,6 +11,7 @@ from kivy.properties import StringProperty
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.list import OneLineIconListItem
+from kivymd.uix.button import MDIconButton
 from kivymd.toast import toast
 from kivy.clock import Clock
 
@@ -111,16 +112,20 @@ class ExtractScreenController:
             width_mult=2,
         )
         self.segmentation_menu.bind()
-        self.resize_icons()
+        self.toggle_scrolling_icons()
 
     
 
-    def resize_icons(self):
+    def toggle_scrolling_icons(self):
+
         if self.IMAGES_DIR == None:
-            self.view.overlay_layout.remove_widget(self.view.next_arrow)
-            self.view.overlay_layout.remove_widget(self.view.previous_arrow)
+            self.view.previous_arrow.opacity = 0
+            self.view.next_arrow.opacity = 0
         else:
-            pass
+            self.view.previous_arrow.opacity = 1
+            self.view.next_arrow.opacity = 1
+            self.view.previous_arrow.on_release = lambda: self.show_next_image('previous')
+            self.view.next_arrow.on_release = lambda: self.show_next_image('next')
 
 
     def set_item(self, menu, dropdown_item, text_item):
@@ -154,7 +159,7 @@ class ExtractScreenController:
         '''
 
         self.IMAGES_DIR = path
-        self.resize_icons()
+        self.toggle_scrolling_icons()
         self.exit_manager()
         toast(self.IMAGES_DIR)
 
