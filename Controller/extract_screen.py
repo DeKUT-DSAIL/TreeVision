@@ -46,6 +46,7 @@ class ExtractScreenController:
     DISPARITY_MAPS_DIR = None
     RESULTS_DIR = None
     IMAGES_DIR = None
+    FILE_MANAGER_SELECTOR = 'folder'
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -54,7 +55,7 @@ class ExtractScreenController:
         self.file_manager = None
 
         self.file_manager = MDFileManager(
-            selector = "folder",
+            selector = self.FILE_MANAGER_SELECTOR,
             exit_manager = self.exit_manager,
             select_path = self.select_path
         )
@@ -140,10 +141,17 @@ class ExtractScreenController:
     
     
 
-    def file_manager_open(self):
+    def file_manager_open(self, selector):
         '''
         Opens the file manager when the triggering event in the user interface happens
         '''
+        self.FILE_MANAGER_SELECTOR = selector
+        
+        self.file_manager = MDFileManager(
+            selector = self.FILE_MANAGER_SELECTOR,
+            exit_manager = self.exit_manager,
+            select_path = self.select_path
+        )
 
         self.file_manager.show(os.path.expanduser("."))
         self.manager_open = True

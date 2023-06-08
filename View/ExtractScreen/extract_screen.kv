@@ -10,7 +10,6 @@
     next_arrow: next_arrow
     project_name: project_name
     images_select: images_select
-    verify_checkbox: verify_checkbox
     parameter_dropdown_item: parameter_dropdown_item
     segmentation_dropdown_item: segmentation_dropdown_item
 
@@ -86,38 +85,50 @@
                 orientation: "vertical"
                 size_hint_x: 0.8
                 padding: "10dp", "10dp"
-                MDGridLayout:
-                    cols: 2
+                MDBoxLayout:
                     size_hint_y: None
                     height: "30dp"
-                    MDLabel:
-                        text: "Project name: "
-                        color: 0, 0, 0, 1
-                    TextInput:
-                        id: project_name
-                        multiline: False
-                MDGridLayout:
-                    cols: 2
+                    AnchorLayout:
+                        anchor_x: 'left'
+                        MDLabel:
+                            text: "Project name: "
+                            color: 0, 0, 0, 1
+                    AnchorLayout:
+                        anchor_x: 'right'
+                        TextInput:
+                            id: project_name
+                            multiline: False
+                MDBoxLayout:
                     MDLabel:
                         text: "Upload:"
-                    MDGridLayout:
-                        cols: 2
+                MDBoxLayout:
+                    spacing: dp(0), "10dp"
+                    AnchorLayout:
+                        anchor_x: 'left'
                         MDLabel:
-                            text: "Verify"
-                        MDCheckbox:
-                            id: verify_checkbox
-                            active: True
-                MDGridLayout:
-                    cols: 2
-                    spacing: "0dp", "10dp"
-                    MDLabel:
-                        text: "Images:"
-                    MDRectangleFlatIconButton:
-                        id: images_select
-                        text: "Load"
-                        icon: "folder"
-                        size_hint_x: 1
-                        on_release: root.controller.file_manager_open()
+                            text: "Images:"
+                    AnchorLayout:
+                        anchor_x: 'right'
+                        MDRectangleFlatIconButton:
+                            id: images_select
+                            text: "Load"
+                            icon: "folder"
+                            size_hint_x: 1
+                            on_release: root.controller.file_manager_open('folder')
+                MDBoxLayout:
+                    spacing: dp(0), "10dp"
+                    AnchorLayout:
+                        anchor_x: 'left'
+                        MDLabel:
+                            text: "Calibration file (YML):"
+                    AnchorLayout:
+                        anchor_x: 'right'
+                        MDRectangleFlatIconButton:
+                            text: "Select"
+                            icon: "file"
+                            size_hint_x: 1
+                            on_release: root.controller.file_manager_open('file')
+                    
             
             # COLUMN: GENERAL CONFIGURATIONS 
             MDBoxLayout:
