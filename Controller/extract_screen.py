@@ -131,7 +131,7 @@ class ExtractScreenController:
 
     def set_item(self, menu, dropdown_item, text_item):
         dropdown_item.set_item(text_item)
-        self.view.parameter_dropdown_item.text = text_item
+        dropdown_item.text = text_item
         menu.dismiss()
 
 
@@ -205,6 +205,7 @@ class ExtractScreenController:
         right_ims = glob(os.path.join(self.IMAGES_DIR, 'right/*.jpg'))
 
         self.num_of_images = len(left_ims)
+        self.view.ids.progress_bar.max = self.num_of_images
 
         if self.verify_images(left_ims, right_ims):
             return (left_ims, right_ims)
@@ -335,45 +336,50 @@ class ExtractScreenController:
 
 
     def on_batch_extract(self, dt):
-        
-        self.create_project_directories()
+            
+        if self.create_project_directories():
 
-        left_ims, right_ims = self.load_stereo_images()
-        left_ims = sorted(left_ims)
-        right_ims = sorted(right_ims)
+            left_ims, right_ims = self.load_stereo_images()
+            left_ims = sorted(left_ims)
+            right_ims = sorted(right_ims)
 
-        left_img = left_ims[self.image_index]
-        right_img = right_ims[self.image_index]
+            left_img = left_ims[self.image_index]
+            right_img = right_ims[self.image_index]
 
-        self.view.left_im.source = left_img
-        self.view.right_im.source = right_img
+            self.view.left_im.source = left_img
+            self.view.right_im.source = right_img
 
-        self.save_and_display_disparity(
-                left_img_path=left_img,
-                right_img_path=right_img
-            )
+            self.save_and_display_disparity(
+                    left_img_path=left_img,
+                    right_img_path=right_img
+                )
 
-        parameter, value = self.compute_parameter()
+            parameter, value = self.compute_parameter()
 
-        left_filename = os.path.basename(self.view.left_im.source)
+            left_filename = os.path.basename(self.view.left_im.source)
 
-        new_row = {parameter: round(value, 2)}
-        results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
+            new_row = {parameter: round(value, 2)}
+            results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
-        results_df = pd.read_csv(results_file, index_col='Filename')
-        results_df.loc[left_filename] = new_row
-        results_df.to_csv(results_file)
+            results_df = pd.read_csv(results_file, index_col='Filename')
+            results_df.loc[left_filename] = new_row
+            results_df.to_csv(results_file)
 
-        if self.image_index < len(left_ims) - 1:
-            self.image_index += 1
+            if self.image_index < len(left_ims) - 1:
+                self.image_index += 1
+                self.view.ids.progress_bar.value = self.image_index + 1
+            else:
+                toast('Batch extraction complete')
+                self.unschedule_batch_extraction()
+
         else:
-            toast('Batch extraction complete')
+            toast("Provide a project name to extract measurements!")
             self.unschedule_batch_extraction()
     
 
 
     def update_on_batch_extract(self):
-        Clock.schedule_interval(self.on_batch_extract, 2)
+        Clock.schedule_interval(self.on_batch_extract, 0.5)
     
 
 

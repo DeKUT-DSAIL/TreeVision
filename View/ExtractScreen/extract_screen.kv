@@ -106,12 +106,12 @@
                     AnchorLayout:
                         anchor_x: 'left'
                         MDLabel:
-                            text: "Images:"
+                            text: "Images folder:"
                     AnchorLayout:
                         anchor_x: 'right'
                         MDRectangleFlatIconButton:
                             id: images_select
-                            text: "Load"
+                            text: "Select"
                             icon: "folder"
                             size_hint_x: 1
                             on_release: root.controller.file_manager_open('folder')
@@ -168,14 +168,14 @@
                     AnchorLayout:
                         anchor_x: 'left'
                         MDLabel:
-                            text: "Segmentation Algorithm"
+                            text: "Segmentation Approach"
                     AnchorLayout:
                         anchor_x: 'right'
                         MDDropDownItem:
                             id: segmentation_dropdown_item
                             size_hint_x: 1
                             pos_hint: {'center_x': .5, 'center_y': .5}
-                            text: 'Select algorithm'
+                            text: 'Select approach'
                             on_release: root.controller.segmentation_menu.open()
                 MDBoxLayout:
                     orientation: 'vertical'
@@ -198,10 +198,10 @@
 
 
             # LOGGING INFORMATION
-            MDLabel:
-                text: "Logs"
-                color: 0,0,0,1
-                halign: "center"
+            MDProgressBar:
+                id: progress_bar
+                max: 100
+                value: 0
         
         # This is the bottom strip
         MDBoxLayout:
