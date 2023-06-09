@@ -70,15 +70,9 @@ class ExtractScreenController:
             },
             {
                 "viewclass": "OneLineListItem",
-                "text": "CD",
+                "text": "CD & TH",
                 "height": dp(56),
-                "on_release": lambda x="CD": self.set_item(self.parameter_menu, self.view.parameter_dropdown_item, x),
-            },
-            {
-                "viewclass": "OneLineListItem",
-                "text": "TH",
-                "height": dp(56),
-                "on_release": lambda x="TH": self.set_item(self.parameter_menu, self.view.parameter_dropdown_item, x),
+                "on_release": lambda x="CD & TH": self.set_item(self.parameter_menu, self.view.parameter_dropdown_item, x),
             }
         ]
 
@@ -329,10 +323,10 @@ class ExtractScreenController:
             dmap_path = self.save_and_display_disparity()
             self.view.right_im.source = dmap_path
 
-            parameter, value = self.compute_parameter()
+            parameters, values = self.compute_parameter()
 
             left_filename = os.path.basename(self.view.left_im.source)
-            new_row = {parameter: round(value, 2)}
+            new_row = {k: round(v, 2) for k,v in zip(parameters, values)}
 
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
@@ -373,11 +367,11 @@ class ExtractScreenController:
             self.view.right_im.source = dmap_path
             self.view.ids.progress_bar.value = self.image_index + 1
 
-            parameter, value = self.compute_parameter()
+            parameters, values = self.compute_parameter()
 
             left_filename = os.path.basename(self.view.left_im.source)
 
-            new_row = {parameter: round(value, 2)}
+            new_row = {k: round(v, 2) for k,v in zip(parameters, values)}
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
             results_df = pd.read_csv(results_file, index_col='Filename')
@@ -411,11 +405,13 @@ class ExtractScreenController:
         dmap = cv2.imread(self.view.right_im.source, 0)
         
         if parameter == "DBH":
-            return parameter, algorithms.compute_dbh(dmap)
-        elif parameter == "CD":
-            return parameter, algorithms.compute_cd(dmap)
-        elif parameter == "TH":
-            return parameter, algorithms.compute_th(dmap)
+            return [[parameter], [algorithms.compute_dbh(dmap)]]
+        
+        elif parameter == "CD & TH":
+            parameters = ["CD", "TH"]
+            values = [algorithms.compute_cd(dmap), algorithms.compute_th(dmap)]
+
+            return [parameters, values]
 
 
 
