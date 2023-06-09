@@ -7,7 +7,7 @@ from PIL import Image
 
 
 
-def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel: np.ndarray):
+def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel: np.ndarray, config_file_path: str):
     '''
     This function extracts the disparity map from left and right images of a stereo image pair. \n
     @param imgL The left image of the stereo pair \n
@@ -121,7 +121,7 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
 
 
 
-def extract(left_im, right_im, mask, sel):
+def extract(left_im, right_im, mask, sel, config_file_path):
     '''
     Extracts the disparity map and returns it
 
@@ -134,7 +134,8 @@ def extract(left_im, right_im, mask, sel):
         imgL = left_im,
         imgR = right_im,
         mask = mask,
-        sel= sel
+        sel = sel,
+        config_file_path = config_file_path
     )
 
     depth = threshold_disparity(dmap['R'])

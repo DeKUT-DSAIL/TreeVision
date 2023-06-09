@@ -47,6 +47,7 @@ class ExtractScreenController:
     RESULTS_DIR = None
     IMAGES_DIR = None
     FILE_MANAGER_SELECTOR = 'folder'
+    CONFIG_FILE_PATH = None
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -166,7 +167,11 @@ class ExtractScreenController:
         @param path: path to the selected directory or file;
         '''
 
-        self.IMAGES_DIR = path
+        if self.FILE_MANAGER_SELECTOR == 'folder':
+            self.IMAGES_DIR = path 
+        elif self.FILE_MANAGER_SELECTOR == 'file':
+            self.CONFIG_FILE_PATH = path
+        
         self.toggle_scrolling_icons()
         self.exit_manager()
         toast(self.IMAGES_DIR)
@@ -203,6 +208,7 @@ class ExtractScreenController:
         
         left_ims = glob(os.path.join(self.IMAGES_DIR, 'left/*.jpg'))
         right_ims = glob(os.path.join(self.IMAGES_DIR, 'right/*.jpg'))
+        print(f"PATH: {self.IMAGES_DIR}")
 
         self.num_of_images = len(left_ims)
         self.view.ids.progress_bar.max = self.num_of_images
@@ -302,22 +308,27 @@ class ExtractScreenController:
         right = cv2.imread(right_img_path, 0)
         mask = cv2.imread(mask_path, 0)
         kernel = np.ones((3,3), np.uint8)
+        
+        print(f"CONFIG: {self.CONFIG_FILE_PATH}")
 
-        dmap = algorithms.extract(left, right, mask, kernel)
+        dmap = algorithms.extract(left, right, mask, kernel, config_file_path=self.CONFIG_FILE_PATH)
+        
         dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
         dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
 
         cv2.imwrite(dmap_path, dmap)
-        self.view.right_im.source = dmap_path
+        return dmap_path
         
 
     def on_extract(self):
         '''
-        Called when the "Extract" button is pressed on the user interface
+        Called when the "Extract" button on the user interface is pressed
         '''
 
         if self.create_project_directories():
-            self.save_and_display_disparity()
+            dmap_path = self.save_and_display_disparity()
+            self.view.right_im.source = dmap_path
+
             parameter, value = self.compute_parameter()
 
             left_filename = os.path.basename(self.view.left_im.source)
@@ -336,6 +347,11 @@ class ExtractScreenController:
 
 
     def on_batch_extract(self, dt):
+        '''
+        This function performs batch extraction of tree parameters from all images in the selected images directory. 
+        The parameters are saved in a CSV file in the 'results' subdirectory of the projects folder.
+        Called when the "Batch extract" button on the user interface is pressed
+        '''
             
         if self.create_project_directories():
 
@@ -349,10 +365,13 @@ class ExtractScreenController:
             self.view.left_im.source = left_img
             self.view.right_im.source = right_img
 
-            self.save_and_display_disparity(
+            dmap_path = self.save_and_display_disparity(
                     left_img_path=left_img,
                     right_img_path=right_img
                 )
+            
+            self.view.right_im.source = dmap_path
+            self.view.ids.progress_bar.value = self.image_index + 1
 
             parameter, value = self.compute_parameter()
 
@@ -367,7 +386,6 @@ class ExtractScreenController:
 
             if self.image_index < len(left_ims) - 1:
                 self.image_index += 1
-                self.view.ids.progress_bar.value = self.image_index + 1
             else:
                 toast('Batch extraction complete')
                 self.unschedule_batch_extraction()
