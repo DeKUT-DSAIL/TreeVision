@@ -311,7 +311,7 @@ class ExtractScreenController:
         dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
 
         cv2.imwrite(dmap_path, dmap)
-        return dmap_path
+        return dmap_path, mask_path
         
 
     def on_extract(self):
@@ -320,13 +320,13 @@ class ExtractScreenController:
         '''
 
         if self.create_project_directories():
-            dmap_path = self.save_and_display_disparity()
+            dmap_path, mask_path = self.save_and_display_disparity()
             self.view.right_im.source = dmap_path
 
-            parameters, values = self.compute_parameter()
+            parameters, values = self.compute_parameter(mask_path)
 
             left_filename = os.path.basename(self.view.left_im.source)
-            new_row = {k: round(v, 2) for k,v in zip(parameters, values)}
+            new_row = {k: round(v*100, 2) for k,v in zip(parameters, values)}
 
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
@@ -359,7 +359,7 @@ class ExtractScreenController:
             self.view.left_im.source = left_img
             self.view.right_im.source = right_img
 
-            dmap_path = self.save_and_display_disparity(
+            dmap_path, mask_path = self.save_and_display_disparity(
                     left_img_path=left_img,
                     right_img_path=right_img
                 )
@@ -367,11 +367,11 @@ class ExtractScreenController:
             self.view.right_im.source = dmap_path
             self.view.ids.progress_bar.value = self.image_index + 1
 
-            parameters, values = self.compute_parameter()
+            parameters, values = self.compute_parameter(mask_path)
 
             left_filename = os.path.basename(self.view.left_im.source)
 
-            new_row = {k: round(v, 2) for k,v in zip(parameters, values)}
+            new_row = {k: round(v*100, 2) for k,v in zip(parameters, values)}
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
             results_df = pd.read_csv(results_file, index_col='Filename')
@@ -400,12 +400,13 @@ class ExtractScreenController:
 
     
 
-    def compute_parameter(self):
+    def compute_parameter(self, mask_path):
         parameter = self.view.parameter_dropdown_item.text
         dmap = cv2.imread(self.view.right_im.source, 0)
+        mask = cv2.imread(mask_path, 0)
         
         if parameter == "DBH":
-            return [[parameter], [algorithms.compute_dbh(dmap)]]
+            return [[parameter], [algorithms.compute_dbh(dmap, mask)]]
         
         elif parameter == "CD & TH":
             parameters = ["CD", "TH"]

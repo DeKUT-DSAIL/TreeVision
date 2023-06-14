@@ -160,8 +160,8 @@ def threshold_disparity(image):
 
     peak_index = np.argmax(hist)
 
-    thresh1 = np.where(hist == hist[peak_index])[0][0] - 10
-    thresh2 = np.where(hist == hist[peak_index])[0][0] + 10
+    thresh1 = np.where(hist == hist[peak_index])[0][0] - 20
+    thresh2 = np.where(hist == hist[peak_index])[0][0] + 20
 
     thresholded = image.copy()
     thresholded[image < thresh1] = 0
@@ -357,7 +357,7 @@ def compute_bh(img, zc, baseline=0.129, f=1438):
 
 
 
-def compute_dbh(image):
+def compute_dbh(image, mask):
     '''
     Extracts the DBH from the segmented disparity map
     @param image: The segmented disparity map
@@ -372,11 +372,11 @@ def compute_dbh(image):
     bh = compute_bh(img=image, zc=base_depth)
     print(f"Breast Height Location: {bh} pixels from the top")
 
-    bh_pixels = np.nonzero(image[bh, :])[0]
+    bh_pixels = np.nonzero(mask[bh, :])[0]
     sd = bh_pixels.size
     print(f"The DBH spans {sd} pixels")
 
-    da = disp_to_dist(median_bh_pixels(image)[1])
+    da = disp_to_dist(median_bh_pixels(image)[0])
     print(f"Depth of breast height: {round(da, 2)}m")
 
     theta = np.arctan(sd * 3.546e-4)
