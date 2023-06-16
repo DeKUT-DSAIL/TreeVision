@@ -203,8 +203,16 @@
                 MDProgressBar:
                     id: progress_bar
                     color: "green"
+                    size_hint_y: 0.3
                     max: 100
                     value: 0
+                MDScrollView:
+                    md_bg_color: 0, 0, 0, .8
+                    MDBoxLayout:
+                        orientation: 'vertical'
+                        id: logscroll
+                        size_hint: 1, None
+                        height: self.minimum_height
         
         # This is the bottom strip
         MDBoxLayout:

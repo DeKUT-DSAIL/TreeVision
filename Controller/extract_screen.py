@@ -12,6 +12,7 @@ from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.list import OneLineIconListItem
 from kivymd.uix.button import MDIconButton
+from kivymd.uix.label import MDLabel
 from kivymd.toast import toast
 from kivy.clock import Clock
 
@@ -368,6 +369,15 @@ class ExtractScreenController:
             self.view.ids.progress_bar.value = self.image_index + 1
 
             parameters, values = self.compute_parameter(mask_path)
+
+            logwidget = MDLabel(
+                text = f"Current image: {os.path.basename(left_img)}\n Crown Diameter: {round(values[0], 2)}\n Tree Height: {round(values[1], 2)}\n",
+                text_size = (None, None),
+                valign = 'middle'
+            )
+
+            self.view.ids.logscroll.spacing = logwidget.height + 5
+            self.view.ids.logscroll.add_widget(logwidget)
 
             left_filename = os.path.basename(self.view.left_im.source)
 
