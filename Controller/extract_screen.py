@@ -6,6 +6,7 @@ from glob import glob
 
 from kivy.core.window import Window
 from kivy.metrics import dp
+from kivy.utils import rgba
 from kivy.properties import StringProperty
 
 from kivymd.uix.filemanager import MDFileManager
@@ -371,13 +372,19 @@ class ExtractScreenController:
             parameters, values = self.compute_parameter(mask_path)
 
             logwidget = MDLabel(
-                text = f"Current image: {os.path.basename(left_img)}\n Crown Diameter: {round(values[0], 2)}\n Tree Height: {round(values[1], 2)}\n",
+                text = f"Image: {os.path.basename(left_img)} \nCrown Diameter: {round(values[0], 2)} \nTree Height: {round(values[1], 2)}\n",
                 text_size = (None, None),
-                valign = 'middle'
+                valign = 'middle',
+                theme_text_color = "Custom",
+                text_color = (1,1,1,1)
             )
-
-            self.view.ids.logscroll.spacing = logwidget.height + 5
-            self.view.ids.logscroll.add_widget(logwidget)
+            
+            layout = self.view.ids.scroll_layout
+            scrollview = self.view.ids.scrollview
+            
+            layout.spacing = logwidget.height * 0.8
+            layout.add_widget(logwidget)
+            scrollview.scroll_y = 0
 
             left_filename = os.path.basename(self.view.left_im.source)
 

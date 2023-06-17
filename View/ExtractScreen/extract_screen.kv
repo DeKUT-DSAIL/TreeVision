@@ -206,12 +206,14 @@
                     size_hint_y: 0.3
                     max: 100
                     value: 0
-                MDScrollView:
-                    md_bg_color: 0, 0, 0, .8
+                MDScrollView:  
+                    id: scrollview
                     MDBoxLayout:
+                        id: scroll_layout
                         orientation: 'vertical'
-                        id: logscroll
+                        md_bg_color: 0, 0, 0, 1
                         size_hint: 1, None
+                        padding: 0, 50
                         height: self.minimum_height
         
         # This is the bottom strip
