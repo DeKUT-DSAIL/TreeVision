@@ -204,7 +204,6 @@ class ExtractScreenController:
         
         left_ims = glob(os.path.join(self.IMAGES_DIR, 'left/*.jpg'))
         right_ims = glob(os.path.join(self.IMAGES_DIR, 'right/*.jpg'))
-        print(f"PATH: {self.IMAGES_DIR}")
 
         self.num_of_images = len(left_ims)
         self.view.ids.progress_bar.max = self.num_of_images
@@ -304,8 +303,6 @@ class ExtractScreenController:
         right = cv2.imread(right_img_path, 0)
         mask = cv2.imread(mask_path, 0)
         kernel = np.ones((3,3), np.uint8)
-        
-        print(f"CONFIG: {self.CONFIG_FILE_PATH}")
 
         dmap = algorithms.extract(left, right, mask, kernel, config_file_path=self.CONFIG_FILE_PATH)
         
@@ -328,13 +325,19 @@ class ExtractScreenController:
             parameters, values = self.compute_parameter(mask_path)
 
             left_filename = os.path.basename(self.view.left_im.source)
+
+            self.display_parameters_on_logs(
+                image = left_filename,
+                parameters = parameters,
+                values = values
+            )
+
             new_row = {k: round(v*100, 2) for k,v in zip(parameters, values)}
 
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
             results_df = pd.read_csv(results_file, index_col='Filename')
             results_df.loc[left_filename] = new_row
-            print(results_df)
             results_df.to_csv(results_file)
         
         else:
@@ -371,22 +374,13 @@ class ExtractScreenController:
 
             parameters, values = self.compute_parameter(mask_path)
 
-            logwidget = MDLabel(
-                text = f"Image: {os.path.basename(left_img)} \nCrown Diameter: {round(values[0], 2)} \nTree Height: {round(values[1], 2)}\n",
-                text_size = (None, None),
-                valign = 'middle',
-                theme_text_color = "Custom",
-                text_color = (1,1,1,1)
-            )
-            
-            layout = self.view.ids.scroll_layout
-            scrollview = self.view.ids.scrollview
-            
-            layout.spacing = logwidget.height * 0.8
-            layout.add_widget(logwidget)
-            scrollview.scroll_y = 0
-
             left_filename = os.path.basename(self.view.left_im.source)
+
+            self.display_parameters_on_logs(
+                image = left_filename,
+                parameters = parameters,
+                values = values
+            )
 
             new_row = {k: round(v*100, 2) for k,v in zip(parameters, values)}
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
@@ -405,6 +399,24 @@ class ExtractScreenController:
             toast("Provide a project name to extract measurements!")
             self.unschedule_batch_extraction()
     
+
+
+    def display_parameters_on_logs(self, image, parameters, values):
+        logwidget = MDLabel(
+                text = f"Image: {os.path.basename(image)} \n{parameters}: {[round(value, 2) for value in values]}\n",
+                text_size = (None, None),
+                valign = 'middle',
+                theme_text_color = "Custom",
+                text_color = (1,1,1,1)
+            )
+        
+        layout = self.view.ids.scroll_layout
+        scrollview = self.view.ids.scrollview
+        
+        layout.spacing = logwidget.height * 0.8
+        layout.add_widget(logwidget)
+        scrollview.scroll_y = 0
+
 
 
     def update_on_batch_extract(self):
