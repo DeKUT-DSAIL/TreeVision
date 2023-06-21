@@ -66,6 +66,17 @@
                     icon: 'arrow-right-circle-outline'
                     md_bg_color: app.theme_cls.primary_color
                     pos_hint: {"center_x": .53, "center_y": .5}
+                
+
+                MDIconButton:
+                    id: reset
+                    icon: 'cog-refresh-outline'
+                    widget_style: 'ios'
+                    theme_icon_color: 'Custom'
+                    icon_color: 'white'
+                    md_bg_color: .15, .65, .9, 1
+                    pos_hint: {"center_x": .95, "center_y": .5}
+                    on_release: root.controller.reset()
 
         # Configurations and logging
         MDBoxLayout:

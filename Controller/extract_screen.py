@@ -40,7 +40,6 @@ class ExtractScreenController:
     """
 
     image_index = 0
-    image_path = None
     num_of_images = 0
 
     ASSET_DIR = 'assets'
@@ -430,6 +429,12 @@ class ExtractScreenController:
     
 
     def compute_parameter(self, mask_path):
+        '''
+        Computes the parameter selected by the user e.g. DBH, CD, TH. Both CD and TH are computed at once since they are
+        both extracted from the same segmented disparity map.
+
+        @param mask_path: The path where the segmented disparity map is saved
+        '''
         parameter = self.view.parameter_dropdown_item.text
         dmap = cv2.imread(self.view.right_im.source, 0)
         mask = cv2.imread(mask_path, 0)
@@ -442,6 +447,42 @@ class ExtractScreenController:
             values = [algorithms.compute_cd(dmap), algorithms.compute_th(dmap)]
 
             return [parameters, values]
+    
+    
+    
+    def reset(self):
+        '''
+        Clears all configuration variables and resets the app in readiness to begin a fresh extraction
+        '''
+        self.image_index = 0
+        self.num_of_images = 0
+        self.DISPARITY_MAPS_DIR = None
+        self.RESULTS_DIR = None
+        self.IMAGES_DIR = None
+        self.FILE_MANAGER_SELECTOR = 'folder'
+        self.CONFIG_FILE_PATH = None
+
+        self.toggle_scrolling_icons()
+
+        self.view.ids.project_name.text = ''
+        self.view.ids.parameter_dropdown_item.text = 'Select parameter'
+        self.view.ids.segmentation_dropdown_item.text = 'Select approach'
+
+        logwidget = MDLabel(
+                text = "App has been reset. All configurations cleared",
+                text_size = (None, None),
+                valign = 'middle',
+                theme_text_color = "Custom",
+                text_color = (1,1,1,1)
+            )
+        
+        layout = self.view.ids.scroll_layout
+        scrollview = self.view.ids.scrollview
+        
+        layout.spacing = logwidget.height * 0.8
+        layout.add_widget(logwidget)
+        scrollview.scroll_y = 0
+
 
 
 
