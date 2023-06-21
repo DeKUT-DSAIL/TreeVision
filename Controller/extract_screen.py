@@ -164,12 +164,13 @@ class ExtractScreenController:
 
         if self.FILE_MANAGER_SELECTOR == 'folder':
             self.IMAGES_DIR = path 
+            self.create_log_widget(f"IMAGES DIRECTORY PATH: {path}")
         elif self.FILE_MANAGER_SELECTOR == 'file':
             self.CONFIG_FILE_PATH = path
+            self.create_log_widget(f"CAMERA CONFIGURATION FILE PATH: {path}")
         
         self.toggle_scrolling_icons()
         self.exit_manager()
-        toast(self.IMAGES_DIR)
 
 
     
@@ -401,20 +402,15 @@ class ExtractScreenController:
 
 
     def display_parameters_on_logs(self, image, parameters, values):
-        logwidget = MDLabel(
-                text = f"Image: {os.path.basename(image)} \n{parameters}: {[round(value, 2) for value in values]}\n",
-                text_size = (None, None),
-                valign = 'middle',
-                theme_text_color = "Custom",
-                text_color = (1,1,1,1)
-            )
+        '''
+        Displays the extracted parameters in the logging section
         
-        layout = self.view.ids.scroll_layout
-        scrollview = self.view.ids.scrollview
-        
-        layout.spacing = logwidget.height * 0.8
-        layout.add_widget(logwidget)
-        scrollview.scroll_y = 0
+        @param image: The left image of stereo pair from which the parameters are extracted
+        @param parameters: The parameter(s) being extracted
+        @param values: The extracted value of the parameter
+        '''
+        label_text = f"Image: {os.path.basename(image)} \n{parameters}: {[round(value, 2) for value in values]}\n===================================================\n"
+        self.create_log_widget(label_text)
 
 
 
@@ -468,8 +464,20 @@ class ExtractScreenController:
         self.view.ids.parameter_dropdown_item.text = 'Select parameter'
         self.view.ids.segmentation_dropdown_item.text = 'Select approach'
 
+        label_text = "App has been reset. All configurations cleared"
+
+        self.view.ids.scroll_layout.clear_widgets()
+        self.create_log_widget(label_text)
+    
+
+
+    def create_log_widget(self, text):
+        '''
+        Creates a widget to be added to the logging section on the user interfac
+        @param text: The text contained on the widget
+        '''
         logwidget = MDLabel(
-                text = "App has been reset. All configurations cleared",
+                text = text,
                 text_size = (None, None),
                 valign = 'middle',
                 theme_text_color = "Custom",
@@ -478,7 +486,7 @@ class ExtractScreenController:
         
         layout = self.view.ids.scroll_layout
         scrollview = self.view.ids.scrollview
-        
+
         layout.spacing = logwidget.height * 0.8
         layout.add_widget(logwidget)
         scrollview.scroll_y = 0
