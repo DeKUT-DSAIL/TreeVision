@@ -114,6 +114,10 @@ class ExtractScreenController:
     
 
     def toggle_scrolling_icons(self):
+        '''
+        Toggles the buttons for scrolling the images left and right based on whether the project path has been selected
+        or not. The buttons are toggled off if a project path with multiple images has not been selected.
+        '''
 
         if self.IMAGES_DIR == None:
             self.view.previous_arrow.opacity = 0
@@ -164,10 +168,10 @@ class ExtractScreenController:
 
         if self.FILE_MANAGER_SELECTOR == 'folder':
             self.IMAGES_DIR = path 
-            self.create_log_widget(f"IMAGES DIRECTORY PATH: {path}")
+            self.create_log_widget(f"Project images directory has been selected.\nIMAGES DIRECTORY PATH: {path}")
         elif self.FILE_MANAGER_SELECTOR == 'file':
             self.CONFIG_FILE_PATH = path
-            self.create_log_widget(f"CAMERA CONFIGURATION FILE PATH: {path}")
+            self.create_log_widget(f"Camera configuration file has been selected.\nCAMERA CONFIGURATION FILE PATH: {path}")
         
         self.toggle_scrolling_icons()
         self.exit_manager()
@@ -211,7 +215,7 @@ class ExtractScreenController:
         if self.verify_images(left_ims, right_ims):
             return (left_ims, right_ims)
         
-        toast("Number of Left and Right Images Not equal")
+        self.create_log_widget(text = "Number of Left and Right Images Not equal!")
     
 
 
@@ -251,24 +255,27 @@ class ExtractScreenController:
 
     def create_project_directories(self):
         '''
-        Creates a directory in the "assets" folder of the app for the project. This is the directory where the extracted disparity maps will be saved
+        Creates a directory in the "assets" folder of the app for the project. This is the directory where the extracted disparity maps as 
+        well as a CSV file containing the extracted parameters will be saved
         '''
 
         project = self.view.project_name.text
 
         if project == '':
-            toast("Please provide a project name!")
-            return False
+            self.create_log_widget(text = "Missing project name. Please provide one to proceed!")
         
         else:
-            dmaps_path = os.path.join(self.PROJECT_DIR, f'{project}/disparity_maps')
-            results_path = os.path.join(self.PROJECT_DIR, f'{project}/results')
+            project_path = os.path.join(self.PROJECT_DIR, f'{project}')
+            dmaps_path = os.path.join(project_path, 'disparity_maps')
+            results_path = os.path.join(project_path, 'results')
 
             self.DISPARITY_MAPS_DIR = dmaps_path
             self.RESULTS_DIR = results_path
             
-            os.makedirs(dmaps_path) if not os.path.exists(results_path) else None
-            os.makedirs(results_path) if not os.path.exists(results_path) else None
+            if not os.path.exists(project_path):
+                os.makedirs(dmaps_path) if not os.path.exists(dmaps_path) else None
+                os.makedirs(results_path) if not os.path.exists(results_path) else None
+                self.create_log_widget(text = "Project folders have been created!")
 
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
@@ -276,17 +283,13 @@ class ExtractScreenController:
                 results_df = pd.DataFrame(columns=['DBH', 'CD', 'TH'])
                 results_df.index.name = 'Filename'
                 results_df.to_csv(results_file)
-            
-            return True
 
 
 
-    def save_and_display_disparity(self, left_img_path=None, right_img_path=None):
+    def compute_and_save_disparity(self):
         '''
         Saves the extracted disparity map in the project folder and displays it in the user interface on the position initially occupied by the right image.
-        
-        @param left_img_path The path to the left image
-        @param right_img_path The path to the right image
+        It returns the paths to the segmentation mask and the segmented disparity map
         '''
 
         left_img_path = self.view.left_im.source
@@ -304,13 +307,28 @@ class ExtractScreenController:
         mask = cv2.imread(mask_path, 0)
         kernel = np.ones((3,3), np.uint8)
 
-        dmap = algorithms.extract(left, right, mask, kernel, config_file_path=self.CONFIG_FILE_PATH)
-        
-        dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
-        dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
+        if self.verify_config_file():
+            dmap = algorithms.extract(left, right, mask, kernel, config_file_path=self.CONFIG_FILE_PATH)
+            
+            dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
+            dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
 
-        cv2.imwrite(dmap_path, dmap)
-        return dmap_path, mask_path
+            cv2.imwrite(dmap_path, dmap)
+            return dmap_path, mask_path
+        else:
+            return False
+
+    
+
+    def verify_config_file(self):
+        '''
+        Verifies that the camera calibration file is available and contains all the necessary parameters
+        '''
+        if self.CONFIG_FILE_PATH == None:
+            return False
+        else:
+            return True
+
         
 
     def on_extract(self):
@@ -318,8 +336,9 @@ class ExtractScreenController:
         Called when the "Extract" button on the user interface is pressed
         '''
 
-        if self.create_project_directories():
-            dmap_path, mask_path = self.save_and_display_disparity()
+        self.create_project_directories()
+        if self.verify_config_file():
+            dmap_path, mask_path = self.compute_and_save_disparity()
             self.view.right_im.source = dmap_path
 
             parameters, values = self.compute_parameter(mask_path)
@@ -341,7 +360,7 @@ class ExtractScreenController:
             results_df.to_csv(results_file)
         
         else:
-            toast("Provide a project name to extract measurements!")
+            self.create_log_widget(text = "Missing camera configuration file path!")
 
 
 
@@ -351,9 +370,10 @@ class ExtractScreenController:
         The parameters are saved in a CSV file in the 'results' subdirectory of the projects folder.
         Called when the "Batch extract" button on the user interface is pressed
         '''
+        
+        self.create_project_directories()
+        if self.verify_config_file():
             
-        if self.create_project_directories():
-
             left_ims, right_ims = self.load_stereo_images()
             left_ims = sorted(left_ims)
             right_ims = sorted(right_ims)
@@ -364,10 +384,7 @@ class ExtractScreenController:
             self.view.left_im.source = left_img
             self.view.right_im.source = right_img
 
-            dmap_path, mask_path = self.save_and_display_disparity(
-                    left_img_path=left_img,
-                    right_img_path=right_img
-                )
+            dmap_path, mask_path = self.compute_and_save_disparity()
             
             self.view.right_im.source = dmap_path
             self.view.ids.progress_bar.value = self.image_index + 1
@@ -392,12 +409,12 @@ class ExtractScreenController:
             if self.image_index < len(left_ims) - 1:
                 self.image_index += 1
             else:
-                toast('Batch extraction complete')
+                self.create_log_widget(text = 'Batch extraction complete')
                 self.unschedule_batch_extraction()
 
         else:
-            toast("Provide a project name to extract measurements!")
             self.unschedule_batch_extraction()
+            self.create_log_widget(text = "Missing camera configuration file path!")
     
 
 
@@ -415,11 +432,17 @@ class ExtractScreenController:
 
 
     def update_on_batch_extract(self):
+        '''
+        Schedules the 'on_batch_extract_function' to run every 500ms
+        '''
         Clock.schedule_interval(self.on_batch_extract, 0.5)
     
 
 
     def unschedule_batch_extraction(self):
+        '''
+        Unschedules the 'on_batch_extract_function' to stop it once batch extraction is complete
+        '''
         Clock.unschedule(self.on_batch_extract)
 
     
@@ -464,7 +487,7 @@ class ExtractScreenController:
         self.view.ids.parameter_dropdown_item.text = 'Select parameter'
         self.view.ids.segmentation_dropdown_item.text = 'Select approach'
 
-        label_text = "App has been reset. All configurations cleared"
+        label_text = "App has been reset and all configurations cleared."
 
         self.view.ids.scroll_layout.clear_widgets()
         self.create_log_widget(label_text)
@@ -487,7 +510,7 @@ class ExtractScreenController:
         layout = self.view.ids.scroll_layout
         scrollview = self.view.ids.scrollview
 
-        layout.spacing = logwidget.height * 0.8
+        # layout.spacing = logwidget.height * 0.8
         layout.add_widget(logwidget)
         scrollview.scroll_y = 0
 
