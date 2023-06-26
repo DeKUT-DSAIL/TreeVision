@@ -31,10 +31,12 @@ Window.left = resolution[0] - Window.width
 
 from kivymd.tools.hotreload.app import MDApp
 from kivymd.uix.screenmanager import MDScreenManager
+from kivy.properties import DictProperty
 
 
 class Forest(MDApp):
     KV_DIRS = [os.path.join(os.getcwd(), "View")]
+    modules = DictProperty()
 
     def build_app(self) -> MDScreenManager:
         """
@@ -57,9 +59,30 @@ class Forest(MDApp):
             view.manager_screens = self.manager_screens
             view.name = name_screen
             self.manager_screens.add_widget(view)
+        
+
+        self.modules = {
+            'Calibrate': [
+                'cog-outline',
+                "on_release", lambda x: self.set_screen('calibrate screen'),
+            ],
+
+            'Extract': [
+                'tape-measure',
+                "on_release", lambda x: self.set_screen('extract screen'),
+            ]
+        }
 
         self.manager_screens.current = 'extract screen'
         return self.manager_screens
+    
+
+    def set_screen(self, name):
+        '''
+        Sets the current screen to 'name
+        '''
+        self.manager_screens.current = name
+    
 
     def on_keyboard_down(self, window, keyboard, keycode, text, modifiers) -> None:
         """

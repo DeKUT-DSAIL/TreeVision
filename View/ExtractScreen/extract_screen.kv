@@ -16,6 +16,7 @@
 
     FloatLayout:
         size: root.size
+        
         FloatLayout:
             size_hint_y: .6
             pos_hint: {'top': 1}
@@ -233,3 +234,17 @@
             size_hint: 1, 0.045
             pos_hint: {"top": 0.045}
             md_bg_color: app.theme_cls.primary_dark
+
+        
+        # switch screens
+        MDFloatingActionButtonSpeedDial:
+            id: speed_dial
+            data: app.modules
+            root_button_anim: True
+            hint_animation: True
+            bg_color_root_button: "teal"
+            bg_color_stack_button: "teal"
+            bg_hint_color: "teal"
+            label_text_color: "white"
+            color_icon_root_button: "white"
+            color_icon_stack_button: "white"
