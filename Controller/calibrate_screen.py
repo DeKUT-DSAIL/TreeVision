@@ -13,7 +13,11 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from glob import glob
-from utils import utils
+from Controller.utils import utils
+
+from kivy.metrics import dp
+from kivymd.uix.filemanager import MDFileManager
+from kivymd.uix.menu import MDDropdownMenu
 
 
 class CalibrateScreenController:
@@ -24,14 +28,126 @@ class CalibrateScreenController:
     the view to control its actions.
     """
 
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    IMAGES_DIR = None
+    PROJECT_DIR = os.path.join('assets', 'projects')
+
     images = None
+    image_index = 0
+    num_of_images = 0
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
     def __init__(self):
+
         self.view = View.CalibrateScreen.calibrate_screen.CalibrateScreenView(controller=self)
+
+        self.calib_type_dropdown_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": "Single Camera",
+                "height": dp(56),
+                "on_release": lambda x="Single Camera": self.set_item(self.calib_type_menu, self.view.ids.calib_type_dropdown_item, x),
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": "Stereo Camera",
+                "height": dp(56),
+                "on_release": lambda x="Stereo Camera": self.set_item(self.calib_type_menu, self.view.ids.calib_type_dropdown_item, x),
+            }
+        ]
+
+        self.calib_type_menu = MDDropdownMenu(
+            caller = self.view.ids.calib_type_dropdown_item,
+            items = self.calib_type_dropdown_items,
+            position = "center",
+            background_color = 'brown',
+            width_mult = 3,
+        )
+
+        self.file_manager = MDFileManager(
+            selector = 'folder',
+            exit_manager = self.exit_manager,
+            select_path = self.select_path
+        )
+
+        self.calib_type_menu.bind()
+        self.toggle_scrolling_icons()
 
     def get_view(self) -> View.CalibrateScreen.calibrate_screen:
         return self.view
+    
+
+
+    def set_item(self, menu, dropdown_item, text_item):
+        dropdown_item.set_item(text_item)
+        dropdown_item.text = text_item
+        menu.dismiss()
+    
+
+
+    def file_manager_open(self, selector):
+        '''
+        Opens the file manager when the triggering event in the user interface happens
+        '''
+
+        self.file_manager.show(os.path.expanduser("."))
+        self.manager_open = True
+    
+
+
+    def select_path(self, path: str):
+        '''
+        It will be called when you click on the file name or the catalog selection button.
+
+        @param path: path to the selected directory or file;
+        '''
+
+        self.IMAGES_DIR = path 
+        self.create_log_widget(f"Project images directory has been selected.\nIMAGES DIRECTORY PATH: {path}")
+        
+        self.toggle_scrolling_icons()
+        self.exit_manager()
+
+    
+
+    def exit_manager(self, *args):
+        '''Called when the user reaches the root of the directory tree.'''
+
+        self.manager_open = False
+        self.file_manager.close()
+
+    
+
+    def toggle_scrolling_icons(self):
+        '''
+        Toggles the buttons for scrolling the images left and right based on whether the project path has been selected
+        or not. The buttons are toggled off if a project path with multiple images has not been selected.
+        '''
+
+        if self.IMAGES_DIR == None:
+            self.view.ids.previous_arrow.opacity = 0
+            self.view.ids.next_arrow.opacity = 0
+        else:
+            self.view.ids.previous_arrow.opacity = 1
+            self.view.ids.next_arrow.opacity = 1
+            self.view.ids.previous_arrow.on_release = lambda: self.show_next_image('previous')
+            self.view.ids.next_arrow.on_release = lambda: self.show_next_image('next')
+    
+
+
+    def show_next_image(self, button_id):
+        '''
+        Displays the next image in the sequence once the scroll buttons are clicked
+
+        @param button_id: The ID of the scroll button clicked. It takes the values "next" or "previous"
+        '''
+
+        left, right = self.load_stereo_images()
+        left = sorted(left)
+        right = sorted(right)
+
+        if self.on_button_press(button_id):
+            self.view.left_im.source = left[self.image_index]
+            self.view.right_im.source = right[self.image_index]
     
 
 
@@ -85,7 +201,6 @@ class CalibrateScreenController:
             flags = flags
         )
 
-
         return [ret, mtx, dist, rvecs, tvecs, imgpoints, objpoints]
     
 
@@ -99,7 +214,7 @@ class CalibrateScreenController:
         height = int(self.view.ids.pattern_height)
         square_size = float(self.view.ids.square_size)
 
-        ret, mtx, dist, rvecs, tvecs, image_points, object_points = self.single_calibrate(
+        ret, K, D, R, T, image_points, object_points = self.single_calibrate(
             path = 'calib',
             square_size = square_size,
             width = width,
@@ -109,7 +224,10 @@ class CalibrateScreenController:
         print("Calibration finished")
         print(f"Error information: {error_info}")
 
-        error_info = utils.projection_error(image_points, object_points, tvecs, rvecs, mtx, dist)
+        save_file = self.view.ids.save_file
+        utils.save_coefficients(save_file, K, D)
+
+        error_info = utils.projection_error(image_points, object_points, T, R, K, D)
         self.plot_scatter(error_info)
 
         scatter_plot_path = os.path.join(self.images, "calib_error_scatter.jpg")

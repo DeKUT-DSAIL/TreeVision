@@ -3,6 +3,174 @@
     FloatLayout:
         size: root.size
 
+        FloatLayout:
+            size_hint_y: .6
+            pos_hint: {'top': 1}
+
+            # left and right images
+            MDBoxLayout:
+                pos_hint: {'top': 1}
+
+                AnchorLayout:
+                    anchor_x: 'left'
+                    Image:
+                        id: left_image 
+                        source: "assets/images/calibration/pattern_cropped.png"
+                        size: self.texture_size
+                        allow_stretch: True
+                AnchorLayout:
+                    anchor_x: 'right'
+                    Image:
+                        id: right_image
+                        source: "assets/images/calibration/pattern_cropped.png"
+                        size: self.texture_size
+                        allow_stretch: True
+            
+            # OVERLAY ON THE IMAGES
+            FloatLayout:
+                id: overlay_layout
+                pos_hint: {'y': 0}
+                size_hint_y: None
+                height: self.parent.height * 0.15
+
+                Widget:
+                    id: overlay
+                    canvas.before:
+                        Color:
+                            rgba: 0,0,0,0.5
+                        Rectangle:
+                            pos: self.parent.pos
+                            size: self.parent.size
+        
+                MDIconButton:
+                    id: previous_arrow
+                    icon: 'arrow-left-circle-outline'
+                    md_bg_color: app.theme_cls.primary_color
+                    pos_hint: {"center_x": .47, "center_y": .5}
+
+
+                MDIconButton:
+                    id: next_arrow
+                    icon: 'arrow-right-circle-outline'
+                    md_bg_color: app.theme_cls.primary_color
+                    pos_hint: {"center_x": .53, "center_y": .5}
+                
+
+                MDIconButton:
+                    id: reset
+                    icon: 'cog-refresh-outline'
+                    widget_style: 'ios'
+                    theme_icon_color: 'Custom'
+                    icon_color: 'white'
+                    md_bg_color: .15, .65, .9, 1
+                    pos_hint: {"center_x": .95, "center_y": .5}
+                    on_release: root.controller.reset()
+            
+
+        # CONFIGURATIONS AND LOGGING
+        MDBoxLayout:
+            size_hint: 1, 0.05
+            pos_hint: {'top': 0.395}
+            padding: "10dp", "10dp"
+            md_bg_color: app.theme_cls.primary_color
+            MDLabel:
+                text: "Configs"
+        
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            size_hint: 1, 0.3
+            pos_hint: {'top': 0.345}
+
+            # COLUMN 1: LOADING IMAGES
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.8
+                padding: "10dp", "10dp"
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: "30dp"
+                    AnchorLayout:
+                        anchor_x: 'left'
+                        MDLabel:
+                            text: "Project name: "
+                            color: 0, 0, 0, 1
+                    AnchorLayout:
+                        anchor_x: 'right'
+                        TextInput:
+                            id: project_name
+                            multiline: False
+                
+                MDBoxLayout:
+                    MDLabel:
+                        text: "Upload:"
+                
+                MDBoxLayout:
+                    spacing: dp(0), "10dp"
+                    AnchorLayout:
+                        anchor_x: 'left'
+                        MDLabel:
+                            text: "Images folder:"
+                    AnchorLayout:
+                        anchor_x: 'right'
+                        MDRectangleFlatIconButton:
+                            id: images_select
+                            text: "Select"
+                            icon: "folder"
+                            size_hint_x: 1
+                            on_release: root.controller.file_manager_open('folder')
+                
+                MDBoxLayout:
+                    # spacing: 10
+                    AnchorLayout:
+                        anchor_x: 'left'
+                        MDLabel:
+                            text: "Type: "
+                    AnchorLayout:
+                        anchor_x: 'right'
+                        MDDropDownItem:
+                            id: calib_type_dropdown_item
+                            size_hint_x: 1
+                            pos_hint: {'center_x': .5, 'center_y': .5}
+                            text: 'Select type'
+                            background_color: [1,0,0,1]
+                            on_release: root.controller.calib_type_menu.open()
+
+                
+                
+                
+                
+                
+                MDBoxLayout:
+                    spacing: dp(0), "10dp"
+                    AnchorLayout:
+                        anchor_x: 'left'
+                        MDLabel:
+                            text: "Calibration file (YML):"
+                    AnchorLayout:
+                        anchor_x: 'right'
+                        MDRectangleFlatIconButton:
+                            text: "Select"
+                            icon: "file"
+                            size_hint_x: 1
+                            on_release: root.controller.file_manager_open('file')
+
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.8
+                padding: '10dp', '10dp'
+            
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.8
+                padding: '10dp', '10dp'
+
+        # This is the bottom strip
+        MDBoxLayout:
+            size_hint: 1, 0.045
+            pos_hint: {"top": 0.045}
+            md_bg_color: app.theme_cls.primary_dark
+            
         MDFloatingActionButtonSpeedDial:
             id: speed_dial
             data: app.modules
