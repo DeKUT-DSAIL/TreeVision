@@ -64,12 +64,12 @@ class Forest(MDApp):
         self.modules = {
             'Calibrate': [
                 'cog-outline',
-                "on_release", lambda x: self.set_screen('calibrate screen'),
+                "on_release", lambda x: self.set_screen('calibrate screen', 'left'),
             ],
 
             'Extract': [
                 'tape-measure',
-                "on_release", lambda x: self.set_screen('extract screen'),
+                "on_release", lambda x: self.set_screen('extract screen', 'right'),
             ]
         }
 
@@ -77,10 +77,13 @@ class Forest(MDApp):
         return self.manager_screens
     
 
-    def set_screen(self, name):
+    def set_screen(self, name, direction):
         '''
-        Sets the current screen to 'name
+        Sets the current screen to 'name'
+        @param name: Name of the screen to switch to
+        @param direction: Direction of the transition
         '''
+        self.manager_screens.transition.direction = direction
         self.manager_screens.current = name
     
 
