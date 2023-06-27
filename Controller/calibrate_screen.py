@@ -268,3 +268,23 @@ class CalibrateScreenController:
         plt.text(-1.1, 1.7, 'ME' + str(round(mean_error, 4)))
 
         plt.savefig(os.path.join(self.images, "calib_error_scatter.jpg"), dpi=600)
+    
+
+    def reset(self):
+        '''
+        Clears all configuration variables and resets the app in readiness to begin a fresh extraction
+        '''
+        self.images = None
+        self.image_index = 0
+        self.num_of_images = 0
+        self.IMAGES_DIR = None
+
+        self.toggle_scrolling_icons()
+
+        self.view.ids.project_name.text = ''
+        self.view.ids.calib_type_dropdown_item.text = 'Select calibration type'
+
+        label_text = "App has been reset and all configurations cleared."
+
+        self.view.ids.scroll_layout.clear_widgets()
+        self.create_log_widget(label_text)
