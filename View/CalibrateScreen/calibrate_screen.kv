@@ -123,16 +123,15 @@
                     AnchorLayout:
                         anchor_x: 'left'
                         MDLabel:
-                            text: "Type: "
+                            text: "Single cam calib file: "
                     AnchorLayout:
                         anchor_x: 'right'
-                        MDDropDownItem:
-                            id: calib_type_dropdown_item
+                        MDRectangleFlatIconButton:
+                            id: images_select
+                            text: "Select"
+                            icon: "file"
                             size_hint_x: 1
-                            pos_hint: {'center_x': .5, 'center_y': .5}
-                            text: 'Select calibration type'
-                            background_color: [1,0,0,1]
-                            on_release: root.controller.calib_type_menu.open() 
+                            on_release: root.controller.file_manager_open('file')
                 
                 MDBoxLayout:
                     spacing: dp(10)
@@ -229,7 +228,7 @@
                         MDRaisedButton:
                             text: "Calibrate Stereo"
                             md_bg_color: "green"
-                            on_release: root.controller.update_on_calibrate()
+                            on_release: root.controller.update_save_stereo_points()
 
             
             # COLUMN 3: LOGGING INFORMATION
@@ -240,7 +239,7 @@
                     color: "green"
                     size_hint_y: 0.3
                     max: 100
-                    value: 5
+                    value: 0
                 MDScrollView:  
                     id: scrollview
                     MDBoxLayout:

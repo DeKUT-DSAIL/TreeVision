@@ -31,52 +31,32 @@ class CalibrateScreenController:
     """
 
     IMAGES_DIR = None
+    FILE_MANAGER_SELECTOR = 'folder'
     PROJECT_DIR = os.path.join('assets', 'projects')
     ASSET_IMS_DIR = os.path.join('assets', 'images')
     CONFIGS_DIR = "configs"
+    SINGLE_CONFIG_FILE = None
     SQUARE_SIZE = None
 
     images = None
     image_index = 0
     num_of_images = 0
-    objpoints = [] #3D points in real world space
-    imgpoints = [] #2D points in image plane
+    objpoints = []
+    imgpoints = []
+    left_imgpoints = []
+    right_imgpoints = []
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
     def __init__(self):
 
         self.view = View.CalibrateScreen.calibrate_screen.CalibrateScreenView(controller=self)
 
-        self.calib_type_dropdown_items = [
-            {
-                "viewclass": "OneLineListItem",
-                "text": "Single Camera",
-                "height": dp(56),
-                "on_release": lambda x="Single Camera": self.set_item(self.calib_type_menu, self.view.ids.calib_type_dropdown_item, x),
-            },
-            {
-                "viewclass": "OneLineListItem",
-                "text": "Stereo Camera",
-                "height": dp(56),
-                "on_release": lambda x="Stereo Camera": self.set_item(self.calib_type_menu, self.view.ids.calib_type_dropdown_item, x),
-            }
-        ]
-
-        self.calib_type_menu = MDDropdownMenu(
-            caller = self.view.ids.calib_type_dropdown_item,
-            items = self.calib_type_dropdown_items,
-            position = "center",
-            background_color = 'brown',
-            width_mult = 3,
-        )
-
         self.file_manager = MDFileManager(
-            selector = 'folder',
+            selector = self.FILE_MANAGER_SELECTOR,
             exit_manager = self.exit_manager,
             select_path = self.select_path
         )
 
-        self.calib_type_menu.bind()
         self.toggle_scrolling_icons()
 
     def get_view(self) -> View.CalibrateScreen.calibrate_screen:
@@ -95,6 +75,13 @@ class CalibrateScreenController:
         '''
         Opens the file manager when the triggering event in the user interface happens
         '''
+        self.FILE_MANAGER_SELECTOR = selector
+
+        self.file_manager = MDFileManager(
+            selector = self.FILE_MANAGER_SELECTOR,
+            exit_manager = self.exit_manager,
+            select_path = self.select_path
+        )
 
         self.file_manager.show(os.path.expanduser("."))
         self.manager_open = True
@@ -108,10 +95,14 @@ class CalibrateScreenController:
         @param path: path to the selected directory or file;
         '''
 
-        self.IMAGES_DIR = path 
-        self.load_images()
-
-        self.create_log_widget(f"Project images directory has been selected.\nIMAGES DIRECTORY PATH: {path}")
+        if self.FILE_MANAGER_SELECTOR == 'folder':
+            self.IMAGES_DIR = path 
+            self.load_images()
+            self.create_log_widget(f"Calibration images directory has been selected.\nIMAGES DIRECTORY PATH: {path}")
+        else:
+            self.SINGLE_CONFIG_FILE = path
+            self.create_log_widget(f"Camera configuration file has been selected.\nCAMERA CONFIGURATION FILE PATH: {path}")
+        
         self.toggle_scrolling_icons()
         self.exit_manager()
 
@@ -209,7 +200,7 @@ class CalibrateScreenController:
 
     def save_points(self, dt):
         """
-        Saves object points and image points obtained from 'image'
+        Saves object points and image points obtained from calibration image
         """
 
         left, _ = sorted(self.load_images())
@@ -239,7 +230,6 @@ class CalibrateScreenController:
             drawn = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_{self.image_index}.jpg')
             cv2.imwrite(drawn, img)
             self.view.ids.right_image.source = drawn
-            print(drawn)
 
         self.view.ids.progress_bar.value = self.image_index + 1
         
@@ -255,7 +245,79 @@ class CalibrateScreenController:
     
 
 
+    def save_stereo_points(self, dt):
+        """
+        Saves object points and image points obtained from stereo images
+        """
+
+        left, right = sorted(self.load_images())
+        self.view.ids.left_image.source = left[self.image_index]
+        self.view.ids.right_image.source = right[self.image_index]
+
+        imageL = self.view.ids.left_image.source
+        imageR = self.view.ids.right_image.source
+
+        imgL = cv2.imread(imageL)
+        grayL = cv2.cvtColor(imgL, cv2.COLOR_BGR2GRAY)
+
+        imgR = cv2.imread(imageR)
+        grayR = cv2.cvtColor(imgR, cv2.COLOR_BGR2GRAY)
+
+        height = int(self.view.ids.pattern_height.text)
+        width = int(self.view.ids.pattern_width.text)
+
+        objp = np.zeros((height*width, 3), np.float32)
+        objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
+
+        self.SQUARE_SIZE = float(self.view.ids.square_size.text)
+        objp = objp * self.SQUARE_SIZE
+
+        ret_left, corners_left = cv2.findChessboardCorners(grayL, (width, height), None)
+        ret_right, corners_right = cv2.findChessboardCorners(grayR, (width, height), None)
+
+        if ret_left and ret_right:
+            self.objpoints.append(objp)
+            
+            corners2_left = cv2.cornerSubPix(grayL, corners_left, (11,11), (-1,-1), self.criteria)
+            self.imgpoints.append(corners2_left)
+
+            corners2_right = cv2.cornerSubPix(grayL, corners_right, (11,11), (-1,-1), self.criteria)
+            self.imgpoints.append(corners2_right)
+            
+            cv2.drawChessboardCorners(imgL, (width, height), corners2_left, ret_left)
+            cv2.drawChessboardCorners(imgR, (width, height), corners2_right, ret_right)
+
+            drawn_left = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_left_{self.image_index}.jpg')
+            drawn_right = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_right_{self.image_index}.jpg')
+
+            cv2.imwrite(drawn_left, imgL)
+            cv2.imwrite(drawn_right, imgR)
+
+            self.view.ids.left_image.source = drawn_left
+            self.view.ids.right_image.source = drawn_right
+        else:
+            self.create_log_widget(text = "Couldn't find chessboard corners")
+            self.unschedule_save_stereo_points()
+
+        self.view.ids.progress_bar.value = self.image_index + 1
+        
+        if self.image_index < len(left) - 1:
+            self.image_index += 1
+            self.create_log_widget(text = 'Done...')
+        else:
+            self.create_log_widget(text = 'Object Points and Stereo Image Points Saved...')
+            self.stereo_calibrate()
+            drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
+            for file in drawn_files:
+                os.remove(file)
+            self.unschedule_save_stereo_points()
+
+
+
     def single_calibrate(self):
+        '''
+        Calibrates a single camera 
+        '''
 
         x = int(self.view.ids.image_height.text)
         y = int(self.view.ids.image_width.text)
@@ -274,6 +336,48 @@ class CalibrateScreenController:
         )
 
         return [ret, mtx, dist, rvecs, tvecs, self.imgpoints, self.objpoints]
+
+
+
+    def stereo_calibrate(self):
+        '''
+        Calibrates a stereo camera
+        '''
+
+        objpoints, left_points, right_points = self.save_stereo_points(0)
+        stereo_save_file = os.path.join(self.CONFIGS_DIR, f"{self.view.ids.save_file.text}.yml")
+
+        K1, D1 = utils.load_coefficients(self.SINGLE_CONFIG_FILE)
+        K2, D2 = K1, D1
+
+        h = int(self.view.ids.image_height.text)
+        w = int(self.view.ids.image_width.text)
+
+        ret, K1, D1, K2, D2, R, T, E, F = cv2.stereoCalibrate(
+            objectPoints = objpoints, 
+            imagePoints1 = left_points, 
+            imagePoints2= right_points, 
+            cameraMatrix1 = K1, 
+            distCoeffs1 = D1, 
+            cameraMatrix2 = K2, 
+            distCoeffs2 = D2, 
+            imageSize = (h,w)
+        )
+
+        R1, R2, P1, P2, Q, roi_left, roi_right = cv2.stereoRectify(
+            cameraMatrix1 = K1,
+            distCoeffs1 = D1,
+            cameraMatrix2 = K2,
+            distCoeffs2 = D2,
+            imageSize = (h, w),
+            R = R,
+            T = T,
+            flags = cv2.CALIB_ZERO_DISPARITY,
+            alpha = 0.9
+        )
+
+        utils.save_stereo_coefficients(stereo_save_file, K1, D1, K2, D2, R, T, E, F, R1, R2, P1, P2, Q)
+        self.create_log_widget(text = f"Stereo Calibration RMS: {round(ret, 2)}")
     
 
 
@@ -285,11 +389,12 @@ class CalibrateScreenController:
         ret, K, D, R, T, image_points, object_points = self.single_calibrate()
         error_info = utils.projection_error(object_points, image_points, T, R, K, D)
 
-        self.create_log_widget(text = f"Calibration finished \nCalibration RMS: {ret} \nCalibration ME: {error_info['ME']}")
+        self.create_log_widget(text = f"Calibration finished \nCalibration RMS: {round(ret, 2)} \nCalibration ME: {round(error_info['ME'], 2)}")
 
         save_file = self.view.ids.save_file.text
         save_file_path = os.path.join(self.CONFIGS_DIR, f"{save_file}.yml")
         utils.save_coefficients(save_file_path, K, D)
+        self.create_log_widget(text = f"Calibration parameters saved to: {save_file_path}")
 
         self.plot_scatter(error_info)
 
@@ -307,11 +412,27 @@ class CalibrateScreenController:
     
 
 
+    def update_save_stereo_points(self):
+        '''
+        Schedules the 'save_stereo_points' function to run every 500ms
+        '''
+        Clock.schedule_interval(self.save_stereo_points, 0.5)
+    
+
+
     def unschedule_on_calibrate(self):
         '''
-        Unschedules the 'save_points' to stop it once batch extraction is complete
+        Unschedules the 'save_points' to stop it once camera calibration is complete
         '''
         Clock.unschedule(self.save_points)
+    
+
+
+    def unschedule_save_stereo_points(self):
+        '''
+        Unschedules the 'save_stereo_points' to stop it once stereo calibration is complete
+        '''
+        Clock.unschedule(self.save_stereo_points)
 
 
 
@@ -363,7 +484,6 @@ class CalibrateScreenController:
         self.toggle_scrolling_icons()
 
         self.view.ids.project_name.text = ''
-        self.view.ids.calib_type_dropdown_item.text = 'Select calibration type'
 
         label_text = "App has been reset and all configurations cleared."
 
