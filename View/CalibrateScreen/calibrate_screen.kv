@@ -152,8 +152,31 @@
                 padding: '10dp', '10dp'
                 spacing: dp(10)
                 MDBoxLayout:
-                    MDLabel:
-                        text: "Calibration configurations:"
+                    spacing: dp(10)
+                    AnchorLayout:
+                        anchor_x: "left"
+                        MDLabel:
+                            text: "Image dimensions (pixels):"
+                    AnchorLayout:
+                        anchor_x: "center"
+                        size_hint_x: 0.5
+                        MDBoxLayout:
+                            MDLabel:
+                                text: "W:"
+                            TextInput:
+                                id: image_width
+                                multiline: False
+                                text: "1280"
+                    AnchorLayout:
+                        anchor_x: "right"
+                        size_hint_x: 0.5
+                        MDBoxLayout:
+                            MDLabel:
+                                text: "H:"
+                            TextInput:
+                                id: image_height
+                                multiline: False
+                                text: "720"
                 MDBoxLayout:
                     spacing: dp(10)
                     AnchorLayout:
@@ -169,6 +192,7 @@
                             TextInput:
                                 id: pattern_width
                                 multiline: False
+                                text: "9"
                     AnchorLayout:
                         anchor_x: "right"
                         size_hint_x: 0.5
@@ -178,6 +202,7 @@
                             TextInput:
                                 id: pattern_height
                                 multiline: False
+                                text: "6"
 
                 MDBoxLayout:
                     AnchorLayout:
@@ -189,6 +214,7 @@
                         TextInput:
                             id: square_size
                             multilin: False
+                            text: "24.5"
                 
                 MDBoxLayout:
                     AnchorLayout:

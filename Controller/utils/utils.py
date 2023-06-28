@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 
 def save_coefficients(path, *args):
@@ -7,12 +8,13 @@ def save_coefficients(path, *args):
     @param path: The filepath where coefficients are saved
     @param args: The individual single camera coefficients/parameters to be saved
     """
-    coeff_file = cv2.FileStorage(path, cv2.FILE_STORAGE_WRITE)
+    file = cv2.FileStorage(path, cv2.FILE_STORAGE_WRITE)
 
-    for arg in args:
-        coeff_file.write(f"{arg}", arg)
+    keys = ['K', 'D']
+    for i in range(len(args)):
+        file.write(f"{keys[i]}", args[i])
     
-    coeff_file.release()
+    file.release()
 
 
 
@@ -37,8 +39,13 @@ def save_stereo_coefficients(path, *args):
     @param args: The individual stereo coefficients/parameters to be saved
     """
     file = cv2.FileStorage(path, cv2.FILE_STORAGE_WRITE)
-    for arg in args:
-        file.write(f"{arg}", arg)
+    
+    keys = ['K1', 'D1', 'K2', 'D2', 'R', 'T', 'E', 'F', 'R1', 'R2', 'P1', 'P2', 'Q']
+    for i in range(len(args)):
+        file.write(f"{keys[i]}", args[i])
+    
+    file.release()
+
 
 
 
@@ -77,10 +84,11 @@ def projection_error(objpoints, imgpoints, tvecs, rvecs, mtx, dist):
     for i in range(len(objpoints)):
         imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
         error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2)/len(imgpoints2)
+        error2 = [np.subtract(imgpoints2[j][0], imgpoints[i][j][0]) for j in range(len(imgpoints2))]
 
         image_errors.append(error)
-        x.append([pair[0] for pair in error])
-        y.append([pair[1] for pair in error])
+        x.append([pair[0] for pair in error2])
+        y.append([pair[1] for pair in error2])
 
         mean_error += error
     

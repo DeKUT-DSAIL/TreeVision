@@ -18,6 +18,7 @@ from Controller.utils import utils
 from kivy.metrics import dp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.label import MDLabel
 
 
 class CalibrateScreenController:
@@ -30,6 +31,8 @@ class CalibrateScreenController:
 
     IMAGES_DIR = None
     PROJECT_DIR = os.path.join('assets', 'projects')
+    ASSET_IMS_DIR = os.path.join('assets', 'images')
+    CONFIGS_DIR = "configs"
 
     images = None
     image_index = 0
@@ -134,6 +137,22 @@ class CalibrateScreenController:
     
 
 
+    def on_button_press(self, instance):
+        '''
+        Enables scrolling forward and backward to facilitate viewing the corresponding images in the left and right folders. There are two buttons on the user interface, one for scrolling forward and another for scrolling backward.\n
+        
+        @param instance: The instance of the button pressed to scroll. It takes the values "next" or "previous"
+        '''
+
+        if instance == 'next':
+            self.image_index = (self.image_index + 1) % self.num_of_images
+            return True
+        elif instance == 'previous':
+            self.image_index = (self.image_index - 1) % self.num_of_images
+            return True
+    
+    
+    
     def show_next_image(self, button_id):
         '''
         Displays the next image in the sequence once the scroll buttons are clicked
@@ -141,13 +160,44 @@ class CalibrateScreenController:
         @param button_id: The ID of the scroll button clicked. It takes the values "next" or "previous"
         '''
 
-        left, right = self.load_stereo_images()
+        left, right = self.load_images()
         left = sorted(left)
         right = sorted(right)
 
         if self.on_button_press(button_id):
-            self.view.left_im.source = left[self.image_index]
-            self.view.right_im.source = right[self.image_index]
+            if len(right) == 0:
+                self.view.ids.left_image.source = left[self.image_index]
+            else:
+                self.view.ids.left_image.source = left[self.image_index]
+                self.view.ids.right_image.source = right[self.image_index]
+    
+
+
+    def verify_images(self, left_ims, right_ims):
+        return len(left_ims) == len(right_ims)
+    
+    
+    
+    def load_images(self):
+        '''
+        Returns the paths to the calibration images. This works for both stereo and single camera calibration
+        '''
+        
+        left_ims = glob(os.path.join(self.IMAGES_DIR, '*_LEFT.jpg'))
+        right_ims = glob(os.path.join(self.IMAGES_DIR, '*_RIGHT.jpg'))
+
+        self.num_of_images = len(left_ims)
+        self.view.ids.progress_bar.max = self.num_of_images
+
+        if len(right_ims) == 0:
+            self.create_log_widget(text = "SINGLE CALIB: Left Images Loaded")
+            return left_ims
+
+        elif self.verify_images(left_ims, right_ims):
+            self.create_log_widget(text = "STEREO CALIB: Left and Right Images Loaded")
+            return (left_ims, right_ims)
+        
+        self.create_log_widget(text = "Number of Left and Right Images NOT equal!")
     
 
 
@@ -161,8 +211,8 @@ class CalibrateScreenController:
         @param height: Height of the checkerboard pattern 
         """
 
-        x = int(self.view.ids.image_height)
-        y = int(self.view.ids.image_width)
+        x = int(self.view.ids.image_height.text)
+        y = int(self.view.ids.image_width.text)
 
         objp = np.zeros((height*width, 3), np.float32)
         objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
@@ -172,7 +222,7 @@ class CalibrateScreenController:
         objpoints = [] #3D points in real world space
         imgpoints = [] #2D points in image plane
 
-        self.images = glob.glob(path + '/' + "*.jpg")
+        self.images = glob(path + '/' + "*_LEFT.jpg")
 
         for fname in self.images:
             img = cv2.imread(fname)
@@ -187,16 +237,20 @@ class CalibrateScreenController:
                 imgpoints.append(corners2)
                 
                 cv2.drawChessboardCorners(img, (width, height), corners2, ret)
+                drawn = os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn.jpg')
+                cv2.imwrite(drawn, img)
+                self.view.ids.right_image.source = drawn
+
             
         flags = cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_PRINCIPAL_POINT + cv2.CALIB_FIX_ASPECT_RATIO + cv2.CALIB_ZERO_TANGENT_DIST 
 
-        # mtx_init = np.array([[1500, 0, 640], [0, 1500, 360], [0, 0, 1]])
+        mtx_init = np.array([[1500, 0, 640], [0, 1500, 360], [0, 0, 1]], dtype=np.int16)
 
         ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
             objectPoints = objpoints,
             imagePoints = imgpoints, 
             imageSize = (x, y),
-            cameraMatrix = None,
+            cameraMatrix = mtx_init,
             distCoeffs = None,
             flags = flags
         )
@@ -210,28 +264,28 @@ class CalibrateScreenController:
         Called when the 'Calibrate' button is pressed in the user interface
         '''
 
-        width = int(self.view.ids.pattern_width)
-        height = int(self.view.ids.pattern_height)
-        square_size = float(self.view.ids.square_size)
+        width = int(self.view.ids.pattern_width.text)
+        height = int(self.view.ids.pattern_height.text)
+        square_size = float(self.view.ids.square_size.text)
 
         ret, K, D, R, T, image_points, object_points = self.single_calibrate(
-            path = 'calib',
+            path = self.IMAGES_DIR,
             square_size = square_size,
             width = width,
             height = height
         )
 
-        print("Calibration finished")
-        print(f"Error information: {error_info}")
+        self.create_log_widget(text = "Calibration finished")
 
-        save_file = self.view.ids.save_file
-        utils.save_coefficients(save_file, K, D)
+        save_file = self.view.ids.save_file.text
+        save_file_path = os.path.join(self.CONFIGS_DIR, f"{save_file}.yml")
+        utils.save_coefficients(save_file_path, K, D)
 
-        error_info = utils.projection_error(image_points, object_points, T, R, K, D)
+        error_info = utils.projection_error(object_points, image_points, T, R, K, D)
         self.plot_scatter(error_info)
 
-        scatter_plot_path = os.path.join(self.images, "calib_error_scatter.jpg")
-        self.view.ids.right_image = scatter_plot_path
+        scatter_plot_path = os.path.join(self.IMAGES_DIR, "calib_error_scatter.jpg")
+        self.view.ids.right_image.source = scatter_plot_path
 
 
 
@@ -267,7 +321,7 @@ class CalibrateScreenController:
         plt.tight_layout()
         plt.text(-1.1, 1.7, 'ME' + str(round(mean_error, 4)))
 
-        plt.savefig(os.path.join(self.images, "calib_error_scatter.jpg"), dpi=600)
+        plt.savefig(os.path.join(self.IMAGES_DIR, "calib_error_scatter.jpg"), dpi=600)
     
 
     def reset(self):
@@ -288,3 +342,25 @@ class CalibrateScreenController:
 
         self.view.ids.scroll_layout.clear_widgets()
         self.create_log_widget(label_text)
+
+    
+
+    def create_log_widget(self, text):
+        '''
+        Creates a widget to be added to the logging section on the user interfac
+        @param text: The text contained on the widget
+        '''
+        logwidget = MDLabel(
+                text = text,
+                text_size = (None, None),
+                valign = 'middle',
+                theme_text_color = "Custom",
+                text_color = (1,1,1,1)
+            )
+        
+        layout = self.view.ids.scroll_layout
+        scrollview = self.view.ids.scrollview
+
+        # layout.spacing = logwidget.height * 0.8
+        layout.add_widget(logwidget)
+        scrollview.scroll_y = 0
