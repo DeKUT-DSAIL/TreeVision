@@ -279,10 +279,10 @@ class CalibrateScreenController:
             self.objpoints.append(objp)
             
             corners2_left = cv2.cornerSubPix(grayL, corners_left, (11,11), (-1,-1), self.criteria)
-            self.imgpoints.append(corners2_left)
+            self.left_imgpoints.append(corners2_left)
 
             corners2_right = cv2.cornerSubPix(grayL, corners_right, (11,11), (-1,-1), self.criteria)
-            self.imgpoints.append(corners2_right)
+            self.right_imgpoints.append(corners2_right)
             
             cv2.drawChessboardCorners(imgL, (width, height), corners2_left, ret_left)
             cv2.drawChessboardCorners(imgR, (width, height), corners2_right, ret_right)
@@ -344,7 +344,6 @@ class CalibrateScreenController:
         Calibrates a stereo camera
         '''
 
-        objpoints, left_points, right_points = self.save_stereo_points(0)
         stereo_save_file = os.path.join(self.CONFIGS_DIR, f"{self.view.ids.save_file.text}.yml")
 
         K1, D1 = utils.load_coefficients(self.SINGLE_CONFIG_FILE)
@@ -354,9 +353,9 @@ class CalibrateScreenController:
         w = int(self.view.ids.image_width.text)
 
         ret, K1, D1, K2, D2, R, T, E, F = cv2.stereoCalibrate(
-            objectPoints = objpoints, 
-            imagePoints1 = left_points, 
-            imagePoints2= right_points, 
+            objectPoints = self.objpoints, 
+            imagePoints1 = self.left_imgpoints, 
+            imagePoints2= self.right_imgpoints, 
             cameraMatrix1 = K1, 
             distCoeffs1 = D1, 
             cameraMatrix2 = K2, 
