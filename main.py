@@ -73,7 +73,7 @@ class Forest(MDApp):
             ]
         }
 
-        self.manager_screens.current = 'extract screen'
+        self.manager_screens.current = 'calibrate screen'
         return self.manager_screens
     
 

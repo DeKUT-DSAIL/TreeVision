@@ -145,6 +145,7 @@
                         TextInput:
                             id: save_file
                             multiline: False
+                            text: "sample"
 
             MDBoxLayout:
                 orientation: "vertical"
@@ -222,13 +223,13 @@
                         MDRaisedButton:
                             text: "Calibrate Single"
                             md_bg_color: "green"
-                            on_release: root.controller.on_calibrate()
+                            on_release: root.controller.update_on_calibrate()
                     AnchorLayout:
                         anchor_x: "right"
                         MDRaisedButton:
                             text: "Calibrate Stereo"
                             md_bg_color: "green"
-                            on_release: root.controller.on_calibrate()
+                            on_release: root.controller.update_on_calibrate()
 
             
             # COLUMN 3: LOGGING INFORMATION
