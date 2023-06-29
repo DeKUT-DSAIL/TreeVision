@@ -281,7 +281,7 @@ class CalibrateScreenController:
             corners2_left = cv2.cornerSubPix(grayL, corners_left, (11,11), (-1,-1), self.criteria)
             self.left_imgpoints.append(corners2_left)
 
-            corners2_right = cv2.cornerSubPix(grayL, corners_right, (11,11), (-1,-1), self.criteria)
+            corners2_right = cv2.cornerSubPix(grayR, corners_right, (11,11), (-1,-1), self.criteria)
             self.right_imgpoints.append(corners2_right)
             
             cv2.drawChessboardCorners(imgL, (width, height), corners2_left, ret_left)
@@ -376,7 +376,7 @@ class CalibrateScreenController:
         )
 
         utils.save_stereo_coefficients(stereo_save_file, K1, D1, K2, D2, R, T, E, F, R1, R2, P1, P2, Q)
-        self.create_log_widget(text = f"Stereo Calibration RMS: {round(ret, 2)}")
+        self.create_log_widget(text = f"Stereo Calibration RMS: {round(ret, 4)}")
     
 
 
@@ -388,7 +388,7 @@ class CalibrateScreenController:
         ret, K, D, R, T, image_points, object_points = self.single_calibrate()
         error_info = utils.projection_error(object_points, image_points, T, R, K, D)
 
-        self.create_log_widget(text = f"Calibration finished \nCalibration RMS: {round(ret, 2)} \nCalibration ME: {round(error_info['ME'], 2)}")
+        self.create_log_widget(text = f"Calibration finished \nCalibration RMS: {round(ret, 4)} \nCalibration ME: {round(error_info['ME'], 4)}")
 
         save_file = self.view.ids.save_file.text
         save_file_path = os.path.join(self.CONFIGS_DIR, f"{save_file}.yml")
