@@ -141,8 +141,9 @@
                             text: "Calibration filename:"
                     AnchorLayout:
                         anchor_x: 'right'
-                        TextInput:
+                        RequiredTextInput:
                             id: save_file
+                            name: "save_file"
                             multiline: False
                             text: "sample"
 
@@ -163,8 +164,9 @@
                         MDBoxLayout:
                             MDLabel:
                                 text: "W:"
-                            TextInput:
+                            RequiredTextInput:
                                 id: image_width
+                                name: "image_width"
                                 multiline: False
                                 text: "1280"
                     AnchorLayout:
@@ -173,8 +175,9 @@
                         MDBoxLayout:
                             MDLabel:
                                 text: "H:"
-                            TextInput:
+                            RequiredTextInput:
                                 id: image_height
+                                name: "image_height"
                                 multiline: False
                                 text: "720"
                 MDBoxLayout:
@@ -189,8 +192,9 @@
                         MDBoxLayout:
                             MDLabel:
                                 text: "W:"
-                            TextInput:
+                            RequiredTextInput:
                                 id: pattern_width
+                                name: "pattern_width"
                                 multiline: False
                                 text: "9"
                     AnchorLayout:
@@ -199,8 +203,9 @@
                         MDBoxLayout:
                             MDLabel:
                                 text: "H:"
-                            TextInput:
+                            RequiredTextInput:
                                 id: pattern_height
+                                name: "pattern_height"
                                 multiline: False
                                 text: "6"
 
@@ -211,8 +216,9 @@
                             text: "Square size (mm)"
                     AnchorLayout:
                         anchor_x: "right"
-                        TextInput:
+                        RequiredTextInput:
                             id: square_size
+                            name: "square_size"
                             multiline: False
                             text: "24.5"
                 

@@ -17,10 +17,11 @@ from Controller.utils import utils
 
 from kivy.metrics import dp
 from kivy.clock import Clock
+from kivy.factory import Factory
+from kivy.uix.textinput import TextInput
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.label import MDLabel
-
 
 class CalibrateScreenController:
     """
@@ -203,45 +204,49 @@ class CalibrateScreenController:
         Saves object points and image points obtained from calibration image
         """
 
-        left, _ = sorted(self.load_images())
-        self.view.ids.left_image.source = left[self.image_index]
+        if self.check_valid_input():
 
-        image = self.view.ids.left_image.source
-        img = cv2.imread(image)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            left, _ = sorted(self.load_images())
+            self.view.ids.left_image.source = left[self.image_index]
 
-        height = int(self.view.ids.pattern_height.text)
-        width = int(self.view.ids.pattern_width.text)
+            image = self.view.ids.left_image.source
+            img = cv2.imread(image)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        objp = np.zeros((height*width, 3), np.float32)
-        objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
+            height = int(self.view.ids.pattern_height.text)
+            width = int(self.view.ids.pattern_width.text)
 
-        self.SQUARE_SIZE = float(self.view.ids.square_size.text)
-        objp = objp * self.SQUARE_SIZE
+            objp = np.zeros((height*width, 3), np.float32)
+            objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
 
-        ret, corners = cv2.findChessboardCorners(gray, (width, height), None)
+            self.SQUARE_SIZE = float(self.view.ids.square_size.text)
+            objp = objp * self.SQUARE_SIZE
 
-        if ret == True:
-            self.objpoints.append(objp)
-            corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), self.criteria)
-            self.imgpoints.append(corners2)
+            ret, corners = cv2.findChessboardCorners(gray, (width, height), None)
+
+            if ret == True:
+                self.objpoints.append(objp)
+                corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), self.criteria)
+                self.imgpoints.append(corners2)
+                
+                cv2.drawChessboardCorners(img, (width, height), corners2, ret)
+                drawn = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_{self.image_index}.jpg')
+                cv2.imwrite(drawn, img)
+                self.view.ids.right_image.source = drawn
+
+            self.view.ids.progress_bar.value = self.image_index + 1
             
-            cv2.drawChessboardCorners(img, (width, height), corners2, ret)
-            drawn = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_{self.image_index}.jpg')
-            cv2.imwrite(drawn, img)
-            self.view.ids.right_image.source = drawn
-
-        self.view.ids.progress_bar.value = self.image_index + 1
+            if self.image_index < len(left) - 1:
+                self.image_index += 1
+            else:
+                self.create_log_widget(text = 'Object and Image Points Saved...')
+                self.on_calibrate()
+                drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
+                for file in drawn_files:
+                    os.remove(file)
+                self.unschedule_on_calibrate()
         
-        if self.image_index < len(left) - 1:
-            self.image_index += 1
-        else:
-            self.create_log_widget(text = 'Object and Image Points Saved...')
-            self.on_calibrate()
-            drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
-            for file in drawn_files:
-                os.remove(file)
-            self.unschedule_on_calibrate()
+        self.unschedule_on_calibrate()
     
 
 
@@ -250,73 +255,76 @@ class CalibrateScreenController:
         Saves object points and image points obtained from stereo images
         """
 
-        left, right = sorted(self.load_images())
-        self.view.ids.left_image.source = left[self.image_index]
-        self.view.ids.right_image.source = right[self.image_index]
+        if self.check_valid_input():
 
-        imageL = self.view.ids.left_image.source
-        imageR = self.view.ids.right_image.source
+            left, right = sorted(self.load_images())
+            self.view.ids.left_image.source = left[self.image_index]
+            self.view.ids.right_image.source = right[self.image_index]
 
-        imgL = cv2.imread(imageL)
-        grayL = cv2.cvtColor(imgL, cv2.COLOR_BGR2GRAY)
+            imageL = self.view.ids.left_image.source
+            imageR = self.view.ids.right_image.source
 
-        imgR = cv2.imread(imageR)
-        grayR = cv2.cvtColor(imgR, cv2.COLOR_BGR2GRAY)
+            imgL = cv2.imread(imageL)
+            grayL = cv2.cvtColor(imgL, cv2.COLOR_BGR2GRAY)
 
-        height = int(self.view.ids.pattern_height.text)
-        width = int(self.view.ids.pattern_width.text)
+            imgR = cv2.imread(imageR)
+            grayR = cv2.cvtColor(imgR, cv2.COLOR_BGR2GRAY)
 
-        objp = np.zeros((height*width, 3), np.float32)
-        objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
+            height = int(self.view.ids.pattern_height.text)
+            width = int(self.view.ids.pattern_width.text)
 
-        self.SQUARE_SIZE = float(self.view.ids.square_size.text)
-        objp = objp * self.SQUARE_SIZE
+            objp = np.zeros((height*width, 3), np.float32)
+            objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
 
-        ret_left, corners_left = cv2.findChessboardCorners(grayL, (width, height), None)
-        ret_right, corners_right = cv2.findChessboardCorners(grayR, (width, height), None)
+            self.SQUARE_SIZE = float(self.view.ids.square_size.text)
+            objp = objp * self.SQUARE_SIZE
 
-        if ret_left and ret_right:
-            self.objpoints.append(objp)
+            ret_left, corners_left = cv2.findChessboardCorners(grayL, (width, height), None)
+            ret_right, corners_right = cv2.findChessboardCorners(grayR, (width, height), None)
+
+            if ret_left and ret_right:
+                self.objpoints.append(objp)
+                
+                corners2_left = cv2.cornerSubPix(grayL, corners_left, (11,11), (-1,-1), self.criteria)
+                self.left_imgpoints.append(corners2_left)
+
+                corners2_right = cv2.cornerSubPix(grayR, corners_right, (11,11), (-1,-1), self.criteria)
+                self.right_imgpoints.append(corners2_right)
+                
+                cv2.drawChessboardCorners(imgL, (width, height), corners2_left, ret_left)
+                cv2.drawChessboardCorners(imgR, (width, height), corners2_right, ret_right)
+
+                drawn_left = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_left_{self.image_index}.jpg')
+                drawn_right = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_right_{self.image_index}.jpg')
+
+                cv2.imwrite(drawn_left, imgL)
+                cv2.imwrite(drawn_right, imgR)
+
+                self.view.ids.left_image.source = drawn_left
+                self.view.ids.right_image.source = drawn_right
+            else:
+                self.create_log_widget(text = "Couldn't find chessboard corners")
+                self.unschedule_save_stereo_points()
+
+            self.view.ids.progress_bar.value = self.image_index + 1
             
-            corners2_left = cv2.cornerSubPix(grayL, corners_left, (11,11), (-1,-1), self.criteria)
-            self.left_imgpoints.append(corners2_left)
-
-            corners2_right = cv2.cornerSubPix(grayR, corners_right, (11,11), (-1,-1), self.criteria)
-            self.right_imgpoints.append(corners2_right)
-            
-            cv2.drawChessboardCorners(imgL, (width, height), corners2_left, ret_left)
-            cv2.drawChessboardCorners(imgR, (width, height), corners2_right, ret_right)
-
-            drawn_left = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_left_{self.image_index}.jpg')
-            drawn_right = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_right_{self.image_index}.jpg')
-
-            cv2.imwrite(drawn_left, imgL)
-            cv2.imwrite(drawn_right, imgR)
-
-            self.view.ids.left_image.source = drawn_left
-            self.view.ids.right_image.source = drawn_right
-        else:
-            self.create_log_widget(text = "Couldn't find chessboard corners")
-            self.unschedule_save_stereo_points()
-
-        self.view.ids.progress_bar.value = self.image_index + 1
+            if self.image_index < len(left) - 1:
+                self.image_index += 1
+            else:
+                self.create_log_widget(text = 'Object Points and Stereo Image Points Saved...')
+                self.stereo_calibrate()
+                drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
+                for file in drawn_files:
+                    os.remove(file)
+                self.unschedule_save_stereo_points()
         
-        if self.image_index < len(left) - 1:
-            self.image_index += 1
-            self.create_log_widget(text = 'Done...')
-        else:
-            self.create_log_widget(text = 'Object Points and Stereo Image Points Saved...')
-            self.stereo_calibrate()
-            drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
-            for file in drawn_files:
-                os.remove(file)
-            self.unschedule_save_stereo_points()
+        self.unschedule_on_calibrate()
 
 
 
     def single_calibrate(self):
         '''
-        Calibrates a single camera 
+        Performs calibration of a single camera 
         '''
 
         x = int(self.view.ids.image_height.text)
@@ -341,7 +349,7 @@ class CalibrateScreenController:
 
     def stereo_calibrate(self):
         '''
-        Calibrates a stereo camera
+        Performs calibration of a stereo camera
         '''
 
         stereo_save_file = os.path.join(self.CONFIGS_DIR, f"{self.view.ids.save_file.text}.yml")
@@ -440,12 +448,7 @@ class CalibrateScreenController:
         This function creates a scatterplot of the residual errors due to differences between original and 
         reprojected image points
         
-        @param objpoints: Object points in the real world
-        @param imgpoints: Image point coordinates in the image plane
-        @param tvecs: 3 x 1 translation vector obtained during calibration
-        @param rvecs: Rotation matrix obtained during calibration
-        @param mtx: Camera matrix obtained during calibration
-        @param dist: Camera distortion matrix obtained during calibration
+        @param error_info: Error information including the mean error and errors along the X and Y axes
         """
         
         x = error_info['X']
@@ -471,9 +474,35 @@ class CalibrateScreenController:
         plt.savefig(os.path.join(self.IMAGES_DIR, "calib_error_scatter.jpg"), dpi=600)
     
 
+
+    def check_valid_input(self):
+        '''
+        Checks that all required text input is valid
+        '''
+        inputs = [
+            self.view.ids.save_file,
+            self.view.ids.image_width,
+            self.view.ids.image_height,
+            self.view.ids.pattern_width,
+            self.view.ids.pattern_height,
+            self.view.ids.square_size
+        ]
+
+        checks = [input.is_valid() for input in inputs]
+
+        self.create_log_widget(
+            text = f"Missing or invalid inputs: {[input.name for input in inputs if input.is_valid()]}.",
+            color = (1,0,0,1)
+        )
+
+        return all(checks)
+                
+
+    
+
     def reset(self):
         '''
-        Clears all configuration variables and resets the app in readiness to begin a fresh extraction
+        Clears all configuration variables and resets the app in readiness to begin a fresh calibration
         '''
         self.images = None
         self.image_index = 0
@@ -491,9 +520,9 @@ class CalibrateScreenController:
 
     
 
-    def create_log_widget(self, text):
+    def create_log_widget(self, text, color=(1,1,1,1)):
         '''
-        Creates a widget to be added to the logging section on the user interfac
+        Creates a widget to be added to the logging section on the user interface
         @param text: The text contained on the widget
         '''
         logwidget = MDLabel(
@@ -501,7 +530,7 @@ class CalibrateScreenController:
                 text_size = (None, None),
                 valign = 'middle',
                 theme_text_color = "Custom",
-                text_color = (1,1,1,1)
+                text_color = color
             )
         
         layout = self.view.ids.scroll_layout
@@ -510,3 +539,23 @@ class CalibrateScreenController:
         # layout.spacing = logwidget.height * 0.8
         layout.add_widget(logwidget)
         scrollview.scroll_y = 0
+
+
+
+class RequiredTextInput(TextInput):
+    '''
+    Implements a TextInput object that requires text input in the field
+    '''
+    def __init__(self, name = '', **kwargs):
+        super(RequiredTextInput, self).__init__(**kwargs)
+        self.id = kwargs.get('id', None)
+        self.name = name
+
+    def is_valid(self):
+        '''
+        Checks that the text is not empty
+        '''
+        return bool(self.text.strip())
+
+
+Factory.register('RequiredTextInput', cls=RequiredTextInput)
