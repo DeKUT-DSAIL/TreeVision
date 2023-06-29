@@ -31,15 +31,14 @@ class CalibrateScreenController:
     the view to control its actions.
     """
 
-    IMAGES_DIR = None
     FILE_MANAGER_SELECTOR = 'folder'
     PROJECT_DIR = os.path.join('assets', 'projects')
     ASSET_IMS_DIR = os.path.join('assets', 'images')
     CONFIGS_DIR = "configs"
+    IMAGES_DIR = None
     SINGLE_CONFIG_FILE = None
     SQUARE_SIZE = None
 
-    images = None
     image_index = 0
     num_of_images = 0
     objpoints = []
@@ -195,7 +194,7 @@ class CalibrateScreenController:
             self.view.ids.right_image.source = right_ims[0]
             return (left_ims, right_ims)
         
-        self.create_log_widget(text = "Number of Left and Right Images NOT equal!")
+        self.create_log_widget(text = "Number of Left and Right Images NOT equal!", color = (1,0,0,1))
     
 
 
@@ -204,49 +203,45 @@ class CalibrateScreenController:
         Saves object points and image points obtained from calibration image
         """
 
-        if self.check_valid_input():
+        left, _ = sorted(self.load_images())
+        self.view.ids.left_image.source = left[self.image_index]
 
-            left, _ = sorted(self.load_images())
-            self.view.ids.left_image.source = left[self.image_index]
+        image = self.view.ids.left_image.source
+        img = cv2.imread(image)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-            image = self.view.ids.left_image.source
-            img = cv2.imread(image)
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        height = int(self.view.ids.pattern_height.text)
+        width = int(self.view.ids.pattern_width.text)
 
-            height = int(self.view.ids.pattern_height.text)
-            width = int(self.view.ids.pattern_width.text)
+        objp = np.zeros((height*width, 3), np.float32)
+        objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
 
-            objp = np.zeros((height*width, 3), np.float32)
-            objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
+        self.SQUARE_SIZE = float(self.view.ids.square_size.text)
+        objp = objp * self.SQUARE_SIZE
 
-            self.SQUARE_SIZE = float(self.view.ids.square_size.text)
-            objp = objp * self.SQUARE_SIZE
+        ret, corners = cv2.findChessboardCorners(gray, (width, height), None)
 
-            ret, corners = cv2.findChessboardCorners(gray, (width, height), None)
-
-            if ret == True:
-                self.objpoints.append(objp)
-                corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), self.criteria)
-                self.imgpoints.append(corners2)
-                
-                cv2.drawChessboardCorners(img, (width, height), corners2, ret)
-                drawn = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_{self.image_index}.jpg')
-                cv2.imwrite(drawn, img)
-                self.view.ids.right_image.source = drawn
-
-            self.view.ids.progress_bar.value = self.image_index + 1
+        if ret == True:
+            self.objpoints.append(objp)
+            corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), self.criteria)
+            self.imgpoints.append(corners2)
             
-            if self.image_index < len(left) - 1:
-                self.image_index += 1
-            else:
-                self.create_log_widget(text = 'Object and Image Points Saved...')
-                self.on_calibrate()
-                drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
-                for file in drawn_files:
-                    os.remove(file)
-                self.unschedule_on_calibrate()
+            cv2.drawChessboardCorners(img, (width, height), corners2, ret)
+            drawn = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_{self.image_index}.jpg')
+            cv2.imwrite(drawn, img)
+            self.view.ids.right_image.source = drawn
+
+        self.view.ids.progress_bar.value = self.image_index + 1
         
-        self.unschedule_on_calibrate()
+        if self.image_index < len(left) - 1:
+            self.image_index += 1
+        else:
+            self.create_log_widget(text = 'Object and Image Points Saved...')
+            self.on_calibrate()
+            drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
+            for file in drawn_files:
+                os.remove(file)
+            self.unschedule_on_calibrate()
     
 
 
@@ -255,70 +250,66 @@ class CalibrateScreenController:
         Saves object points and image points obtained from stereo images
         """
 
-        if self.check_valid_input():
+        left, right = sorted(self.load_images())
+        self.view.ids.left_image.source = left[self.image_index]
+        self.view.ids.right_image.source = right[self.image_index]
 
-            left, right = sorted(self.load_images())
-            self.view.ids.left_image.source = left[self.image_index]
-            self.view.ids.right_image.source = right[self.image_index]
+        imageL = self.view.ids.left_image.source
+        imageR = self.view.ids.right_image.source
 
-            imageL = self.view.ids.left_image.source
-            imageR = self.view.ids.right_image.source
+        imgL = cv2.imread(imageL)
+        grayL = cv2.cvtColor(imgL, cv2.COLOR_BGR2GRAY)
 
-            imgL = cv2.imread(imageL)
-            grayL = cv2.cvtColor(imgL, cv2.COLOR_BGR2GRAY)
+        imgR = cv2.imread(imageR)
+        grayR = cv2.cvtColor(imgR, cv2.COLOR_BGR2GRAY)
 
-            imgR = cv2.imread(imageR)
-            grayR = cv2.cvtColor(imgR, cv2.COLOR_BGR2GRAY)
+        height = int(self.view.ids.pattern_height.text)
+        width = int(self.view.ids.pattern_width.text)
 
-            height = int(self.view.ids.pattern_height.text)
-            width = int(self.view.ids.pattern_width.text)
+        objp = np.zeros((height*width, 3), np.float32)
+        objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
 
-            objp = np.zeros((height*width, 3), np.float32)
-            objp[:,:2] = np.mgrid[0:width, 0:height].T.reshape(-1,2)
+        self.SQUARE_SIZE = float(self.view.ids.square_size.text)
+        objp = objp * self.SQUARE_SIZE
 
-            self.SQUARE_SIZE = float(self.view.ids.square_size.text)
-            objp = objp * self.SQUARE_SIZE
+        ret_left, corners_left = cv2.findChessboardCorners(grayL, (width, height), None)
+        ret_right, corners_right = cv2.findChessboardCorners(grayR, (width, height), None)
 
-            ret_left, corners_left = cv2.findChessboardCorners(grayL, (width, height), None)
-            ret_right, corners_right = cv2.findChessboardCorners(grayR, (width, height), None)
-
-            if ret_left and ret_right:
-                self.objpoints.append(objp)
-                
-                corners2_left = cv2.cornerSubPix(grayL, corners_left, (11,11), (-1,-1), self.criteria)
-                self.left_imgpoints.append(corners2_left)
-
-                corners2_right = cv2.cornerSubPix(grayR, corners_right, (11,11), (-1,-1), self.criteria)
-                self.right_imgpoints.append(corners2_right)
-                
-                cv2.drawChessboardCorners(imgL, (width, height), corners2_left, ret_left)
-                cv2.drawChessboardCorners(imgR, (width, height), corners2_right, ret_right)
-
-                drawn_left = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_left_{self.image_index}.jpg')
-                drawn_right = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_right_{self.image_index}.jpg')
-
-                cv2.imwrite(drawn_left, imgL)
-                cv2.imwrite(drawn_right, imgR)
-
-                self.view.ids.left_image.source = drawn_left
-                self.view.ids.right_image.source = drawn_right
-            else:
-                self.create_log_widget(text = "Couldn't find chessboard corners")
-                self.unschedule_save_stereo_points()
-
-            self.view.ids.progress_bar.value = self.image_index + 1
+        if ret_left and ret_right:
+            self.objpoints.append(objp)
             
-            if self.image_index < len(left) - 1:
-                self.image_index += 1
-            else:
-                self.create_log_widget(text = 'Object Points and Stereo Image Points Saved...')
-                self.stereo_calibrate()
-                drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
-                for file in drawn_files:
-                    os.remove(file)
-                self.unschedule_save_stereo_points()
+            corners2_left = cv2.cornerSubPix(grayL, corners_left, (11,11), (-1,-1), self.criteria)
+            self.left_imgpoints.append(corners2_left)
+
+            corners2_right = cv2.cornerSubPix(grayR, corners_right, (11,11), (-1,-1), self.criteria)
+            self.right_imgpoints.append(corners2_right)
+            
+            cv2.drawChessboardCorners(imgL, (width, height), corners2_left, ret_left)
+            cv2.drawChessboardCorners(imgR, (width, height), corners2_right, ret_right)
+
+            drawn_left = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_left_{self.image_index}.jpg')
+            drawn_right = os.path.join(self.ASSET_IMS_DIR, f'calibration/drawn_right_{self.image_index}.jpg')
+
+            cv2.imwrite(drawn_left, imgL)
+            cv2.imwrite(drawn_right, imgR)
+
+            self.view.ids.left_image.source = drawn_left
+            self.view.ids.right_image.source = drawn_right
+        else:
+            self.create_log_widget(text = "Couldn't find chessboard corners", color = (0,1,0,1))
+            self.unschedule_save_stereo_points()
+
+        self.view.ids.progress_bar.value = self.image_index + 1
         
-        self.unschedule_on_calibrate()
+        if self.image_index < len(left) - 1:
+            self.image_index += 1
+        else:
+            self.create_log_widget(text = 'Object Points and Stereo Image Points Saved...')
+            self.stereo_calibrate()
+            drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
+            for file in drawn_files:
+                os.remove(file)
+            self.unschedule_save_stereo_points()
 
 
 
@@ -384,7 +375,7 @@ class CalibrateScreenController:
         )
 
         utils.save_stereo_coefficients(stereo_save_file, K1, D1, K2, D2, R, T, E, F, R1, R2, P1, P2, Q)
-        self.create_log_widget(text = f"Stereo Calibration RMS: {round(ret, 4)}")
+        self.create_log_widget(text = f"Stereo Calibration Complete \nRMS: {round(ret, 4)}", color = (0,1,0,1))
     
 
 
@@ -396,7 +387,10 @@ class CalibrateScreenController:
         ret, K, D, R, T, image_points, object_points = self.single_calibrate()
         error_info = utils.projection_error(object_points, image_points, T, R, K, D)
 
-        self.create_log_widget(text = f"Calibration finished \nCalibration RMS: {round(ret, 4)} \nCalibration ME: {round(error_info['ME'], 4)}")
+        self.create_log_widget(
+            text = f"Calibration finished \nCalibration RMS: {round(ret, 4)} \nCalibration ME: {round(error_info['ME'], 4)}",
+            color = (0,1,0,1)
+        )
 
         save_file = self.view.ids.save_file.text
         save_file_path = os.path.join(self.CONFIGS_DIR, f"{save_file}.yml")
@@ -407,15 +401,16 @@ class CalibrateScreenController:
 
         scatter_plot_path = os.path.join(self.IMAGES_DIR, "calib_error_scatter.jpg")
         self.view.ids.right_image.source = scatter_plot_path
-        self.create_log_widget(text = "Error Scatter Plot Created")
+        self.create_log_widget(text = "Error Scatter Plot Created", color = (0,1,0,1))
     
 
 
-    def update_on_calibrate(self):
+    def update_save_points(self):
         '''
         Schedules the 'save_points' function to run every 500ms
         '''
-        Clock.schedule_interval(self.save_points, 0.5)
+        if self.check_valid_input() and bool(self.IMAGES_DIR):
+            Clock.schedule_interval(self.save_points, 0.5)
     
 
 
@@ -423,7 +418,8 @@ class CalibrateScreenController:
         '''
         Schedules the 'save_stereo_points' function to run every 500ms
         '''
-        Clock.schedule_interval(self.save_stereo_points, 0.5)
+        if self.check_valid_input() and self.check_file_selection():
+            Clock.schedule_interval(self.save_stereo_points, 0.5)
     
 
 
@@ -490,27 +486,56 @@ class CalibrateScreenController:
 
         checks = [input.is_valid() for input in inputs]
 
-        self.create_log_widget(
-            text = f"Missing or invalid inputs: {[input.name for input in inputs if input.is_valid()]}.",
-            color = (1,0,0,1)
-        )
-
+        if not all(checks):
+            self.create_log_widget(
+                text = f"Missing or invalid inputs: {[input.name for input in inputs if not input.is_valid()]}.",
+                color = (1,0,0,1)
+            )
+        # print(checks)
         return all(checks)
-                
 
-    
+
+
+    def check_file_selection(self):
+        '''
+        Checks that calibration images and camera configuration file have been selected
+        '''
+        file_checks = [self.IMAGES_DIR, self.SINGLE_CONFIG_FILE]
+        labels = [
+            "Calibration images directory not selected",
+            "Camera calibration file not selected"
+        ]
+        statuses = [bool(file_check) for file_check in file_checks]
+
+        for i, status in enumerate(statuses):
+            if not status:
+                self.create_log_widget(
+                    text=labels[i],
+                    color=(1, 0, 0, 1)
+                )
+        # print(statuses)
+        return all(statuses)
+
+
 
     def reset(self):
         '''
         Clears all configuration variables and resets the app in readiness to begin a fresh calibration
         '''
-        self.images = None
+        self.IMAGES_DIR = None
+        self.SINGLE_CONFIG_FILE = None
+        self.SQUARE_SIZE = None
+
         self.image_index = 0
         self.num_of_images = 0
-        self.IMAGES_DIR = None
+        self.objpoints = []
+        self.imgpoints = []
+        self.left_imgpoints = []
+        self.right_imgpoints = []
 
         self.toggle_scrolling_icons()
 
+        self.view.ids.progress_bar.value = 0
         self.view.ids.project_name.text = ''
 
         label_text = "App has been reset and all configurations cleared."

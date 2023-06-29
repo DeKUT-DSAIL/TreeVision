@@ -74,7 +74,7 @@
             padding: "10dp", "10dp"
             md_bg_color: app.theme_cls.primary_color
             MDLabel:
-                text: "Configurations"
+                text: "Configurations (Calibration)"
         
 
         MDBoxLayout:
@@ -143,7 +143,7 @@
                         anchor_x: 'right'
                         RequiredTextInput:
                             id: save_file
-                            name: "save_file"
+                            name: "Calibration filename"
                             multiline: False
                             text: "sample"
 
@@ -166,7 +166,7 @@
                                 text: "W:"
                             RequiredTextInput:
                                 id: image_width
-                                name: "image_width"
+                                name: "Image Width (W)"
                                 multiline: False
                                 text: "1280"
                     AnchorLayout:
@@ -177,7 +177,7 @@
                                 text: "H:"
                             RequiredTextInput:
                                 id: image_height
-                                name: "image_height"
+                                name: "Image Height (H)"
                                 multiline: False
                                 text: "720"
                 MDBoxLayout:
@@ -194,7 +194,7 @@
                                 text: "W:"
                             RequiredTextInput:
                                 id: pattern_width
-                                name: "pattern_width"
+                                name: "Pattern Width (W)"
                                 multiline: False
                                 text: "9"
                     AnchorLayout:
@@ -205,7 +205,7 @@
                                 text: "H:"
                             RequiredTextInput:
                                 id: pattern_height
-                                name: "pattern_height"
+                                name: "Pattern Height (H)"
                                 multiline: False
                                 text: "6"
 
@@ -218,7 +218,7 @@
                         anchor_x: "right"
                         RequiredTextInput:
                             id: square_size
-                            name: "square_size"
+                            name: "Square Size"
                             multiline: False
                             text: "24.5"
                 
@@ -228,7 +228,7 @@
                         MDRaisedButton:
                             text: "Calibrate Single"
                             md_bg_color: "green"
-                            on_release: root.controller.update_on_calibrate()
+                            on_release: root.controller.update_save_points()
                     AnchorLayout:
                         anchor_x: "right"
                         MDRaisedButton:
