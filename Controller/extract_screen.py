@@ -206,8 +206,8 @@ class ExtractScreenController:
         Returns two lists for all paths to the images contained in the left and right folders. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
         '''
         
-        left_ims = glob(os.path.join(self.IMAGES_DIR, 'left/*.jpg'))
-        right_ims = glob(os.path.join(self.IMAGES_DIR, 'right/*.jpg'))
+        left_ims = glob(os.path.join(self.IMAGES_DIR, '*LEFT.jpg'))
+        right_ims = glob(os.path.join(self.IMAGES_DIR, '*RIGHT.jpg'))
 
         self.num_of_images = len(left_ims)
         self.view.ids.progress_bar.max = self.num_of_images
@@ -295,12 +295,11 @@ class ExtractScreenController:
         left_img_path = self.view.left_im.source
         right_img_path = self.view.right_im.source
 
-        main_folder_path = os.path.dirname(os.path.dirname(left_img_path))
+        folder_path = os.path.dirname(left_img_path)
         left_img_filename = os.path.basename(left_img_path)
-        masks_folder_path = os.path.join(main_folder_path, 'masks')
-        mask_filename = left_img_filename.split(".")[0] + "_mask.png"
+        mask_filename = left_img_filename.split(".")[0] + "_mask.jpg"
 
-        mask_path =  os.path.join(masks_folder_path, mask_filename)
+        mask_path =  os.path.join(folder_path, mask_filename)
 
         left = cv2.imread(left_img_path, 0)
         right = cv2.imread(right_img_path, 0)
@@ -310,7 +309,7 @@ class ExtractScreenController:
         if self.verify_config_file():
             dmap = algorithms.extract(left, right, mask, kernel, config_file_path=self.CONFIG_FILE_PATH)
             
-            dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
+            dmap_filename = left_img_path.split('\\')[-1].split('.')[0] + '_disparity.jpg'
             dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
 
             cv2.imwrite(dmap_path, dmap)

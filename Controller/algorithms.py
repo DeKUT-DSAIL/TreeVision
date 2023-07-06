@@ -23,7 +23,7 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
     imgR = cv2.GaussianBlur(imgR, (5,5), 0)
 
     # read camera data
-    data = cv2.FileStorage("/home/cedric/work/projects/Forest/configs/stereo.yml", cv2.FILE_STORAGE_READ)
+    data = cv2.FileStorage(config_file_path, cv2.FILE_STORAGE_READ)
     keys = ["K1", "K2", "D1", "D2", "R1", "R2", "P1", "P2", "T"]
     [K1, K2, D1, D2, R1, R2, P1, P2, T] = [data.getNode(key).mat() for key in keys]
 
@@ -81,39 +81,14 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
             P1 = 8*3*window_size**2,
             P2 = 32*3*window_size**2)
     
-    # right_matcher = cv2.ximgproc.createRightMatcher(stereo)
-
-    # WLS Filter Parameters
-    lmbda = 8000
-    sigma=1.4
-    visual_multiplier = 1.0
-
-    # wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=stereo)
-    # wls_filter.setLambda(lmbda)
-    # wls_filter.setSigmaColor(sigma)
-
-    # Compute the depth images
     disp = stereo.compute(imgL_rectified, imgR_rectified)
-    dispL = disp
-    # dispR = right_matcher.compute(imgR_rectified, imgL_rectified)
-    dispL = np.int16(dispL)
-    # dispR = np.int16(dispR)
-
-    # Filtering with the WLS Filter
-    # filtered = wls_filter.filter(dispL, imgL_rectified, None, dispR)
-    # filtered = cv2.normalize(src=filtered, dst=filtered, beta=0, alpha=255, norm_type=cv2.NORM_MINMAX)
-    # filtered = np.uint8(filtered)
-
     disp = ((disp.astype(np.float32) / 16) - min_disp) / num_disp
+
     kernel= np.ones((3,3),np.uint8)
-    # apply morphological closing to remove little black holes (removing noise)
     closing = cv2.morphologyEx(disp, cv2.MORPH_CLOSE, kernel)
     disp_closed = (closing - closing.min()) * 255
     disp_closed = disp_closed.astype(np.uint8)
     full = disp_closed
-
-    # mask the disparity maps
-    # filtered[mask_rectified == 0] = 0
     disp_closed[mask_rectified == 0] = 0
     
     # R - Raw (before filtering);  F - Filtered;  O - Full (before masking)
