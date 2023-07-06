@@ -1,3 +1,4 @@
+#:kivy 2.1.0
 #:import dp kivy.metrics.dp
 
 <ExtractScreenView>:
@@ -29,14 +30,14 @@
                     anchor_x: 'left'
                     Image:
                         id: left_im
-                        source: "/mnt/kieni/kieni-13-03-2023/left/IMG_20230309_103936_RIGHT.jpg"
+                        source: "assets\images\extraction\FT01_IMG_20230309_103936_LEFT.jpg"
                         size: self.texture_size
                         allow_stretch: True
                 AnchorLayout:
                     anchor_x: 'right'
                     Image:
                         id: right_im
-                        source: "/mnt/kieni/kieni-13-03-2023/right/IMG_20230309_103936_LEFT.jpg"
+                        source: "assets\images\extraction\FT01_IMG_20230309_103936_RIGHT.jpg"
                         size: self.texture_size
                         allow_stretch: True
             
@@ -110,6 +111,7 @@
                         TextInput:
                             id: project_name
                             multiline: False
+                            text: "test"
                 MDBoxLayout:
                     MDLabel:
                         text: "Upload:"
@@ -172,7 +174,7 @@
                             id: parameter_dropdown_item
                             size_hint_x: 1
                             pos_hint: {'center_x': .5, 'center_y': .5}
-                            text: 'Select parameter'
+                            text: 'CD & TH'
                             background_color: [1,0,0,1]
                             on_release: root.controller.parameter_menu.open()
                 MDBoxLayout:
@@ -187,7 +189,7 @@
                             id: segmentation_dropdown_item
                             size_hint_x: 1
                             pos_hint: {'center_x': .5, 'center_y': .5}
-                            text: 'Select approach'
+                            text: 'Masks'
                             on_release: root.controller.segmentation_menu.open()
                 MDBoxLayout:
                     orientation: 'vertical'

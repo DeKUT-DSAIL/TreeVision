@@ -1,6 +1,7 @@
 kivy==2.1.0
-kivymd
-opencv-python
-pandas
-numpy
-matplotlib
+kivymd==1.1.1
+numpy==1.25.0
+pandas==2.0.3
+opencv-python==4.8.0.74
+matplotlib==3.7.2
+watchdog==3.0.0

@@ -46,9 +46,9 @@ class ExtractScreenController:
     PROJECT_DIR = os.path.join(ASSET_DIR, 'projects')
     DISPARITY_MAPS_DIR = None
     RESULTS_DIR = None
-    IMAGES_DIR = None
+    IMAGES_DIR = 'test'
     FILE_MANAGER_SELECTOR = 'folder'
-    CONFIG_FILE_PATH = None
+    CONFIG_FILE_PATH = 'configs/stereo.yml'
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -80,15 +80,9 @@ class ExtractScreenController:
         self.segmentation_menu_items = [
             {
                 "viewclass": "OneLineListItem",
-                "text": "Raw CNN",
+                "text": "Masks",
                 "height": dp(56),
-                "on_release": lambda x="Raw CNN": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
-            },
-            {
-                "viewclass": "OneLineListItem",
-                "text": "U-Net",
-                "height": dp(56),
-                "on_release": lambda x="U-Net": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
+                "on_release": lambda x="Masks": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
             }
         ]
 
