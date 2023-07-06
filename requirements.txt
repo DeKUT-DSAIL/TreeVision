@@ -1,4 +1,4 @@
-kivy
+kivy==2.1.0
 kivymd
 opencv-python
 pandas
