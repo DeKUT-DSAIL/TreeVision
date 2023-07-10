@@ -9,11 +9,11 @@ from PIL import Image
 
 def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel: np.ndarray, config_file_path: str, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
     '''
-    This function extracts the disparity map from left and right images of a stereo image pair. \n
-    @param imgL The left image of the stereo pair \n
-    @param imgR The right image of the stereo pair \n
-    @param mask The segmentation mask to be applied to imgL \n
-    @param sel The structuring element or kernel to be applied to the mask. A vertical kernel might be good for masks of tree trunks and circular kernel better for tree crowns. \n
+    This function extracts the disparity map from left and right images of a stereo image pair.
+    @param imgL The left image of the stereo pair
+    @param imgR The right image of the stereo pair
+    @param mask The segmentation mask to be applied to imgL
+    @param sel The structuring element or kernel to be applied to the mask. A vertical kernel might be good for masks of tree trunks and circular kernel better for tree crowns.
     '''
 
     # ------------------------------------- #
@@ -54,7 +54,6 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
     # ------------------------------------- #
     h1, w1 = imgL.shape
 
-    # rectify images using initUndistortRectifyMap
     xmap1, ymap1 = cv2.initUndistortRectifyMap(K1, D1, R1, P1, (w1,h1), cv2.CV_32FC1)
     xmap2, ymap2 = cv2.initUndistortRectifyMap(K2, D2, R2, P2, (w1,h1), cv2.CV_32FC1)
 

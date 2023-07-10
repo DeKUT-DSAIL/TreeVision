@@ -221,7 +221,7 @@ class ExtractScreenController:
         if self.verify_images(left_ims, right_ims):
             return (left_ims, right_ims)
         
-        self.create_log_widget(text = "Number of Left and Right Images Not equal!")
+        self.create_log_widget(text = "Number of Left and Right Images Not equal!", color=(1,0,0,1))
     
 
 
@@ -265,30 +265,28 @@ class ExtractScreenController:
         well as a CSV file containing the extracted parameters will be saved
         '''
 
-        project = self.view.project_name.text
-
-        if project == '':
-            self.create_log_widget(text = "Missing project name. Please provide one to proceed!")
+        project = self.view.project_name.text 
         
-        else:
-            project_path = os.path.join(self.PROJECT_DIR, f'{project}')
-            dmaps_path = os.path.join(project_path, 'disparity_maps')
-            results_path = os.path.join(project_path, 'results')
+        project_path = os.path.join(self.PROJECT_DIR, f'{project}')
+        dmaps_path = os.path.join(project_path, 'disparity_maps')
+        results_path = os.path.join(project_path, 'results')
 
-            self.DISPARITY_MAPS_DIR = dmaps_path
-            self.RESULTS_DIR = results_path
-            
-            if not os.path.exists(project_path):
-                os.makedirs(dmaps_path) if not os.path.exists(dmaps_path) else None
-                os.makedirs(results_path) if not os.path.exists(results_path) else None
-                self.create_log_widget(text = "Project folders have been created!")
+        self.DISPARITY_MAPS_DIR = dmaps_path
+        self.RESULTS_DIR = results_path
+        
+        if not os.path.exists(project_path):
+            os.makedirs(dmaps_path) if not os.path.exists(dmaps_path) else None
+            os.makedirs(results_path) if not os.path.exists(results_path) else None
+            self.create_log_widget(text = "Project folders have been created!")
 
-            results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
+        results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
-            if not os.path.exists(results_file):
-                results_df = pd.DataFrame(columns=['DBH', 'CD', 'TH'])
-                results_df.index.name = 'Filename'
-                results_df.to_csv(results_file)
+        if not os.path.exists(results_file):
+            results_df = pd.DataFrame(columns=['DBH', 'CD', 'TH'])
+            results_df.index.name = 'Filename'
+            results_df.to_csv(results_file)
+        
+        return True
 
 
 
@@ -335,6 +333,17 @@ class ExtractScreenController:
             return dmap_path, mask_path
         else:
             return False
+    
+
+
+    def verify_project_name(self):
+        '''
+        Verifies that the camera calibration file is available and contains all the necessary parameters
+        '''
+        if self.view.ids.project_name.text  == '':
+            return False
+        else:
+            return True
 
     
 
@@ -353,9 +362,14 @@ class ExtractScreenController:
         '''
         Called when the "Extract" button on the user interface is pressed
         '''
+        if not self.verify_config_file():
+            self.create_log_widget(text = "Missing camera configuration file path!", color=(1,0,0,1))
+        
+        elif not self.verify_project_name():
+            self.create_log_widget(text = "Missing the project name! Please provide one to proceed.", color=(1,0,0,1))
 
-        self.create_project_directories()
-        if self.verify_config_file():
+        else:
+            self.create_project_directories()
             dmap_path, mask_path = self.compute_and_save_disparity()
             self.view.right_im.source = dmap_path
 
@@ -377,9 +391,6 @@ class ExtractScreenController:
             results_df = pd.read_csv(results_file, index_col='Filename')
             results_df.loc[left_filename] = new_row
             results_df.to_csv(results_file)
-        
-        else:
-            self.create_log_widget(text = "Missing camera configuration file path!")
 
 
 
@@ -389,51 +400,46 @@ class ExtractScreenController:
         The parameters are saved in a CSV file in the 'results' subdirectory of the projects folder.
         Called when the "Batch extract" button on the user interface is pressed
         '''
-        
+
         self.create_project_directories()
-        if self.verify_config_file():
-            
-            left_ims, right_ims = self.load_stereo_images()
-            left_ims = sorted(left_ims)
-            right_ims = sorted(right_ims)
+        
+        left_ims, right_ims = self.load_stereo_images()
+        left_ims = sorted(left_ims)
+        right_ims = sorted(right_ims)
 
-            left_img = left_ims[self.image_index]
-            right_img = right_ims[self.image_index]
+        left_img = left_ims[self.image_index]
+        right_img = right_ims[self.image_index]
 
-            self.view.left_im.source = left_img
-            self.view.right_im.source = right_img
+        self.view.left_im.source = left_img
+        self.view.right_im.source = right_img
 
-            dmap_path, mask_path = self.compute_and_save_disparity()
-            
-            self.view.right_im.source = dmap_path
-            self.view.ids.progress_bar.value = self.image_index + 1
+        dmap_path, mask_path = self.compute_and_save_disparity()
+        
+        self.view.right_im.source = dmap_path
+        self.view.ids.progress_bar.value = self.image_index + 1
 
-            parameters, values = self.compute_parameter(mask_path)
+        parameters, values = self.compute_parameter(mask_path)
 
-            left_filename = os.path.basename(self.view.left_im.source)
+        left_filename = os.path.basename(self.view.left_im.source)
 
-            self.display_parameters_on_logs(
-                image = left_filename,
-                parameters = parameters,
-                values = values
-            )
+        self.display_parameters_on_logs(
+            image = left_filename,
+            parameters = parameters,
+            values = values
+        )
 
-            new_row = {k: round(v*100, 2) for k,v in zip(parameters, values)}
-            results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
+        new_row = {k: round(v*100, 2) for k,v in zip(parameters, values)}
+        results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
-            results_df = pd.read_csv(results_file, index_col='Filename')
-            results_df.loc[left_filename] = new_row
-            results_df.to_csv(results_file)
+        results_df = pd.read_csv(results_file, index_col='Filename')
+        results_df.loc[left_filename] = new_row
+        results_df.to_csv(results_file)
 
-            if self.image_index < len(left_ims) - 1:
-                self.image_index += 1
-            else:
-                self.create_log_widget(text = 'Batch extraction complete')
-                self.unschedule_batch_extraction()
-
+        if self.image_index < len(left_ims) - 1:
+            self.image_index += 1
         else:
-            self.unschedule_batch_extraction()
-            self.create_log_widget(text = "Missing camera configuration file path!")
+            self.create_log_widget(text = 'Batch extraction complete', color=(0,1,0,1))
+            self.unschedule_batch_extraction()         
     
 
 
@@ -454,7 +460,16 @@ class ExtractScreenController:
         '''
         Schedules the 'on_batch_extract_function' to run every 500ms
         '''
-        Clock.schedule_interval(self.on_batch_extract, 0.5)
+        if not self.verify_config_file():
+            self.create_log_widget(text = "Missing camera configuration file path!", color=(1,0,0,1))
+            self.unschedule_batch_extraction()
+        
+        elif not self.verify_project_name():
+            self.create_log_widget(text = "Missing the project name! Please provide one to proceed.", color=(1,0,0,1))
+            self.unschedule_batch_extraction()
+        
+        else:
+            Clock.schedule_interval(self.on_batch_extract, 0.5)
     
 
 
