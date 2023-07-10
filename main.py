@@ -24,6 +24,7 @@ Config.set("graphics", "height", resolution[1])
 Config.set("graphics", "width", resolution[0])
 
 from kivy.core.window import Window
+from kivy.core.text import LabelBase
 
 # Place the application window on the right side of the computer screen.
 Window.top = 0
@@ -31,6 +32,7 @@ Window.left = resolution[0] - Window.width
 
 from kivymd.tools.hotreload.app import MDApp
 from kivymd.uix.screenmanager import MDScreenManager
+from kivymd.font_definitions import theme_font_styles
 from kivy.properties import DictProperty
 
 
@@ -51,7 +53,11 @@ class Forest(MDApp):
         importlib.reload(View.screens)
         screens = View.screens.screens
 
-        self.theme_cls.primary_palette = "Orange"
+        LabelBase.register(name="Inter", fn_regular="assets\\fonts\\Inter-Medium.ttf")
+        theme_font_styles.append("Inter")
+        self.theme_cls.font_styles["Inter"] = ["Inter", 16, False, 0.15]
+        self.theme_cls.primary_palette = "Red"
+        self.theme_cls.material_style = "M3"
 
         for i, name_screen in enumerate(screens.keys()):
             controller = screens[name_screen]["controller"]()

@@ -52,7 +52,7 @@ class ExtractScreenController:
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
-        # Window.bind(on_keyboard = self.events)
+        Window.bind(on_keyboard = self.events)
         self.manager_open = False
         self.file_manager = None
 
@@ -66,13 +66,11 @@ class ExtractScreenController:
             {
                 "viewclass": "OneLineListItem",
                 "text": "DBH",
-                "height": dp(56),
                 "on_release": lambda x="DBH": self.set_item(self.parameter_menu, self.view.parameter_dropdown_item, x),
             },
             {
                 "viewclass": "OneLineListItem",
                 "text": "CD & TH",
-                "height": dp(56),
                 "on_release": lambda x="CD & TH": self.set_item(self.parameter_menu, self.view.parameter_dropdown_item, x),
             }
         ]
@@ -81,7 +79,6 @@ class ExtractScreenController:
             {
                 "viewclass": "OneLineListItem",
                 "text": "Masks",
-                "height": dp(56),
                 "on_release": lambda x="Masks": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
             }
         ]

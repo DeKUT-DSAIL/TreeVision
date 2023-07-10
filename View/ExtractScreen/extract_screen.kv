@@ -1,6 +1,14 @@
 #:kivy 2.1.0
 #:import dp kivy.metrics.dp
 
+<MDLabel>:
+    font_size: 12
+    font_name: "Inter"
+
+<TextInput>:
+    font_size: 12
+    font_name: "Inter"
+
 <ExtractScreenView>:
     image_plane: image_plane
     left_im: left_im
@@ -113,9 +121,6 @@
                             multiline: False
                             text: "test"
                 MDBoxLayout:
-                    MDLabel:
-                        text: "Upload:"
-                MDBoxLayout:
                     spacing: dp(0), "10dp"
                     AnchorLayout:
                         anchor_x: 'left'
@@ -175,6 +180,7 @@
                             size_hint_x: 1
                             pos_hint: {'center_x': .5, 'center_y': .5}
                             text: 'CD & TH'
+                            font_size: 12
                             background_color: [1,0,0,1]
                             on_release: root.controller.parameter_menu.open()
                 MDBoxLayout:
@@ -190,6 +196,7 @@
                             size_hint_x: 1
                             pos_hint: {'center_x': .5, 'center_y': .5}
                             text: 'Masks'
+                            font_size: 12
                             on_release: root.controller.segmentation_menu.open()
                 MDBoxLayout:
                     orientation: 'vertical'
