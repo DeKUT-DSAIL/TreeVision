@@ -101,6 +101,7 @@ class ExtractScreenController:
         )
         self.segmentation_menu.bind()
         self.toggle_scrolling_icons()
+        self.initialize_sgbm_values()
 
     
 
@@ -187,6 +188,20 @@ class ExtractScreenController:
     
 
 
+    def initialize_sgbm_values(self):
+        '''
+        Initializes the parameters of the SGBM algorithm
+        '''
+        self.view.ids.min_disp.text = "0"
+        self.view.ids.num_disp.text = "128"
+        self.view.ids.block_size.text = "11"
+        self.view.ids.uniqueness_ratio.text = "10"
+        self.view.ids.speckle_window_size.text = "100"
+        self.view.ids.speckle_range.text = "2"
+        self.view.ids.disp_max_diff.text = "5"
+    
+
+
     def verify_images(self, left_ims, right_ims):
         return len(left_ims) == len(right_ims)
     
@@ -194,7 +209,7 @@ class ExtractScreenController:
 
     def load_stereo_images(self):
         '''
-        Returns two lists for all paths to the images contained in the left and right folders. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
+        Returns two lists for all paths to the left and right images. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
         '''
         
         left_ims = glob(os.path.join(self.IMAGES_DIR, '*LEFT.jpg'))
@@ -298,7 +313,20 @@ class ExtractScreenController:
         kernel = np.ones((3,3), np.uint8)
 
         if self.verify_config_file():
-            dmap = algorithms.extract(left, right, mask, kernel, config_file_path=self.CONFIG_FILE_PATH)
+            dmap = algorithms.extract(
+                left_im = left, 
+                right_im = right, 
+                mask = mask, 
+                sel = kernel, 
+                config_file_path = self.CONFIG_FILE_PATH,
+                min_disp = int(self.view.ids.min_disp.text),
+                num_disp = int(self.view.ids.num_disp.text),
+                block_size = int(self.view.ids.block_size.text),
+                uniqueness_ratio = int(self.view.ids.uniqueness_ratio.text),
+                speckle_window_size = int(self.view.ids.speckle_window_size.text),
+                speckle_range = int(self.view.ids.speckle_range.text),
+                disp_max_diff = int(self.view.ids.disp_max_diff.text)
+            )
             
             dmap_filename = left_img_path.split('\\')[-1].split('.')[0] + '_disparity.jpg'
             dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
@@ -332,6 +360,7 @@ class ExtractScreenController:
             self.view.right_im.source = dmap_path
 
             parameters, values = self.compute_parameter(mask_path)
+            print(f"MASK: {mask_path}")
 
             left_filename = os.path.basename(self.view.left_im.source)
 
@@ -472,19 +501,19 @@ class ExtractScreenController:
         self.CONFIG_FILE_PATH = None
 
         self.toggle_scrolling_icons()
+        self.initialize_sgbm_values()
 
         self.view.ids.project_name.text = ''
         self.view.ids.parameter_dropdown_item.text = 'Select parameter'
         self.view.ids.segmentation_dropdown_item.text = 'Select approach'
+        self.view.ids.scroll_layout.clear_widgets()
 
         label_text = "App has been reset and all configurations cleared."
-
-        self.view.ids.scroll_layout.clear_widgets()
         self.create_log_widget(label_text)
     
 
 
-    def create_log_widget(self, text):
+    def create_log_widget(self, text, color=(1,1,1,1)):
         '''
         Creates a widget to be added to the logging section on the user interfac
         @param text: The text contained on the widget
@@ -494,7 +523,7 @@ class ExtractScreenController:
                 text_size = (None, None),
                 valign = 'middle',
                 theme_text_color = "Custom",
-                text_color = (1,1,1,1)
+                text_color = color
             )
         
         layout = self.view.ids.scroll_layout

@@ -27,7 +27,7 @@ from kivy.core.window import Window
 from kivy.core.text import LabelBase
 
 # Place the application window on the right side of the computer screen.
-Window.top = 0
+Window.top = 30
 Window.left = resolution[0] - Window.width
 
 from kivymd.tools.hotreload.app import MDApp
@@ -36,7 +36,7 @@ from kivymd.font_definitions import theme_font_styles
 from kivy.properties import DictProperty
 
 
-class Forest(MDApp):
+class TreeVision(MDApp):
     KV_DIRS = [os.path.join(os.getcwd(), "View")]
     modules = DictProperty()
 
@@ -53,7 +53,7 @@ class Forest(MDApp):
         importlib.reload(View.screens)
         screens = View.screens.screens
 
-        LabelBase.register(name="Inter", fn_regular="assets\\fonts\\Inter-Medium.ttf")
+        LabelBase.register(name="Inter", fn_regular="assets/fonts/Inter-Medium.ttf")
         theme_font_styles.append("Inter")
         self.theme_cls.font_styles["Inter"] = ["Inter", 16, False, 0.15]
         self.theme_cls.primary_palette = "Red"
@@ -105,7 +105,7 @@ class Forest(MDApp):
             self.rebuild()
 
 
-Forest().run()
+TreeVision().run()
 
 # After you finish the project, remove the above code and uncomment the below
 # code to test the application normally without hot reloading.

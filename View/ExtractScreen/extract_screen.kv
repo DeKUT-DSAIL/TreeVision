@@ -134,6 +134,7 @@
                             icon: "folder"
                             size_hint_x: 1
                             on_release: root.controller.file_manager_open('folder')
+                
                 MDBoxLayout:
                     spacing: dp(0), "10dp"
                     AnchorLayout:
@@ -147,28 +148,8 @@
                             icon: "file"
                             size_hint_x: 1
                             on_release: root.controller.file_manager_open('file')
-                    
-            
-            # COLUMN 2: GENERAL CONFIGURATIONS 
-            MDBoxLayout:
-                orientation: "vertical"
-                size_hint_x: 0.8
-                padding: '10dp', '10dp'
+                
                 MDBoxLayout:
-                    spacing: '10dp'
-                    size_hint_y: None
-                    height: "30dp"
-                    AnchorLayout:
-                        anchor_x: 'left'
-                        MDLabel:
-                            text: "Actual (cm): "
-                            color: 0, 0, 0, 1
-                    AnchorLayout:
-                        anchor_x: 'right'
-                        TextInput:
-                            multiline: False
-                MDBoxLayout:
-                    # spacing: 10
                     AnchorLayout:
                         anchor_x: 'left'
                         MDLabel:
@@ -183,8 +164,8 @@
                             font_size: 12
                             background_color: [1,0,0,1]
                             on_release: root.controller.parameter_menu.open()
+                
                 MDBoxLayout:
-                    # spacing: 10
                     AnchorLayout:
                         anchor_x: 'left'
                         MDLabel:
@@ -198,10 +179,120 @@
                             text: 'Masks'
                             font_size: 12
                             on_release: root.controller.segmentation_menu.open()
+            
+            # COLUMN 2: GENERAL CONFIGURATIONS 
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.8
+                padding: '10dp', '10dp'
+                spacing: "10dp"
+                
+                # SGBM Parameters
+                MDBoxLayout:
+                    MDLabel:
+                        text: "SGBM Algorithm Paramaters"
+                MDBoxLayout:
+                    spacing: "10dp"
+                    size_hint_y: None
+                    height: "30dp"
+                    MDBoxLayout:
+                        spacing: dp(0), "10dp"
+                        AnchorLayout:
+                            anchor_x: "left"
+                            MDLabel:
+                                text: "minDisp:"
+                        AnchorLayout:
+                            anchor_x: "right"
+                            TextInput:
+                                id: min_disp
+                                text: "0"
+                                multiline: False
+                    MDBoxLayout:
+                        spacing: "10dp"
+                        AnchorLayout:
+                            anchor_x: "left"
+                            MDLabel:
+                                text: "numDisp:"
+                        AnchorLayout:
+                            anchor_x: "right"
+                            TextInput:
+                                id: num_disp
+                                text: "0"
+                                multiline: False
+                    MDBoxLayout:
+                        spacing: "10dp"
+                        AnchorLayout:
+                            anchor_x: "left"
+                            MDLabel:
+                                text: "blockSize:"
+                        AnchorLayout:
+                            anchor_x: "right"
+                            TextInput:
+                                id: block_size
+                                text: "0"
+                                multiline: False
+                
+                MDBoxLayout:
+                    spacing: "10dp"
+                    size_hint_y: None
+                    height: "30dp"
+                    MDBoxLayout:
+                        spacing: dp(0), "10dp"
+                        AnchorLayout:
+                            anchor_x: "left"
+                            MDLabel:
+                                text: "uniquenessRatio:"
+                        AnchorLayout:
+                            anchor_x: "right"
+                            TextInput:
+                                id: uniqueness_ratio
+                                text: "0"
+                                multiline: False
+                    MDBoxLayout:
+                        spacing: "10dp"
+                        AnchorLayout:
+                            anchor_x: "left"
+                            MDLabel:
+                                text: "speckleWindowSize:"
+                        AnchorLayout:
+                            anchor_x: "right"
+                            TextInput:
+                                id: speckle_window_size
+                                text: "0"
+                                multiline: False
+
+                MDBoxLayout:
+                    spacing: "10dp"
+                    size_hint_y: None
+                    height: "30dp"
+                    MDBoxLayout:
+                        spacing: "10dp"
+                        AnchorLayout:
+                            anchor_x: "left"
+                            MDLabel:
+                                text: "speckleRange:"
+                        AnchorLayout:
+                            anchor_x: "right"
+                            TextInput:
+                                id: speckle_range
+                                text: "0"
+                                multiline: False
+                    MDBoxLayout:
+                        spacing: "10dp"
+                        AnchorLayout:
+                            anchor_x: "left"
+                            MDLabel:
+                                text: "disp12MaxDiff:"
+                        AnchorLayout:
+                            anchor_x: "right"
+                            TextInput:
+                                id: disp_max_diff
+                                text: "0"
+                                multiline: False
+                
                 MDBoxLayout:
                     orientation: 'vertical'
                     spacing: 10
-
                     MDBoxLayout:
                         spacing: 10
                         AnchorLayout:

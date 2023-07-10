@@ -7,7 +7,7 @@ from PIL import Image
 
 
 
-def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel: np.ndarray, config_file_path: str):
+def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel: np.ndarray, config_file_path: str, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
     '''
     This function extracts the disparity map from left and right images of a stereo image pair. \n
     @param imgL The left image of the stereo pair \n
@@ -68,18 +68,15 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
     # -------------------------------- #
 
     # Matched blocked size
-    window_size = 11
-    min_disp = 0
-    num_disp = 128-min_disp
     stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
             numDisparities = num_disp,
-            blockSize = window_size,
-            uniquenessRatio = 10,
-            speckleWindowSize = 100,
-            speckleRange = 2,
-            disp12MaxDiff = 5,
-            P1 = 8*3*window_size**2,
-            P2 = 32*3*window_size**2)
+            blockSize = block_size,
+            uniquenessRatio = uniqueness_ratio,
+            speckleWindowSize = speckle_window_size,
+            speckleRange = speckle_range,
+            disp12MaxDiff = disp_max_diff,
+            P1 = 8*3*block_size**2,
+            P2 = 32*3*block_size**2)
     
     disp = stereo.compute(imgL_rectified, imgR_rectified)
     disp = ((disp.astype(np.float32) / 16) - min_disp) / num_disp
@@ -96,21 +93,37 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
 
 
 
-def extract(left_im, right_im, mask, sel, config_file_path):
+def extract(left_im, right_im, mask, sel, config_file_path, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
     '''
-    Extracts the disparity map and returns it
+    Extracts the disparity map and returns it. The arguments min_disp - disp_max_diff are taken from OpenCV's SGBM_create(). 
+    Visit https://docs.opencv.org/3.4/d2/d85/classcv_1_1StereoSGBM.html#adb7a50ef5f200ad9559e9b0e976cfa59 for details
 
     @param left_im: The left image
     @param right_im: The right image
     @param mask: The segmentation mask of the image used as the base for the disparity map (usually the left image)
     @param sel: The structuring element to be used for morphological processing
+    @param config_file_path: Path to the camera configuration file, usually a YML file
+    @param min_disp: See OpenCV SGBM_create() for details
+    @param num_disp: See OpenCV SGBM_create() for details
+    @param block_size: See OpenCV SGBM_create() for details
+    @param uniqueness_ratio: See OpenCV SGBM_create() for details
+    @param speckle_window_size: See OpenCV SGBM_create() for details
+    @param speckle_range_size: See OpenCV SGBM_create() for details
+    @param disp_max_diff: See OpenCV SGBM_create() for details
     '''
     dmap = compute_depth_map(
         imgL = left_im,
         imgR = right_im,
         mask = mask,
         sel = sel,
-        config_file_path = config_file_path
+        config_file_path = config_file_path,
+        min_disp = min_disp,
+        num_disp = num_disp,
+        block_size = block_size,
+        uniqueness_ratio = uniqueness_ratio,
+        speckle_window_size = speckle_window_size,
+        speckle_range = speckle_range,
+        disp_max_diff = disp_max_diff
     )
 
     depth = threshold_disparity(dmap['R'])
