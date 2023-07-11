@@ -2,6 +2,7 @@ import os
 import time
 import importlib
 import csv
+import matplotlib.pyplot as plt
 from glob import glob
 
 from kivy.core.window import Window
@@ -269,8 +270,7 @@ class ExtractScreenController:
 
     def create_project_directories(self):
         '''
-        Creates a directory in the "assets" folder of the app for the project. This is the directory where the extracted disparity maps as 
-        well as a CSV file containing the extracted parameters will be saved
+        Creates a directory in the "assets" folder of the app for the project. This is the directory where the extracted disparity maps as well as a CSV file containing the extracted parameters will be saved
         '''
 
         project = self.view.project_name.text 
@@ -460,7 +460,7 @@ class ExtractScreenController:
         @param parameters: The parameter(s) being extracted
         @param values: The extracted value of the parameter
         '''
-        label_text = f"Image: {os.path.basename(image)} \n{parameters}: {[round(value, 2) for value in values]}\n===================================================\n"
+        label_text = f'''=================================================== \n\nImage: {os.path.basename(image)} \n{parameters}: {[round(value, 2) for value in values]}'''
         self.create_log_widget(label_text)
 
 
@@ -540,10 +540,28 @@ class ExtractScreenController:
             
             df.to_csv(file_path)
             
-            text = f'''Analysis of CD & TH results Complete...\n\nMAE_CD: {round(cd_mae, 2)} cm \nMAPE_CD: {round(cd_mape, 2)} % \nRMSE_CD: {round(cd_rmse, 2)} cm \n\nMAE_TH: {round(th_mae, 2)} cm \nMAPE_TH: {round(th_mape, 2)} % \nRMSE_TH: {round(th_rmse, 2)} cm \n\nResults saved to {file_path}'''
+            text = f'''\n\n\n\nAnalysis of CD & TH results Complete...\n\nMAE_CD: {round(cd_mae, 2)} cm \nMAPE_CD: {round(cd_mape, 2)} % \nRMSE_CD: {round(cd_rmse, 2)} cm \n\nMAE_TH: {round(th_mae, 2)} cm \nMAPE_TH: {round(th_mape, 2)} % \nRMSE_TH: {round(th_rmse, 2)} cm \n\nResults saved to {file_path}'''
             
             self.create_log_widget(
                 text = text,
+                color = (0,1,0,1)
+            )
+            self.plot_regression(
+                parameter = 'CD',
+                x = df['Ref_CD'],
+                y = df['Ex_CD'],
+                path = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
+            )
+            self.plot_regression(
+                parameter = 'TH',
+                x = df['Ref_TH'],
+                y = df['Ex_TH'],
+                path = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
+            )
+            self.view.ids.left_im.source = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
+            self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
+            self.create_log_widget(
+                text = '\n\n\n\n\nRegression plot generation complete...',
                 color = (0,1,0,1)
             )
         
@@ -564,6 +582,50 @@ class ExtractScreenController:
                 text = text,
                 color = (0,1,0,1)
             )
+            self.plot_regression(
+                parameter = 'DBH',
+                x = df['Ref_DBH'],
+                y = df['Ex_DBH'],
+                path = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
+            )
+            self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
+            self.create_log_widget(
+                text = '\n\n\nRegression plot generation complete...',
+                color = (0,1,0,1)
+            )
+    
+
+
+    def plot_regression(self, parameter, x, y, path):
+        '''
+        Plots a regression line and saves it to the 'path'
+        @param parameter: Parameter of interest e.g. DBH
+        @param x: Arraylike
+        @param y: Arraylike
+        @param path: Path where figure will be saved
+        '''
+        
+        xmin = np.floor(x.min())
+        xmax = np.ceil(x.max())
+        ymin = np.floor(y.min())
+        ymax = np.ceil(y.max())
+
+        m, c = np.polyfit(x, y, 1)
+
+        plt.figure()
+        plt.grid()
+        plt.xlim(xmin, xmax)
+        plt.ylim(ymin, ymax)
+        plt.locator_params(tight=True, nbins=7)
+        plt.minorticks_on()
+        plt.scatter(x, y, color='blue', s=10)
+        plt.plot(np.linspace(xmin, xmax, 1000), np.linspace(ymin, ymax, 1000), color='green', linestyle='dashed', label='1:1 line')
+        plt.plot(x, m*x + c, color='red', label='regression line')
+        plt.title(f'Regression Plot for {parameter}')
+        plt.xlabel(f'Reference {parameter} Values (cm)')
+        plt.ylabel(f'Extracted {parameter} Values (cm)') 
+        plt.legend()
+        plt.savefig(path, dpi=600)
     
     
     
@@ -607,8 +669,6 @@ class ExtractScreenController:
         
         layout = self.view.ids.scroll_layout
         scrollview = self.view.ids.scrollview
-
-        # layout.spacing = logwidget.height * 0.8
         layout.add_widget(logwidget)
         scrollview.scroll_y = 0
 

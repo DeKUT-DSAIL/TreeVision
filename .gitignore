@@ -1,6 +1,7 @@
 .vscode
 test.py
 tests.ipynb
+analysis.ipynb
 /calib
 /kieni
 /kieni/kieni-13-03-23/right
