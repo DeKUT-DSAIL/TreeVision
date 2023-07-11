@@ -48,7 +48,9 @@ class ExtractScreenController:
     RESULTS_DIR = None
     IMAGES_DIR = 'test'
     FILE_MANAGER_SELECTOR = 'folder'
+    SELECT_BUTTON_ID = None
     CONFIG_FILE_PATH = 'configs/stereo.yml'
+    REF_PARAMS_FILE = None
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -133,11 +135,12 @@ class ExtractScreenController:
     
     
 
-    def file_manager_open(self, selector):
+    def file_manager_open(self, selector, button_id):
         '''
         Opens the file manager when the triggering event in the user interface happens
         '''
         self.FILE_MANAGER_SELECTOR = selector
+        self.SELECT_BUTTON_ID = button_id
         
         self.file_manager = MDFileManager(
             selector = self.FILE_MANAGER_SELECTOR,
@@ -162,8 +165,12 @@ class ExtractScreenController:
             self.IMAGES_DIR = path 
             self.create_log_widget(f"Project images directory has been selected.\nIMAGES DIRECTORY PATH: {path}")
         elif self.FILE_MANAGER_SELECTOR == 'file':
-            self.CONFIG_FILE_PATH = path
-            self.create_log_widget(f"Camera configuration file has been selected.\nCAMERA CONFIGURATION FILE PATH: {path}")
+            if self.SELECT_BUTTON_ID == 1:
+                self.CONFIG_FILE_PATH = path
+                self.create_log_widget(f"Camera configuration file has been selected.\nCAMERA CONFIGURATION FILE PATH: {path}")
+            elif self.SELECT_BUTTON_ID == 2:
+                self.REF_PARAMS_FILE = path
+                self.create_log_widget(f"Reference parameters file has been selected.\nREFERENCE PARAMETERS FILE PATH: {path}")
         
         self.toggle_scrolling_icons()
         self.exit_manager()
@@ -282,7 +289,8 @@ class ExtractScreenController:
         results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
         if not os.path.exists(results_file):
-            results_df = pd.DataFrame(columns=['DBH', 'CD', 'TH'])
+            columns = ['Ref_DBH', 'Ex_DBH', 'AE_DBH (cm)', 'APE_DBH (%)', 'Ref_TH', 'Ex_TH', 'AE_TH (cm)', 'APE_TH (%)', 'Ref_CD', 'Ex_CD', 'AE_CD (cm)', 'APE_CD (%)']
+            results_df = pd.DataFrame(columns=columns)
             results_df.index.name = 'Filename'
             results_df.to_csv(results_file)
         
@@ -374,7 +382,6 @@ class ExtractScreenController:
             self.view.right_im.source = dmap_path
 
             parameters, values = self.compute_parameter(mask_path)
-            print(f"MASK: {mask_path}")
 
             left_filename = os.path.basename(self.view.left_im.source)
 
@@ -384,7 +391,7 @@ class ExtractScreenController:
                 values = values
             )
 
-            new_row = {k: round(v*100, 2) for k,v in zip(parameters, values)}
+            new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
 
             results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
@@ -428,7 +435,7 @@ class ExtractScreenController:
             values = values
         )
 
-        new_row = {k: round(v*100, 2) for k,v in zip(parameters, values)}
+        new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
         results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
 
         results_df = pd.read_csv(results_file, index_col='Filename')
@@ -500,6 +507,45 @@ class ExtractScreenController:
             values = [algorithms.compute_cd(dmap), algorithms.compute_th(dmap)]
 
             return [parameters, values]
+    
+
+
+    def analyse_results(self):
+        '''
+        Analyses the extracted results by comparing them to the ground truth values. It also shows
+        regression plots for all the three parameters
+        '''
+        file_path = 'assets/projects/test/results/results.csv'
+        self.REF_PARAMS_FILE = 'assets/projects/test/results/test.csv'
+        df = pd.read_csv(file_path, index_col='Filename')
+        df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
+        parameter = self.view.ids.parameter_dropdown_item.text
+
+        if parameter == 'CD & TH':
+            df['Ref_TH'] = df2['Ref_TH']
+            df['Ref_CD'] = df2['Ref_CD']
+            df['AE_TH (cm)'] = round((df['Ref_TH'] - df['Ex_TH']).abs(), 2)
+            df['APE_TH (%)'] = round((df['AE_TH (cm)'] / df['Ref_TH']) * 100, 2)
+            df['AE_CD (cm)'] = round((df['Ref_CD'] - df['Ex_CD']).abs(), 2)
+            df['APE_CD (%)'] = round((df['AE_CD (cm)'] / df['Ref_CD']) * 100, 2)
+            
+            df.to_csv(file_path)
+            self.create_log_widget(
+                text = f'Analysis of CD & TH results Complete...\nSaved to {file_path}',
+                color = (0,1,0,1)
+            )
+        
+        elif parameter == 'DBH':
+            df['Ref_DBH'] = df2['Ref_DBH']
+            df['AE_DBH (cm)'] = round((df['Ref_DBH'] - df['Ex_DBH']).abs(), 2)
+            df['APE_DBH (%)'] = round((df['AE_DBH (cm)'] / df['Ref_DBH']) * 100, 2)
+            df.to_csv(file_path)
+
+            df.to_csv(file_path)
+            self.create_log_widget(
+                text = f'Analysis of DBH results Complete...\nSaved to {file_path}',
+                color = (0,1,0,1)
+            )
     
     
     

@@ -133,7 +133,7 @@
                             text: "Select"
                             icon: "folder"
                             size_hint_x: 1
-                            on_release: root.controller.file_manager_open('folder')
+                            on_release: root.controller.file_manager_open('folder', 0)
                 
                 MDBoxLayout:
                     spacing: dp(0), "10dp"
@@ -147,7 +147,7 @@
                             text: "Select"
                             icon: "file"
                             size_hint_x: 1
-                            on_release: root.controller.file_manager_open('file')
+                            on_release: root.controller.file_manager_open('file', 1)
                 
                 MDBoxLayout:
                     AnchorLayout:
@@ -302,11 +302,17 @@
                                 md_bg_color: "green"
                                 on_release: root.controller.on_extract()
                         AnchorLayout:
-                            anchor_x: 'right'
+                            anchor_x: 'center'
                             MDRaisedButton:
                                 text: "Batch Extract"
                                 md_bg_color: "green"
                                 on_release: root.controller.update_on_batch_extract()
+                        AnchorLayout:
+                            anchor_x: 'right'
+                            MDRaisedButton:
+                                text: "Analyse"
+                                md_bg_color: "orange"
+                                on_release: root.controller.analyse_results()
 
 
             # COLUMN 3: LOGGING INFORMATION
