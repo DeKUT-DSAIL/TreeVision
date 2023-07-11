@@ -310,8 +310,10 @@
                         AnchorLayout:
                             anchor_x: 'right'
                             MDRaisedButton:
+                                id: analyse_btn
                                 text: "Analyse"
                                 md_bg_color: "orange"
+                                disabled: True
                                 on_release: root.controller.analyse_results()
 
 

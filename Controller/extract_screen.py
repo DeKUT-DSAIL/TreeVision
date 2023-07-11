@@ -22,6 +22,7 @@ from . import algorithms
 import cv2
 import numpy as np
 import pandas as pd
+from sklearn.metrics import mean_squared_error
 
 # We have to manually reload the view module in order to apply the
 # changes made to the code on a subsequent hot reload.
@@ -446,7 +447,8 @@ class ExtractScreenController:
             self.image_index += 1
         else:
             self.create_log_widget(text = 'Batch extraction complete', color=(0,1,0,1))
-            self.unschedule_batch_extraction()         
+            self.unschedule_batch_extraction()
+            self.view.ids.analyse_btn.disabled = False
     
 
 
@@ -528,10 +530,20 @@ class ExtractScreenController:
             df['APE_TH (%)'] = round((df['AE_TH (cm)'] / df['Ref_TH']) * 100, 2)
             df['AE_CD (cm)'] = round((df['Ref_CD'] - df['Ex_CD']).abs(), 2)
             df['APE_CD (%)'] = round((df['AE_CD (cm)'] / df['Ref_CD']) * 100, 2)
+
+            cd_mae = df['AE_CD (cm)'].mean()
+            cd_mape = df['APE_CD (%)'].mean()
+            cd_rmse = np.sqrt(mean_squared_error(df['Ref_CD'], df['Ex_CD']))
+            th_mae = df['AE_TH (cm)'].mean()
+            th_mape = df['APE_TH (%)'].mean()
+            th_rmse = np.sqrt(mean_squared_error(df['Ref_TH'], df['Ex_TH']))
             
             df.to_csv(file_path)
+            
+            text = f'''Analysis of CD & TH results Complete...\n\nMAE_CD: {round(cd_mae, 2)} cm \nMAPE_CD: {round(cd_mape, 2)} % \nRMSE_CD: {round(cd_rmse, 2)} cm \n\nMAE_TH: {round(th_mae, 2)} cm \nMAPE_TH: {round(th_mape, 2)} % \nRMSE_TH: {round(th_rmse, 2)} cm \n\nResults saved to {file_path}'''
+            
             self.create_log_widget(
-                text = f'Analysis of CD & TH results Complete...\nSaved to {file_path}',
+                text = text,
                 color = (0,1,0,1)
             )
         
@@ -539,11 +551,17 @@ class ExtractScreenController:
             df['Ref_DBH'] = df2['Ref_DBH']
             df['AE_DBH (cm)'] = round((df['Ref_DBH'] - df['Ex_DBH']).abs(), 2)
             df['APE_DBH (%)'] = round((df['AE_DBH (cm)'] / df['Ref_DBH']) * 100, 2)
-            df.to_csv(file_path)
+
+            dbh_mae = df['AE_DBH (cm)'].mean()
+            dbh_mape = df['APE_DBH (%)'].mean()
+            dbh_rmse = np.sqrt(mean_squared_error(df['Ref_DBH'], df['Ex_DBH']))
 
             df.to_csv(file_path)
+
+            text = f'''Analysis of DBH results Complete...\n\nMAE_DBH: {round(dbh_mae, 2)} cm \nMAPE_DBH: {round(dbh_mape, 2)} % \nRMSE_DBH: {round(dbh_rmse, 2)} cm \n\nResults saved to {file_path}'''
+
             self.create_log_widget(
-                text = f'Analysis of DBH results Complete...\nSaved to {file_path}',
+                text = text,
                 color = (0,1,0,1)
             )
     
