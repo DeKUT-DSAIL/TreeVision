@@ -121,33 +121,38 @@
                             multiline: False
                             text: "test"
                 MDBoxLayout:
-                    spacing: dp(0), "10dp"
+                    spacing: "10dp"
                     AnchorLayout:
                         anchor_x: 'left'
-                        MDLabel:
-                            text: "Images folder:"
-                    AnchorLayout:
-                        anchor_x: 'right'
+                        padding: "0dp", "0dp", "10dp", "0dp"
                         MDRectangleFlatIconButton:
                             id: images_select
-                            text: "Select"
+                            text: "Select project images"
                             icon: "folder"
                             size_hint_x: 1
                             on_release: root.controller.file_manager_open('folder', 0)
+                    AnchorLayout:
+                        anchor_x: 'right'
+                        padding: "0dp", "0dp", "0dp", "0dp"
+                        MDRectangleFlatIconButton:
+                            text: "Calibration file (YML)"
+                            icon: "file"
+                            size_hint_x: 1
+                            on_release: root.controller.file_manager_open('file', 1)
                 
                 MDBoxLayout:
                     spacing: dp(0), "10dp"
                     AnchorLayout:
                         anchor_x: 'left'
                         MDLabel:
-                            text: "Calibration file (YML):"
+                            text: "Reference values file:"
                     AnchorLayout:
                         anchor_x: 'right'
                         MDRectangleFlatIconButton:
                             text: "Select"
                             icon: "file"
                             size_hint_x: 1
-                            on_release: root.controller.file_manager_open('file', 1)
+                            on_release: root.controller.file_manager_open('file', 2)
                 
                 MDBoxLayout:
                     AnchorLayout:

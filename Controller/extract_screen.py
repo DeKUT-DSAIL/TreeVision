@@ -518,7 +518,6 @@ class ExtractScreenController:
         regression plots for all the three parameters
         '''
         file_path = 'assets/projects/test/results/results.csv'
-        self.REF_PARAMS_FILE = 'assets/projects/test/results/test.csv'
         df = pd.read_csv(file_path, index_col='Filename')
         df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
         parameter = self.view.ids.parameter_dropdown_item.text
