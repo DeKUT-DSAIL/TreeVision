@@ -1,0 +1,39 @@
+<MainScreenView>:
+    id: main_screen_id
+
+    MDBottomNavigation:
+        id: bottom_navigation
+        selected_color_background: 0, 0, 0, 0.4
+        text_color_active: self.theme_cls.primary_color
+        panel_color: app.theme_cls.bg_normal
+        font_name: "Inter"
+        use_text: True
+
+        MDBottomNavigationItem:
+            name: "screen 1"
+            icon: 'camera-gopro'
+            text: "Stereo"
+            on_enter: stereo_camera_screen.controller.start_stereo_cameras()
+            on_pre_leave: stereo_camera_screen.controller.toggle_stereo_cameras()
+
+            StereoCameraView:
+                id: stereo_camera_screen
+                controller: root.controller
+
+        MDBottomNavigationItem:
+            name: "screen 2"
+            icon: "camera-outline"
+            text: "Camera"
+            on_enter: camera_screen.controller.start_camera()
+            on_pre_leave: camera_screen.controller.toggle_camera()
+
+            SingleCameraView:
+                id: camera_screen
+                controller: root.controller
+
+#        MDBottomNavigationItem:
+#            name: "screen 3"
+#            icon: 'cloud-upload-outline'
+#            text: "Upload"
+#            on_enter: app.show_screen("upload-screen")
+#            on_enter: camera_screen.controller.stop_camera()

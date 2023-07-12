@@ -1,0 +1,40 @@
+<UploadScreenView>:
+    on_enter: root.controller.file_manager_open()
+
+#    MDFloatLayout:
+#        md_bg_color: app.theme_cls.bg_dark
+#
+#        MDIconButton:
+#            icon: "chevron-left"
+#            x: "8dp"
+#            pos_hint: {'top': .99}
+#            theme_text_color: "Custom"
+#            text_color: 1, 1, 1, 1
+#            md_bg_color: 0, 0, 0, .2
+#            on_release: root.controller.switch_screen('main-screen')
+##            on_release: app.show_screen('main-screen')
+#
+#        MDIconButton:
+#            icon: "close"
+#            x: "8dp"
+#            pos_hint: {'top': .99, "right": .98}
+#            theme_text_color: "Custom"
+#            text_color: 1, 1, 1, 1
+#            md_bg_color: 0, 0, 0, .2
+#            on_release: app.get_running_app().stop()
+#
+#        MDIconButton:
+#            icon: "cloud-upload-outline"
+#            theme_icon_color: "Custom"
+#            icon_color: app.theme_cls.primary_color
+#            icon_size: "70dp"
+#            opacity: .9
+#            pos_hint: {"center_x": .5, "center_y": .5}
+#            on_release: root.controller.file_manager_open()
+#
+#        MDLabel:
+#            text: "Upload Image"
+#            font_style: "Inter"
+#            adaptive_height: True
+#            halign: "center"
+#            pos_hint: {'center_y': .4}

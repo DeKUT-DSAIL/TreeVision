@@ -1,0 +1,72 @@
+<StereoCameraView>:
+
+    MDFloatLayout:
+        orientation: "horizontal"
+
+        MyImage:
+            id: left_camera
+            cam: "left"
+            pos_hint: {'left': 1}
+            size_hint_y: 1
+            size_hint_x: .498
+
+        MyImage:
+            id: right_camera
+            cam: "right"
+            pos_hint: {'right': 1}
+            size_hint_y: 1
+            size_hint_x: .498
+
+        MDIconButton:
+            icon: "close"
+            x: "8dp"
+#            pos_hint: {'top': .99, "right": .05}
+            pos_hint: {'top': .95, "right": .08}
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            md_bg_color: 0, 0, 0, .2
+            on_release: app.get_running_app().stop()
+
+        MDFloatLayout:
+            pos_hint: {'center_y': .5}
+            pos_hint: {'right': 1}
+            md_bg_color: 0, 0, 0, .4
+            radius: [0, 20, 20, 0]
+            size_hint: .1, 1
+
+            MDGridLayout:
+                rows: 3
+                adaptive_height: True
+                adaptive_width: True
+                spacing: [10]
+                padding: [10]
+                pos_hint: {"center_x": .5, 'center_y': .5}
+
+                MDIconButton:
+                    id: stereo_calibrator
+                    ripple_scale: .5
+                    icon: "camera-switch"
+                    user_font_size: "30sp"
+                    on_release: root.controller.swap_cameras()
+
+                MDFloatingActionButton:
+                    icon: "circle-outline"
+                    pos_hint: {'center_x': .5, 'center_y': .5}
+                    on_release: root.controller.capture_image(stereo=True)
+
+                MDIconButton:
+                    id: camera_state_toggle
+                    ripple_scale: .5
+                    icon: "camera-off"
+                    user_font_size: "30sp"
+                    on_release: root.controller.toggle_stereo_cameras()
+
+            MDFloatLayout:
+                id: left_thumbnail_section
+                size_hint: None, None
+                pos_hint: {"center_x": .5, 'center_y': .1}
+
+            MDFloatLayout:
+                id: right_thumbnail_section
+                size_hint: None, None
+                pos_hint: {"center_x": .5, 'center_y': .2}

@@ -1,0 +1,24 @@
+<ImageView>:
+    size_hint: .7, .7
+    pos_hint: {"center_x": .5, "center_y": .6}
+
+    canvas.before:
+        Color:
+            rgb: 1, 1, 1, 1
+        RoundedRectangle:
+            size: self.size
+            pos: self.pos
+            radius: [10, 10, 10, 10]
+            source: self.image_source
+
+    MDFloatLayout:
+        pos_hint: {'center_x': .5, 'center_y': .07}
+        md_bg_color: 0, 0, 0, .6
+        radius: [0, 0, 10, 10]
+        size_hint: 1, .14
+
+        MDLabel:
+            text: root.image_name
+            halign: "center"
+            pos_hint: {'center_x': .5, 'center_y': .5}
+            font_style: "Inter"

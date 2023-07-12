@@ -1,0 +1,62 @@
+<SingleCameraView>:
+
+    MDFloatLayout:
+        orientation: "vertical"
+
+        MyImage:
+            id: camera_canvas
+            pos_hint: {'right': 1}
+            size_hint_y: 1
+            size_hint_x: None
+            keep_ratio: False
+            allow_stretch: True
+            width: self.parent.parent.width
+
+        MDIconButton:
+            icon: "close"
+            x: "8dp"
+#            pos_hint: {'top': .99, "right": .05}
+            pos_hint: {'top': .95, "right": .08}
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            md_bg_color: 0, 0, 0, .2
+            on_release: app.get_running_app().stop()
+
+        MDFloatLayout:
+            pos_hint: {'center_y': .5}
+            pos_hint: {'right': 1}
+            md_bg_color: 0, 0, 0, .4
+            # radius: [0, 20, 20, 0]
+            size_hint: .1, 1
+
+            MDGridLayout:
+                rows: 3
+                adaptive_height: True
+                adaptive_width: True
+                spacing: [10]
+                padding: [10]
+                pos_hint: {"center_x": .5, 'center_y': .5}
+
+                MDIconButton:
+                    id: camera_menu
+                    ripple_scale: .5
+                    icon: "camera-flip-outline"
+                    user_font_size: "30sp"
+                    on_release: root.controller.camera_menu_object.open()
+
+                MDFloatingActionButton:
+                    icon: "circle-outline"
+                    pos_hint: {'center_x': .5, 'center_y': .5}
+                    on_release: root.controller.capture_image()
+
+                MDIconButton:
+                    id: camera_toggle
+                    ripple_scale: .5
+                    icon: "camera-off"
+                    user_font_size: "30sp"
+                    on_release: root.controller.toggle_camera()
+
+            MDFloatLayout:
+                id: thumbnail_section
+                size_hint: None, None
+                pos_hint: {"center_x": .5, 'center_y': .1}

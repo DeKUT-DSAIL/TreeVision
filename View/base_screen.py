@@ -37,8 +37,7 @@ class BaseScreenView(ThemableBehavior, MDScreen):
 
     def __init__(self, **kw):
         super().__init__(**kw)
-        # Often you need to get access to the application object from the view
-        # class. You can do this using this attribute.
         self.app = MDApp.get_running_app()
+        self.manager_screens = self.app.manager_screens
         # Adding a view class as observer.
         # self.model.add_observer(self)
