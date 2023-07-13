@@ -43,12 +43,15 @@ class MainScreenController:
         self.root_folder = os.path.join(os.getcwd(), "assets/images/captured")
         self.root_thumbnail = os.path.join(os.getcwd(), "assets/images/thumbnails")
 
-        if len(self.view.app.cameras) >= 2:
-            self.left_cam_index = self.view.app.cameras[-2]
-            self.right_cam_index = self.view.app.cameras[-1]
-        # elif len(self.view.app.cameras) > 2:
-        #     self.left_cam_index = self.view.app.cameras[1]
-        #     self.right_cam_index = self.view.app.cameras[2]
+        self.default_camera_index = 0
+        self.cameras = []
+        
+        self.get_camera_indexes()
+        self.default_camera_index = self.cameras[0] if self.cameras else toast("No Camera attached!")
+
+        if len(self.cameras) >= 2:
+            self.left_cam_index = self.cameras[-2]
+            self.right_cam_index = self.cameras[-1]
 
         camera_items = [
             {
@@ -56,7 +59,7 @@ class MainScreenController:
                 "viewclass": "OneLineListItem",
                 "font_style": "Inter",
                 "on_release": lambda x=i: self.switch_camera(x),
-            } for i in self.view.app.cameras[::-1]
+            } for i in self.cameras[::-1]
         ]
 
         self.camera_menu_object = MDDropdownMenu(
@@ -66,23 +69,46 @@ class MainScreenController:
             items=camera_items,
             width_mult=4,
         )
+    
+
+    def get_camera_indexes(self):
+        '''
+        Returns the indexes of all attached cameras
+        '''
+        index = 0
+        i = 3
+        while i > 0:
+            cap = cv2.VideoCapture(index)
+            if cap.read()[0]:
+                self.cameras.append(index)
+                cap.release()
+            index += 1
+            i -= 1
+        return self.cameras
 
     def change_default_tab(self, *args):
+        '''
+        Sets the default tab on the capture screen. There are two tabs i.e., the stereo camera tab and the single camera tab
+        '''
         self.view.ids.bottom_navigation.switch_tab("screen 2")
 
     def switch_screen(self, screen_name):
+        '''
+        Switches to the screen with the name `screen_name`
+        @param screen_name: Name of the screen to switch to
+        '''
         self.view.manager_screens.current = screen_name
     
     def swap_cameras(self):
         '''
         Swaps the indices of the left and right cameras
         '''
-        if self.left_cam_index == self.view.app.cameras[-2]:
-            self.left_cam_index = self.view.app.cameras[-1]
-            self.right_cam_index = self.view.app.cameras[-2]
+        if self.left_cam_index == self.cameras[-2]:
+            self.left_cam_index = self.cameras[-1]
+            self.right_cam_index = self.cameras[-2]
         else:
-            self.left_cam_index = self.view.app.cameras[-2]
-            self.right_cam_index = self.view.app.cameras[-1]
+            self.left_cam_index = self.cameras[-2]
+            self.right_cam_index = self.cameras[-1]
         self.stop_stereo_cameras()
         self.start_stereo_cameras()
 
@@ -137,11 +163,17 @@ class MainScreenController:
                 toast("Failed to save images")
 
     def switch_camera(self, camera_index):
+        '''
+        In the single camera screen, this function is used to change the streaming camera
+        '''
         self.prev_cam_id = camera_index
         self.stop_camera()
         self.start_camera(cam_id=camera_index)
 
     def show_image(self, instance):
+        '''
+        Displays a selected image on the screen
+        '''
         image_name = instance.image_source.split("/")[-1]
         image_path = os.path.join(self.root_folder, image_name)
         image_screen = self.view.manager_screens.get_screen("image-screen")
@@ -182,7 +214,7 @@ class MainScreenController:
 
     def start_camera(self, cam_id=None, *args):
         if not cam_id and not self.prev_cam_id:
-            cam_id = self.view.app.default_camera_index
+            cam_id = self.default_camera_index
         if self.prev_cam_id:
             cam_id = self.prev_cam_id
         self.image = self.view.ids.camera_screen.ids.camera_canvas

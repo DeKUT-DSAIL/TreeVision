@@ -1,3 +1,5 @@
+#:kivy 2.1.0
+
 <MainScreenView>:
     id: main_screen_id
 
@@ -14,7 +16,7 @@
             icon: 'camera-gopro'
             text: "Stereo"
             on_enter: stereo_camera_screen.controller.start_stereo_cameras()
-            on_pre_leave: stereo_camera_screen.controller.toggle_stereo_cameras()
+            on_pre_leave: stereo_camera_screen.controller.stop_stereo_cameras()
 
             StereoCameraView:
                 id: stereo_camera_screen
@@ -25,15 +27,21 @@
             icon: "camera-outline"
             text: "Camera"
             on_enter: camera_screen.controller.start_camera()
-            on_pre_leave: camera_screen.controller.toggle_camera()
+            on_pre_leave: camera_screen.controller.stop_camera()
 
             SingleCameraView:
                 id: camera_screen
                 controller: root.controller
-
-#        MDBottomNavigationItem:
-#            name: "screen 3"
-#            icon: 'cloud-upload-outline'
-#            text: "Upload"
-#            on_enter: app.show_screen("upload-screen")
-#            on_enter: camera_screen.controller.stop_camera()
+        
+    # switch screens
+    MDFloatingActionButtonSpeedDial:
+        id: speed_dial
+        data: app.modules
+        root_button_anim: True
+        hint_animation: True
+        bg_color_root_button: "teal"
+        bg_color_stack_button: "teal"
+        bg_hint_color: "teal"
+        label_text_color: "white"
+        color_icon_root_button: "white"
+        color_icon_stack_button: "white"

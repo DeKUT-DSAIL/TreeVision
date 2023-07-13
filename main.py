@@ -43,9 +43,6 @@ class TreeVision(MDApp):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.default_camera_index = 0
-        self.cameras = []
-        # self.load_all_kv_files(self.directory)
         self.manager_screens = MDScreenManager()
 
     def build_app(self) -> MDScreenManager:
@@ -58,9 +55,6 @@ class TreeVision(MDApp):
         Window.bind(on_key_down=self.on_keyboard_down)
         importlib.reload(View.screens)
         screens = View.screens.screens
-
-        self.get_camera_indexes()
-        self.default_camera_index = self.cameras[0] if self.cameras else print("No Camera attached!")
 
         LabelBase.register(name="Inter", fn_regular="assets/fonts/Inter-Medium.ttf")
         theme_font_styles.append("Inter")
@@ -78,6 +72,11 @@ class TreeVision(MDApp):
         
 
         self.modules = {
+            'Capture': [
+                'camera-iris',
+                "on_release", lambda x: self.set_screen('main-screen', 'left'),
+            ],
+
             'Calibrate': [
                 'cog-outline',
                 "on_release", lambda x: self.set_screen('calibrate screen', 'left'),
@@ -89,21 +88,7 @@ class TreeVision(MDApp):
             ]
         }
 
-        # self.manager_screens.current = 'extract screen'
         return self.manager_screens
-
-
-    def get_camera_indexes(self):
-        index = 0
-        i = 3
-        while i > 0:
-            cap = cv2.VideoCapture(index)
-            if cap.read()[0]:
-                self.cameras.append(index)
-                cap.release()
-            index += 1
-            i -= 1
-        return self.cameras
     
 
     def create_image_directories(self):
@@ -117,8 +102,7 @@ class TreeVision(MDApp):
     
 
     def on_start(self):
-        self.manager_screens.current = 'extract screen'
-        # self.manager_screens.current_screen.controller.start_stereo_cameras()
+        self.manager_screens.current = 'main-screen'
         self.create_image_directories()
     
 
