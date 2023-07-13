@@ -38,13 +38,13 @@ source install.sh
 ```
 
 ### Test Parameter Extraction
-A folder called `test` is included in the repository. It contains a test set of 20 image pairs of full trees from which you can extract CDs and THs.Follow these steps:
+A folder called `test` is included in the repository. It contains a `full_trees` folder of 20 image pairs of full trees from which you can extract CDs and THs, and a `trunks` folder of 20 image pairs of tree trunks and their masks from which you can extract the DBHs. Follow these steps:
 
 1 On the user interface, click on the green `Extract` button and watch what happens on the widget at the bottom right of the application. Some information on the extracted CD and Th of the tree displayed on the UI has now been displayed.
 
-2 On the user interface, click on the green `Batch Extract` button. The app will now batch extract the parameters of all 20 trees in the `test` folder and display them on the widget at the bottom right corner. The batch extraction will be complete once the UI is no longer being updated with new images.
+2 On the user interface, click on the green `Batch Extract` button. The app will now batch extract the parameters of all 20 trees in the [full_trees](./test/full_trees/) folder and display them on the widget at the bottom right corner. The batch extraction will be complete once the UI is no longer being updated with new images.
 
-3 In your file explorer, navigate to the [test folder](./assets/projects/test/results/results.csv) to find a `results.csv` file and open it. This file contains the extracted parameters of all the 20 trees. You can open it using MS Excel for a better view.
+3 In your file explorer, navigate to the [test folder](./assets/projects/test/results/results_cd_th.csv) to find a `results_cd_th.csv` file and open it. This file contains the extracted parameters of all the 20 trees. You can open it using MS Excel for a better view.
 
 
 
