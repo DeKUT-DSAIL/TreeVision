@@ -117,8 +117,8 @@ class TreeVision(MDApp):
     
 
     def on_start(self):
-        self.manager_screens.current = 'main-screen'
-        self.manager_screens.current_screen.controller.start_stereo_cameras()
+        self.manager_screens.current = 'extract screen'
+        # self.manager_screens.current_screen.controller.start_stereo_cameras()
         self.create_image_directories()
     
 

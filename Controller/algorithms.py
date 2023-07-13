@@ -84,7 +84,7 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
     closing = cv2.morphologyEx(disp, cv2.MORPH_CLOSE, kernel)
     disp_closed = (closing - closing.min()) * 255
     disp_closed = disp_closed.astype(np.uint8)
-    full = disp_closed
+    full = disp_closed.copy()
     disp_closed[mask_rectified == 0] = 0
     
     # R - Raw (before filtering);  F - Filtered;  O - Full (before masking)

@@ -48,7 +48,7 @@ class ExtractScreenController:
     PROJECT_DIR = os.path.join(ASSET_DIR, 'projects')
     DISPARITY_MAPS_DIR = None
     RESULTS_DIR = None
-    IMAGES_DIR = 'test'
+    IMAGES_DIR = 'test/full_trees'
     FILE_MANAGER_SELECTOR = 'folder'
     SELECT_BUTTON_ID = None
     CONFIG_FILE_PATH = 'configs/stereo.yml'
@@ -287,10 +287,15 @@ class ExtractScreenController:
             os.makedirs(results_path) if not os.path.exists(results_path) else None
             self.create_log_widget(text = "Project folders have been created!")
 
-        results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
+        parameter = self.view.parameter_dropdown_item.text
+        if parameter == 'DBH':
+            results_file = os.path.join(self.RESULTS_DIR, 'results_dbh.csv')
+            columns = ['Ref_DBH', 'Ex_DBH', 'AE_DBH (cm)', 'APE_DBH (%)']
+        elif parameter == 'CD & TH':
+            results_file = os.path.join(self.RESULTS_DIR, 'results_cd_th.csv')
+            columns = ['Ref_TH', 'Ex_TH', 'AE_TH (cm)', 'APE_TH (%)', 'Ref_CD', 'Ex_CD', 'AE_CD (cm)', 'APE_CD (%)']
 
         if not os.path.exists(results_file):
-            columns = ['Ref_DBH', 'Ex_DBH', 'AE_DBH (cm)', 'APE_DBH (%)', 'Ref_TH', 'Ex_TH', 'AE_TH (cm)', 'APE_TH (%)', 'Ref_CD', 'Ex_CD', 'AE_CD (cm)', 'APE_CD (%)']
             results_df = pd.DataFrame(columns=columns)
             results_df.index.name = 'Filename'
             results_df.to_csv(results_file)
@@ -310,9 +315,10 @@ class ExtractScreenController:
 
         folder_path = os.path.dirname(left_img_path)
         left_img_filename = os.path.basename(left_img_path)
-        mask_filename = left_img_filename.split(".")[0] + "_mask.jpg"
+        mask_filename = left_img_filename.split(".")[0] + "_mask.png"
 
         mask_path =  os.path.join(folder_path, mask_filename)
+        print(f"MASK: {mask_path}")
 
         left = cv2.imread(left_img_path, 0)
         right = cv2.imread(right_img_path, 0)
@@ -394,7 +400,11 @@ class ExtractScreenController:
 
             new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
 
-            results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
+            parameter = self.view.parameter_dropdown_item.text
+            if parameter == 'DBH':
+                results_file = os.path.join(self.RESULTS_DIR, 'results_dbh.csv')
+            elif parameter == 'CD & TH':
+                results_file = os.path.join(self.RESULTS_DIR, 'results_cd_th.csv')
 
             results_df = pd.read_csv(results_file, index_col='Filename')
             results_df.loc[left_filename] = new_row
@@ -437,7 +447,12 @@ class ExtractScreenController:
         )
 
         new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
-        results_file = os.path.join(self.RESULTS_DIR, 'results.csv')
+
+        parameter = self.view.parameter_dropdown_item.text
+        if parameter == 'DBH':
+            results_file = os.path.join(self.RESULTS_DIR, 'results_dbh.csv')
+        elif parameter == 'CD & TH':
+            results_file = os.path.join(self.RESULTS_DIR, 'results_cd_th.csv')
 
         results_df = pd.read_csv(results_file, index_col='Filename')
         results_df.loc[left_filename] = new_row
@@ -517,10 +532,15 @@ class ExtractScreenController:
         Analyses the extracted results by comparing them to the ground truth values. It also shows
         regression plots for all the three parameters
         '''
-        file_path = 'assets/projects/test/results/results.csv'
+        parameter = self.view.parameter_dropdown_item.text
+        if parameter == 'DBH':
+            file_path = os.path.join(self.RESULTS_DIR, 'results_dbh.csv')
+        elif parameter == 'CD & TH':
+            file_path = os.path.join(self.RESULTS_DIR, 'results_cd_th.csv')
+        
         df = pd.read_csv(file_path, index_col='Filename')
         df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
-        parameter = self.view.ids.parameter_dropdown_item.text
+        
 
         if parameter == 'CD & TH':
             df['Ref_TH'] = df2['Ref_TH']
