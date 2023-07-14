@@ -51,7 +51,7 @@ class ExtractScreenController:
     IMAGES_DIR = 'test/full_trees'
     FILE_MANAGER_SELECTOR = 'folder'
     SELECT_BUTTON_ID = None
-    CONFIG_FILE_PATH = 'configs/stereo.yml'
+    CONFIG_FILE_PATH = 'configs/stereo_sample.yml'
     REF_PARAMS_FILE = None
 
     def __init__(self):

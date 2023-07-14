@@ -179,8 +179,8 @@ class CalibrateScreenController:
         Returns the paths to the calibration images. This works for both stereo and single camera calibration
         '''
         
-        left_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*_LEFT.jpg')))
-        right_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*_RIGHT.jpg')))
+        left_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*LEFT*.jpg')))
+        right_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*RIGHT*.jpg')))
 
         self.num_of_images = len(left_ims)
         self.view.ids.progress_bar.max = self.num_of_images
@@ -296,7 +296,7 @@ class CalibrateScreenController:
             self.view.ids.left_image.source = drawn_left
             self.view.ids.right_image.source = drawn_right
         else:
-            self.create_log_widget(text = "Couldn't find chessboard corners", color = (0,1,0,1))
+            self.create_log_widget(text = f"Couldn't find chessboard corners for {os.path.basename(imageL)} and {os.path.basename(imageR)}", color = (1,0,0,1))
             self.unschedule_save_stereo_points()
 
         self.view.ids.progress_bar.value = self.image_index + 1
