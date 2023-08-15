@@ -221,8 +221,8 @@ class ExtractScreenController:
         Returns two lists for all paths to the left and right images. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
         '''
         
-        left_ims = glob(os.path.join(self.IMAGES_DIR, '*LEFT.jpg'))
-        right_ims = glob(os.path.join(self.IMAGES_DIR, '*RIGHT.jpg'))
+        left_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*LEFT.jpg')))
+        right_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*RIGHT.jpg')))
 
         self.num_of_images = len(left_ims)
         self.view.ids.progress_bar.max = self.num_of_images
@@ -259,8 +259,6 @@ class ExtractScreenController:
 
 
         left, right = self.load_stereo_images()
-        left = sorted(left)
-        right = sorted(right)
 
         if self.on_button_press(button_id):
             self.view.left_im.source = left[self.image_index]
@@ -318,7 +316,6 @@ class ExtractScreenController:
         mask_filename = left_img_filename.split(".")[0] + "_mask.png"
 
         mask_path =  os.path.join(folder_path, mask_filename)
-        print(f"MASK: {mask_path}")
 
         left = cv2.imread(left_img_path, 0)
         right = cv2.imread(right_img_path, 0)
@@ -341,7 +338,7 @@ class ExtractScreenController:
                 disp_max_diff = int(self.view.ids.disp_max_diff.text)
             )
             
-            dmap_filename = left_img_path.split('\\')[-1].split('.')[0] + '_disparity.jpg'
+            dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
             dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
 
             cv2.imwrite(dmap_path, dmap)
@@ -422,8 +419,6 @@ class ExtractScreenController:
         self.create_project_directories()
         
         left_ims, right_ims = self.load_stereo_images()
-        left_ims = sorted(left_ims)
-        right_ims = sorted(right_ims)
 
         left_img = left_ims[self.image_index]
         right_img = right_ims[self.image_index]

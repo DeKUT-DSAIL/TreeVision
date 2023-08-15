@@ -7,6 +7,17 @@ from PIL import Image
 
 
 
+def load_data(config_file_path: str):
+    '''
+    Loads the camera configuration file to obtain the camera calibration parameters
+    '''
+    data = cv2.FileStorage(config_file_path, cv2.FILE_STORAGE_READ)
+    keys = ["K1", "K2", "D1", "D2", "R1", "R2", "P1", "P2", "T", "Q"]
+    [K1, K2, D1, D2, R1, R2, P1, P2, T, Q] = [data.getNode(key).mat() for key in keys]
+
+    return [K1, K2, D1, D2, R1, R2, P1, P2, T, Q]
+
+
 def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel: np.ndarray, config_file_path: str, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
     '''
     This function extracts the disparity map from left and right images of a stereo image pair.
@@ -23,9 +34,7 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
     imgR = cv2.GaussianBlur(imgR, (5,5), 0)
 
     # read camera data
-    data = cv2.FileStorage(config_file_path, cv2.FILE_STORAGE_READ)
-    keys = ["K1", "K2", "D1", "D2", "R1", "R2", "P1", "P2", "T"]
-    [K1, K2, D1, D2, R1, R2, P1, P2, T] = [data.getNode(key).mat() for key in keys]
+    K1, K2, D1, D2, R1, R2, P1, P2, T, _ = load_data(config_file_path)
 
     '''
     We know that
@@ -78,8 +87,11 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
             P2 = 32*3*block_size**2)
     
     disp = stereo.compute(imgL_rectified, imgR_rectified)
+    original = disp.copy()
+    original = (original / 16).astype(np.float32)
+    original = cv2.bitwise_and(original, original, mask=mask_rectified)
+    
     disp = ((disp.astype(np.float32) / 16) - min_disp) / num_disp
-
     kernel= np.ones((3,3),np.uint8)
     closing = cv2.morphologyEx(disp, cv2.MORPH_CLOSE, kernel)
     disp_closed = (closing - closing.min()) * 255
@@ -87,8 +99,8 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
     full = disp_closed.copy()
     disp_closed[mask_rectified == 0] = 0
     
-    # R - Raw (before filtering);  F - Filtered;  O - Full (before masking)
-    return {'R': disp_closed, 'O': full}
+    # R - Raw (before filtering);  F - Full (before masking); ;  O - Original
+    return {'R': disp_closed, 'F': full, 'O': original}
 
 
 
@@ -171,6 +183,10 @@ def disp_to_dist(x):
     @param x: The disparity value (usually the greyscale intensity of a pixel in the disparity map) to be resolved into distance in m
     '''
     y = (346*x**2 -116.7*x - 1.961) / (x**3 - 5.863*x**2 + 47.24*x + 487.6)
+    Q = np.float32([[1,0,0,-640],[0,1,0,-360],[0,0,0,1442],[0,0,1/130,0]])
+    _, _, y = cv2.reprojectImageTo3D(np.array([x], dtype=np.float32), Q)[0,0]
+    y = y / 1000
+    
     return y
 
 
@@ -206,10 +222,10 @@ def median_top_pixel(image):
     for row, column in zip(rows, columns):
         pixels.append(sub_image[row, column])
     
-    # print(pixels)
     pixels = np.array(pixels)
+    med = np.median(pixels)
 
-    return np.median(pixels)
+    return med
 
 
 
@@ -228,10 +244,11 @@ def median_base_pixel(image):
     for row, column in zip(rows, columns):
         pixels.append(sub_image[row, column])
 
-    # print(pixels)
     pixels = np.array(pixels)
+    med = np.median(pixels)
+    image[base] = med
 
-    return np.median(pixels)
+    return med
 
 
 
@@ -252,11 +269,9 @@ def median_bh_pixels(image):
         pixels.append(sub_image[row, column])
     
     pixels = np.array(pixels)
-    half_pixels = np.array_split(pixels, 2)
-    center = np.median(pixels)
-    edge = np.median(half_pixels[0])
+    med = np.median(pixels)
 
-    return [center, edge]
+    return med
 
 
 
@@ -275,10 +290,11 @@ def median_crown_pixel(image):
     for row, column in zip(rows, columns):
         pixels.append(sub_image[row, column])
 
-    # print(pixels)
     pixels = np.array(pixels)
+    med = int(np.median(pixels))
+    image[left] = med
 
-    return int(np.median(pixels))
+    return med
 
 
 
@@ -327,6 +343,7 @@ def compute_bh(img, zc, baseline=0.129, f=1438):
     '''
     disparity = baseline * f / zc
     base = convex_hull(img)[0]
+    print(f"Image coordinates of breast height: {base}")
     xc = baseline * (base[0] - 360) / disparity
     yc = baseline * (base[1] - 640) / disparity
 
@@ -363,7 +380,7 @@ def compute_dbh(image, mask):
     sd = bh_pixels.size
     print(f"The DBH spans {sd} pixels")
 
-    da = disp_to_dist(median_bh_pixels(image)[0])
+    da = disp_to_dist(median_bh_pixels(image))
     print(f"Depth of breast height: {round(da, 2)}m")
 
     theta = np.arctan(sd * 3.546e-4)
@@ -390,7 +407,9 @@ def compute_cd(image, baseline=0.129, f=1438):
     disparity = baseline * f / z
     x = baseline * (left[0] - 360) / disparity
     y = baseline * (left[1] - 640) / disparity
-    print(f"Real word coordinates: {round(x, 2), round(y, 2), round(z, 2)}")
+    print(f"Image coordinates of left edge: {left}")
+    print(f"Image coordinates of right edge: {right}")
+    print(f"Real world coordinates: {round(x, 2), round(y, 2), round(z, 2)}")
 
     sc = right[1] - left[1]
     print(f"Crown spans {sc} pixels")
@@ -416,17 +435,20 @@ def compute_th(image, baseline=0.129, f=1438):
 
     base, top = convex_hull(image)[0:2]
     base_px, top_px = pixel_of_interest(image, 'TH')
+    print(f"Base: {base_px}")
     
     zb = disp_to_dist(base_px)
     disparity = baseline * f / zb
     xb = baseline * (base[0] - 360) / disparity
     yb = baseline * (base[1] - 640) / disparity
+    print(f"Image coordinates of base: {base}")
     print(f"Real world coordinates of base: {round(xb, 2), round(yb, 2), round(zb, 2)}")
 
     zt = disp_to_dist(top_px)
     disparity = baseline * f / zt
     xt = baseline * (top[0] - 360) / disparity
     yt = baseline * (top[1] - 640) / disparity
+    print(f"Image coordinates of top: {top}")
     print(f"Real world coordinates of top: {round(xt, 2), round(yt, 2), round(zt, 2)}")    
 
     st = base[0] - top[0]
