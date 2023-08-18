@@ -59,6 +59,10 @@ class ExtractScreenController:
     HORZ_FIELD_OF_VIEW = None
     VERT_FIELD_OF_VIEW = None
 
+    IMAGE_FORMAT = "JPG"
+    LEFT_IMS = None
+    RIGHT_IMS = None
+
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
         Window.bind(on_keyboard = self.events)
@@ -92,6 +96,32 @@ class ExtractScreenController:
             }
         ]
 
+        self.rectification_menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": "Yes",
+                "on_release": lambda x="Yes": self.set_item(self.rectification_menu, self.view.ids.rectification_dropdown_item, x),
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": "No",
+                "on_release": lambda x="No": self.set_item(self.rectification_menu, self.view.ids.rectification_dropdown_item, x),
+            }
+        ]
+
+        self.format_menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": "JPG",
+                "on_release": lambda x="Yes": self.set_item(self.format_menu, self.view.ids.rectification_dropdown_item, x),
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": "No",
+                "on_release": lambda x="No": self.set_item(self.format_menu, self.view.ids.rectification_dropdown_item, x),
+            }
+        ]
+
         self.parameter_menu = MDDropdownMenu(
             caller=self.view.parameter_dropdown_item,
             items=self.parameter_menu_items,
@@ -109,6 +139,16 @@ class ExtractScreenController:
             width_mult=2,
         )
         self.segmentation_menu.bind()
+
+        self.rectification_menu = MDDropdownMenu(
+            caller=self.view.ids.segmentation_dropdown_item,
+            items=self.rectification_menu_items,
+            position="center",
+            background_color='brown',
+            width_mult=2,
+        )
+        self.rectification_menu.bind()
+
         self.toggle_scrolling_icons()
         self.initialize_sgbm_values()
 
@@ -170,6 +210,7 @@ class ExtractScreenController:
 
         if self.FILE_MANAGER_SELECTOR == 'folder':
             self.IMAGES_DIR = path 
+            self.load_stereo_images()
             self.create_log_widget(f"Project images directory has been selected.\nIMAGES DIRECTORY PATH: {path}")
         elif self.FILE_MANAGER_SELECTOR == 'file':
             if self.SELECT_BUTTON_ID == 1:
@@ -225,9 +266,23 @@ class ExtractScreenController:
         '''
         Returns two lists for all paths to the left and right images. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
         '''
+        left_patterns = ['*LEFT.jpg', '*left.jpg', '*LEFT.png', '*left.png']
+        right_patterns = ['*RIGHT.jpg', '*right.jpg', '*RIGHT.png', '*right.png']
+
+        left_ims = []
+        right_ims = []
+
+        for pattern in left_patterns:
+            left_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
         
-        left_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*LEFT.jpg')))
-        right_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*RIGHT.jpg')))
+        for pattern in right_patterns:
+            right_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
+
+        left_ims = sorted(list(set(left_ims)))
+        right_ims = sorted(list(set(right_ims)))
+
+        self.LEFT_IMS = left_ims
+        self.RIGHT_IMS = right_ims
 
         self.num_of_images = len(left_ims)
         self.view.ids.progress_bar.max = self.num_of_images
@@ -248,6 +303,7 @@ class ExtractScreenController:
 
         if instance == 'next':
             self.image_index = (self.image_index + 1) % self.num_of_images
+            print(f"INDEX: {self.image_index}")
             return True
         elif instance == 'previous':
             self.image_index = (self.image_index - 1) % self.num_of_images
@@ -262,12 +318,9 @@ class ExtractScreenController:
         @param button_id: The ID of the scroll button clicked. It takes the values "next" or "previous"
         '''
 
-
-        left, right = self.load_stereo_images()
-
         if self.on_button_press(button_id):
-            self.view.left_im.source = left[self.image_index]
-            self.view.right_im.source = right[self.image_index]
+            self.view.left_im.source = self.LEFT_IMS[self.image_index]
+            self.view.right_im.source = self.RIGHT_IMS[self.image_index]
 
 
 
@@ -318,9 +371,10 @@ class ExtractScreenController:
 
         folder_path = os.path.dirname(left_img_path)
         left_img_filename = os.path.basename(left_img_path)
-        mask_filename = left_img_filename.split(".")[0] + "_mask.png"
+        mask_filename = left_img_filename.split(".")[0] + "_mask.*"
 
-        mask_path =  os.path.join(folder_path, mask_filename)
+        mask_path =  glob(os.path.join(folder_path, mask_filename))[0]
+        print(f"MASK: {mask_path}")
 
         left = cv2.imread(left_img_path, 0)
         right = cv2.imread(right_img_path, 0)
@@ -349,7 +403,6 @@ class ExtractScreenController:
             elif platform == "linux" or platform == "linux2":
                 dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
             
-            print(f"DMAP: {dmap_filename}")
             dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
 
             cv2.imwrite(dmap_path, dmap)
@@ -430,7 +483,7 @@ class ExtractScreenController:
 
         self.create_project_directories()
         
-        left_ims, right_ims = self.load_stereo_images()
+        left_ims, right_ims = self.LEFT_IMS, self.RIGHT_IMS
 
         left_img = left_ims[self.image_index]
         right_img = right_ims[self.image_index]
@@ -525,7 +578,6 @@ class ExtractScreenController:
         dmap = cv2.imread(self.view.right_im.source, 0)
         mask = cv2.imread(mask_path, 0)
         K, _, _, _, _, _, _, _, T, _ = algorithms.load_camera_params(self.CONFIG_FILE_PATH)
-        print(K,T)
 
         focal_length = K[0, 0]
         cx = K[0, 2]

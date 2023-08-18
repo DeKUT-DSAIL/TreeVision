@@ -141,14 +141,26 @@
                 
                 MDBoxLayout:
                     spacing: dp(0), "10dp"
-                    AnchorLayout:
-                        anchor_x: 'left'
-                        MDLabel:
-                            text: "Reference values file:"
-                    AnchorLayout:
-                        anchor_x: 'right'
+                    MDBoxLayout:
+                        AnchorLayout:
+                            anchor_x: "left"
+                            MDLabel:
+                                text: "Images rectified?"
+                        AnchorLayout:
+                            anchor_x: "right"
+                            MDDropDownItem:
+                                id: rectification_dropdown_item
+                                size_hint_x: 1
+                                pos_hint: {'center_x': .5, 'center_y': .5}
+                                text: 'No'
+                                font_size: 12
+                                background_color: [1,0,0,1]
+                                on_release: root.controller.rectification_menu.open()
+
+
+                    MDBoxLayout:
                         MDRectangleFlatIconButton:
-                            text: "Select"
+                            text: "Select ref values file"
                             icon: "file"
                             size_hint_x: 1
                             on_release: root.controller.file_manager_open('file', 2)
