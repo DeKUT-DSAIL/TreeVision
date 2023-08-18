@@ -7,6 +7,19 @@ from PIL import Image
 
 
 
+def load_camera_params(config_file_path: str):
+    '''
+    Loads the camera parameters from the configuration file
+    @param config_file_path: Path to the camera configuration file
+    '''
+    data = cv2.FileStorage(config_file_path, cv2.FILE_STORAGE_READ)
+    keys = ["K1", "K2", "D1", "D2", "R1", "R2", "P1", "P2", "T", "Q"]
+    [K1, K2, D1, D2, R1, R2, P1, P2, T, Q] = [data.getNode(key).mat() for key in keys]
+
+    return [K1, K2, D1, D2, R1, R2, P1, P2, T, Q]
+
+
+
 def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel: np.ndarray, config_file_path: str, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
     '''
     This function extracts the disparity map from left and right images of a stereo image pair.
@@ -23,9 +36,7 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
     imgR = cv2.GaussianBlur(imgR, (5,5), 0)
 
     # read camera data
-    data = cv2.FileStorage(config_file_path, cv2.FILE_STORAGE_READ)
-    keys = ["K1", "K2", "D1", "D2", "R1", "R2", "P1", "P2", "T"]
-    [K1, K2, D1, D2, R1, R2, P1, P2, T] = [data.getNode(key).mat() for key in keys]
+    [K1, K2, D1, D2, R1, R2, P1, P2, T, _] = load_camera_params(config_file_path)
 
     '''
     We know that
@@ -302,7 +313,25 @@ def pixel_of_interest(image, parameter:str):
 
     else:
         raise TypeError("Invalid parameter. Must be 'dbh', 'th', or 'cd' ")
-    
+
+
+
+def calculate_fields_of_view(dfov, width, height):
+    '''
+    Caculates the vertical and horizontal fields of view of the camera from the diagonal field
+    of view. It is assumed that the left and right cameras have identical fields of view.
+    @param dfov: The diagonal field of view of the camera in degrees
+    @param width: Width of the camera image plane in pixels
+    @param height: Height of the camera image plane in pixels
+    '''
+    dfov = np.deg2rad(dfov)
+
+    diag_pixels = cv2.norm(np.array([height, width]))
+    hfov = 2 * np.arctan(width * np.tan(dfov / 2) / diag_pixels)      
+    vfov = 2 * np.arctan(height * np.tan(dfov / 2) / diag_pixels)
+
+    return [hfov, vfov]
+
 
 
 def morphology(mask, kernel):
@@ -319,37 +348,45 @@ def morphology(mask, kernel):
 
 
 
-def compute_bh(img, zc, baseline=0.129, f=1438):
+def compute_bh(img, zc, baseline, focal_length, dfov, cx, cy):
     '''
     Computes the number of pixels from the trunk base breast height of the tree
     @param img: Source image
     @param zc: Real world depth of trunk base
+    @param baseline: The stereo camera baseline in m
+    @param focal_length: The focal length of the camera in pixels
+    @param dfov: The diagonal field of view of the camera in degrees
+    @param cx: The optical center of the camera image plane along the x axis
+    @param cy: The optical center of the camera image plane along the y axis
     '''
-    disparity = baseline * f / zc
+    h, w = img.shape
+    disparity = baseline * focal_length / zc
     base = convex_hull(img)[0]
-    xc = baseline * (base[0] - 360) / disparity
-    yc = baseline * (base[1] - 640) / disparity
+    xc = baseline * (base[0] - cy) / disparity
+    yc = baseline * (base[1] - cx) / disparity
 
     # applying the geometry for deriving the position of the breast height
-    dg = np.sqrt(xc**2 + yc**2 + zc**2)
+    dg = cv2.norm(np.array([xc, yc, zc]))
     phi = np.arctan(yc / zc)
     beta = (np.pi/2 - phi)
     dh = np.sqrt(1.69 + dg**2 - 2.6*dg*np.cos(beta))
     theta = np.arcsin(1.3 * np.sin(beta) / dh)
-    print(f"Angle subtended by breast height at camera: {round(theta*57.2958, 2)} degrees")
-    sh = 2822.61 * np.tan(theta/2) # no. of pixels from base to the breast height (1.3m above the ground)
+    print(f"Angle subtended by breast height at camera: {round(np.rad2deg(theta), 2)} degrees")
+    
+    _, vfov = calculate_fields_of_view(dfov, w, h)
+    sh = (h / np.tan(vfov / 2)) * np.tan(theta/2) # no. of pixels from base to the breast height (1.3m above the ground)
     bh = base[0] - np.int64(sh) # row number where breast height is found
     
     return bh
 
 
 
-def compute_dbh(image, mask):
+def compute_dbh(image, mask, dfov):
     '''
     Extracts the DBH from the segmented disparity map
     @param image: The segmented disparity map
-    @param sd: The number of pixels spanned by the image of the tree trunk at the breast height
-    @param da: The real world distance between the camera and the tree trunk along the tangent linking the camera and the circumference of the tree trunk at the breast heght
+    @param mask: The segmentation mask
+    @param dfov: The diagonal field of view of the camera in degrees
     '''
     
     base_px = pixel_of_interest(image, 'DBH')
@@ -366,20 +403,25 @@ def compute_dbh(image, mask):
     da = disp_to_dist(median_bh_pixels(image)[0])
     print(f"Depth of breast height: {round(da, 2)}m")
 
-    theta = np.arctan(sd * 3.546e-4)
-    print(f"Angle subtended by trunk width at camera: {round(theta*57.2958, 2)} degrees.")
+    h, w = image.shape
+    hfov, _ = calculate_fields_of_view(dfov, w, h)
+    theta = np.arctan(sd * (np.tan(hfov / 2) / w))
+    print(f"Angle subtended by trunk width at camera: {round(np.rad2deg(theta), 2)} degrees.")
     D = 2 * da * np.tan(theta)
     return D
 
 
 
-def compute_cd(image, baseline=0.129, f=1438):
+def compute_cd(image, baseline, focal_length, dfov, cx, cy):
     '''
     This function extracts the crown diameter (CD) from a segmented depth map
 
     @param image: The segmented disparity map
     @param baseline: The stereo camera baseline in m
-    @param f: The focal length of the camera in pixels
+    @param focal_length: The focal length of the camera in pixels
+    @param dfov: The diagonal field of view of the camera in degrees
+    @param cx: The optical center of the camera image plane along the x axis
+    @param cy: The optical center of the camera image plane along the y axis
     '''
 
     left, right = convex_hull(image)[2:4]
@@ -387,15 +429,18 @@ def compute_cd(image, baseline=0.129, f=1438):
     print(f"Crown edge pixel intensity: {crown_px}")
     
     z = disp_to_dist(crown_px)
-    disparity = baseline * f / z
-    x = baseline * (left[0] - 360) / disparity
-    y = baseline * (left[1] - 640) / disparity
+    disparity = baseline * focal_length / z
+    x = baseline * (left[0] - cy) / disparity
+    y = baseline * (left[1] - cx) / disparity
     print(f"Real word coordinates: {round(x, 2), round(y, 2), round(z, 2)}")
 
     sc = right[1] - left[1]
     print(f"Crown spans {sc} pixels")
-    da = np.sqrt(x**2 + y**2 + z**2)
-    theta = 2 * np.arctan(sc * 3.546e-4)
+    da = cv2.norm(np.array([x, y, z]))
+
+    h, w = image.shape
+    hfov, _ = calculate_fields_of_view(dfov, w, h)
+    theta = 2 * np.arctan(sc * (np.tan(hfov / 2) / w))
     CD = 2 * da * np.tan(theta/2)
 
     print(f"Left crown extreme is {round(da, 2)}m away")
@@ -405,7 +450,7 @@ def compute_cd(image, baseline=0.129, f=1438):
 
 
 
-def compute_th(image, baseline=0.129, f=1438):
+def compute_th(image, baseline, focal_length, dfov, cx, cy):
     '''
     This function extracts the tree height (TH) from a segmented depth map
 
@@ -418,22 +463,24 @@ def compute_th(image, baseline=0.129, f=1438):
     base_px, top_px = pixel_of_interest(image, 'TH')
     
     zb = disp_to_dist(base_px)
-    disparity = baseline * f / zb
-    xb = baseline * (base[0] - 360) / disparity
-    yb = baseline * (base[1] - 640) / disparity
+    disparity = baseline * focal_length / zb
+    xb = baseline * (base[0] - cy) / disparity
+    yb = baseline * (base[1] - cx) / disparity
     print(f"Real world coordinates of base: {round(xb, 2), round(yb, 2), round(zb, 2)}")
 
     zt = disp_to_dist(top_px)
-    disparity = baseline * f / zt
-    xt = baseline * (top[0] - 360) / disparity
-    yt = baseline * (top[1] - 640) / disparity
+    disparity = baseline * focal_length / zt
+    xt = baseline * (top[0] - cy) / disparity
+    yt = baseline * (top[1] - cx) / disparity
     print(f"Real world coordinates of top: {round(xt, 2), round(yt, 2), round(zt, 2)}")    
 
     st = base[0] - top[0]
-    db = np.sqrt(xb**2 + yb**2 + zb**2)
-    dt = np.sqrt(xt**2 + yt**2 + zt**2)
+    db = cv2.norm(np.array([xb, yb, zb]))
+    dt = cv2.norm(np.array([xt, yt, zt]))
     phi = np.arctan(zb / yb)
-    theta = 2 * np.arctan(st * 3.543e-4)
+    h, w = image.shape
+    _, vfov = calculate_fields_of_view(dfov, w, h)
+    theta = 2 * np.arctan(st * (np.tan(vfov / 2) / h))
     TH = np.abs(dt * np.sin(theta) / np.sin(phi))
 
     print(f"Tree base is {round(db, 2)}m away")

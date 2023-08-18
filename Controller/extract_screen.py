@@ -51,8 +51,12 @@ class ExtractScreenController:
     IMAGES_DIR = 'test/full_trees'
     FILE_MANAGER_SELECTOR = 'folder'
     SELECT_BUTTON_ID = None
-    CONFIG_FILE_PATH = 'configs/stereo_sample.yml'
+
+    CONFIG_FILE_PATH = 'configs/stereo_kieni.yml'
     REF_PARAMS_FILE = None
+    DIAG_FIELD_OF_VIEW = None
+    HORZ_FIELD_OF_VIEW = None
+    VERT_FIELD_OF_VIEW = None
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -318,7 +322,6 @@ class ExtractScreenController:
         mask_filename = left_img_filename.split(".")[0] + "_mask.png"
 
         mask_path =  os.path.join(folder_path, mask_filename)
-        print(f"MASK: {mask_path}")
 
         left = cv2.imread(left_img_path, 0)
         right = cv2.imread(right_img_path, 0)
@@ -385,6 +388,7 @@ class ExtractScreenController:
 
         else:
             self.create_project_directories()
+            self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
             dmap_path, mask_path = self.compute_and_save_disparity()
             self.view.right_im.source = dmap_path
 
@@ -430,6 +434,8 @@ class ExtractScreenController:
 
         self.view.left_im.source = left_img
         self.view.right_im.source = right_img
+
+        self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
 
         dmap_path, mask_path = self.compute_and_save_disparity()
         
@@ -515,13 +521,33 @@ class ExtractScreenController:
         parameter = self.view.parameter_dropdown_item.text
         dmap = cv2.imread(self.view.right_im.source, 0)
         mask = cv2.imread(mask_path, 0)
+        K, _, _, _, _, _, _, _, T, _ = algorithms.load_camera_params(self.CONFIG_FILE_PATH)
+        print(K,T)
+
+        focal_length = K[0, 0]
+        cx = K[0, 2]
+        cy = K[1, 2]
+        baseline = T[0, 0] / 1000
         
         if parameter == "DBH":
-            return [[parameter], [algorithms.compute_dbh(dmap, mask)]]
+            inputs = {
+                "image": dmap,
+                "mask": mask, 
+                "dfov": self.DIAG_FIELD_OF_VIEW
+            }
+            return [[parameter], [algorithms.compute_dbh(**inputs)]]
         
         elif parameter == "CD & TH":
             parameters = ["CD", "TH"]
-            values = [algorithms.compute_cd(dmap), algorithms.compute_th(dmap)]
+            inputs = {
+                "image": dmap,
+                "baseline": baseline,
+                "focal_length": focal_length, 
+                "dfov": self.DIAG_FIELD_OF_VIEW,
+                "cx": cx,
+                "cy": cy
+            }
+            values = [algorithms.compute_cd(**inputs), algorithms.compute_th(**inputs)]
 
             return [parameters, values]
     
