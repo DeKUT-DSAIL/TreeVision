@@ -89,17 +89,20 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
             P2 = 32*3*block_size**2)
     
     disp = stereo.compute(imgL_rectified, imgR_rectified)
+    original = disp.copy()
+    original = (original / 16).astype(np.float32)
+    original = cv2.bitwise_and(original, original, mask=mask_rectified)
+    
     disp = ((disp.astype(np.float32) / 16) - min_disp) / num_disp
-
     kernel= np.ones((3,3),np.uint8)
     closing = cv2.morphologyEx(disp, cv2.MORPH_CLOSE, kernel)
     disp_closed = (closing - closing.min()) * 255
     disp_closed = disp_closed.astype(np.uint8)
     full = disp_closed.copy()
-    disp_closed[mask_rectified == 0] = 0
+    disp_closed = cv2.bitwise_and(disp_closed, disp_closed, mask=mask_rectified)
     
-    # R - Raw (before filtering);  F - Filtered;  O - Full (before masking)
-    return {'R': disp_closed, 'O': full}
+    # R - Raw (before filtering);  F - Full (before masking); ;  O - Original
+    return {'R': disp_closed, 'F': full, 'O': original}
 
 
 
@@ -182,6 +185,10 @@ def disp_to_dist(x):
     @param x: The disparity value (usually the greyscale intensity of a pixel in the disparity map) to be resolved into distance in m
     '''
     y = (346*x**2 -116.7*x - 1.961) / (x**3 - 5.863*x**2 + 47.24*x + 487.6)
+    # Q = np.float32([[1,0,0,-640],[0,1,0,-360],[0,0,0,1442],[0,0,1/130,0]])
+    # _, _, y = cv2.reprojectImageTo3D(np.array([x], dtype=np.float32), Q)[0,0]
+    # y = y / 1000
+    
     return y
 
 
@@ -217,10 +224,10 @@ def median_top_pixel(image):
     for row, column in zip(rows, columns):
         pixels.append(sub_image[row, column])
     
-    # print(pixels)
     pixels = np.array(pixels)
+    med = np.median(pixels)
 
-    return np.median(pixels)
+    return med
 
 
 
@@ -239,10 +246,11 @@ def median_base_pixel(image):
     for row, column in zip(rows, columns):
         pixels.append(sub_image[row, column])
 
-    # print(pixels)
     pixels = np.array(pixels)
+    med = np.median(pixels)
+    image[base] = med
 
-    return np.median(pixels)
+    return med
 
 
 
@@ -263,11 +271,9 @@ def median_bh_pixels(image):
         pixels.append(sub_image[row, column])
     
     pixels = np.array(pixels)
-    half_pixels = np.array_split(pixels, 2)
-    center = np.median(pixels)
-    edge = np.median(half_pixels[0])
+    med = np.median(pixels)
 
-    return [center, edge]
+    return med
 
 
 
@@ -286,10 +292,11 @@ def median_crown_pixel(image):
     for row, column in zip(rows, columns):
         pixels.append(sub_image[row, column])
 
-    # print(pixels)
     pixels = np.array(pixels)
+    med = int(np.median(pixels))
+    image[left] = med
 
-    return int(np.median(pixels))
+    return med
 
 
 
@@ -400,7 +407,7 @@ def compute_dbh(image, mask, dfov):
     sd = bh_pixels.size
     print(f"The DBH spans {sd} pixels")
 
-    da = disp_to_dist(median_bh_pixels(image)[0])
+    da = disp_to_dist(median_bh_pixels(image))
     print(f"Depth of breast height: {round(da, 2)}m")
 
     h, w = image.shape
@@ -461,6 +468,7 @@ def compute_th(image, baseline, focal_length, dfov, cx, cy):
 
     base, top = convex_hull(image)[0:2]
     base_px, top_px = pixel_of_interest(image, 'TH')
+    print(f"Base: {base_px}")
     
     zb = disp_to_dist(base_px)
     disparity = baseline * focal_length / zb
