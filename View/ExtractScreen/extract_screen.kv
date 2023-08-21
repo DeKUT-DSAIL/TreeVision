@@ -327,14 +327,17 @@
                         AnchorLayout:
                             anchor_x: 'left'
                             MDRaisedButton:
+                                id: extract_btn
                                 text: "Extract"
                                 md_bg_color: "green"
                                 on_release: root.controller.on_extract()
                         AnchorLayout:
                             anchor_x: 'center'
                             MDRaisedButton:
+                                id: batch_extract_btn
                                 text: "Batch Extract"
                                 md_bg_color: "green"
+                                disabled: True
                                 on_release: root.controller.update_on_batch_extract()
                         AnchorLayout:
                             anchor_x: 'right'

@@ -149,8 +149,22 @@ class ExtractScreenController:
         )
         self.rectification_menu.bind()
 
+        self.set_display_images()
         self.toggle_scrolling_icons()
         self.initialize_sgbm_values()
+    
+
+
+    def set_display_images(self):
+        '''
+        Sets the display images
+        '''
+        if platform == "win32":
+            self.view.ids.left_im.source = "assets\\images\\extraction\\FT01_IMG_20230309_103936_LEFT.jpg"
+            self.view.ids.right_im.source = "assets\\images\\extraction\\FT01_IMG_20230309_103936_RIGHT.jpg"
+        elif platform in ["linux", "linux2"]:
+            self.view.ids.left_im.source = "assets/images/extraction/FT01_IMG_20230309_103936_LEFT.jpg"
+            self.view.ids.right_im.source = "assets/images/extraction/FT01_IMG_20230309_103936_RIGHT.jpg"
 
     
 
@@ -160,7 +174,7 @@ class ExtractScreenController:
         or not. The buttons are toggled off if a project path with multiple images has not been selected.
         '''
 
-        if self.IMAGES_DIR == None:
+        if self.num_of_images == 0:
             self.view.previous_arrow.opacity = 0
             self.view.next_arrow.opacity = 0
         else:
@@ -288,6 +302,9 @@ class ExtractScreenController:
         self.view.ids.progress_bar.max = self.num_of_images
 
         if self.verify_images(left_ims, right_ims):
+            self.view.ids.left_im.source = left_ims[0]
+            self.view.ids.right_im.source = right_ims[0]
+            self.view.ids.batch_extract_btn.disabled = False
             return (left_ims, right_ims)
         
         self.create_log_widget(text = "Number of Left and Right Images Not equal!", color=(1,0,0,1))
@@ -368,6 +385,13 @@ class ExtractScreenController:
 
         left_img_path = self.view.left_im.source
         right_img_path = self.view.right_im.source
+        rectified = self.view.ids.rectification_dropdown_item.text
+        print(f"STATUS: {rectified}")
+        
+        if rectified == "Yes":
+            rec_status = True
+        elif rectified == "No":
+            rec_status = False
 
         folder_path = os.path.dirname(left_img_path)
         left_img_filename = os.path.basename(left_img_path)
@@ -385,7 +409,8 @@ class ExtractScreenController:
             dmap = algorithms.extract(
                 left_im = left, 
                 right_im = right, 
-                mask = mask, 
+                mask = mask,
+                rectified = rec_status,
                 sel = kernel, 
                 config_file_path = self.CONFIG_FILE_PATH,
                 min_disp = int(self.view.ids.min_disp.text),
@@ -402,8 +427,9 @@ class ExtractScreenController:
                 dmap_filename = left_img_path.split('\\')[-1].split('.')[0] + '_disparity.jpg'
             elif platform == "linux" or platform == "linux2":
                 dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
-            
+            print(f"DMAP: {dmap_filename}")
             dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
+            print(f"PATH: {dmap_path}")
 
             cv2.imwrite(dmap_path, dmap)
             return dmap_path, mask_path
@@ -619,80 +645,87 @@ class ExtractScreenController:
         elif parameter == 'CD & TH':
             file_path = os.path.join(self.RESULTS_DIR, 'results_cd_th.csv')
         
-        df = pd.read_csv(file_path, index_col='Filename')
-        df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
-        
-
-        if parameter == 'CD & TH':
-            df['Ref_TH'] = df2['Ref_TH']
-            df['Ref_CD'] = df2['Ref_CD']
-            df['AE_TH (cm)'] = round((df['Ref_TH'] - df['Ex_TH']).abs(), 2)
-            df['APE_TH (%)'] = round((df['AE_TH (cm)'] / df['Ref_TH']) * 100, 2)
-            df['AE_CD (cm)'] = round((df['Ref_CD'] - df['Ex_CD']).abs(), 2)
-            df['APE_CD (%)'] = round((df['AE_CD (cm)'] / df['Ref_CD']) * 100, 2)
-
-            cd_mae = df['AE_CD (cm)'].mean()
-            cd_mape = df['APE_CD (%)'].mean()
-            cd_rmse = np.sqrt(mean_squared_error(df['Ref_CD'], df['Ex_CD']))
-            th_mae = df['AE_TH (cm)'].mean()
-            th_mape = df['APE_TH (%)'].mean()
-            th_rmse = np.sqrt(mean_squared_error(df['Ref_TH'], df['Ex_TH']))
+        if self.REF_PARAMS_FILE:
+            df = pd.read_csv(file_path, index_col='Filename')
+            df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
             
-            df.to_csv(file_path)
+
+            if parameter == 'CD & TH':
+                df['Ref_TH'] = df2['Ref_TH']
+                df['Ref_CD'] = df2['Ref_CD']
+                df['AE_TH (cm)'] = round((df['Ref_TH'] - df['Ex_TH']).abs(), 2)
+                df['APE_TH (%)'] = round((df['AE_TH (cm)'] / df['Ref_TH']) * 100, 2)
+                df['AE_CD (cm)'] = round((df['Ref_CD'] - df['Ex_CD']).abs(), 2)
+                df['APE_CD (%)'] = round((df['AE_CD (cm)'] / df['Ref_CD']) * 100, 2)
+
+                cd_mae = df['AE_CD (cm)'].mean()
+                cd_mape = df['APE_CD (%)'].mean()
+                cd_rmse = np.sqrt(mean_squared_error(df['Ref_CD'], df['Ex_CD']))
+                th_mae = df['AE_TH (cm)'].mean()
+                th_mape = df['APE_TH (%)'].mean()
+                th_rmse = np.sqrt(mean_squared_error(df['Ref_TH'], df['Ex_TH']))
+                
+                df.to_csv(file_path)
+                
+                text = f'''\n\n\n\n\nAnalysis of CD & TH results Complete...\n\nMAE_CD: {round(cd_mae, 2)} cm \nMAPE_CD: {round(cd_mape, 2)} % \nRMSE_CD: {round(cd_rmse, 2)} cm \n\nMAE_TH: {round(th_mae, 2)} cm \nMAPE_TH: {round(th_mape, 2)} % \nRMSE_TH: {round(th_rmse, 2)} cm \n\n\n\nResults saved to {file_path}'''
+                
+                self.create_log_widget(
+                    text = text,
+                    color = (0,1,0,1)
+                )
+                self.plot_regression(
+                    parameter = 'CD',
+                    x = df['Ref_CD'],
+                    y = df['Ex_CD'],
+                    path = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
+                )
+                self.plot_regression(
+                    parameter = 'TH',
+                    x = df['Ref_TH'],
+                    y = df['Ex_TH'],
+                    path = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
+                )
+                self.view.ids.left_im.source = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
+                self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
+                self.create_log_widget(
+                    text = '\n\n\n\nRegression plot generation complete...',
+                    color = (0,1,0,1)
+                )
             
-            text = f'''\n\n\n\nAnalysis of CD & TH results Complete...\n\nMAE_CD: {round(cd_mae, 2)} cm \nMAPE_CD: {round(cd_mape, 2)} % \nRMSE_CD: {round(cd_rmse, 2)} cm \n\nMAE_TH: {round(th_mae, 2)} cm \nMAPE_TH: {round(th_mape, 2)} % \nRMSE_TH: {round(th_rmse, 2)} cm \n\nResults saved to {file_path}'''
-            
-            self.create_log_widget(
-                text = text,
-                color = (0,1,0,1)
-            )
-            self.plot_regression(
-                parameter = 'CD',
-                x = df['Ref_CD'],
-                y = df['Ex_CD'],
-                path = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
-            )
-            self.plot_regression(
-                parameter = 'TH',
-                x = df['Ref_TH'],
-                y = df['Ex_TH'],
-                path = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
-            )
-            self.view.ids.left_im.source = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
-            self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
-            self.create_log_widget(
-                text = '\n\n\n\n\nRegression plot generation complete...',
-                color = (0,1,0,1)
-            )
-        
-        elif parameter == 'DBH':
-            df['Ref_DBH'] = df2['Ref_DBH']
-            df['AE_DBH (cm)'] = round((df['Ref_DBH'] - df['Ex_DBH']).abs(), 2)
-            df['APE_DBH (%)'] = round((df['AE_DBH (cm)'] / df['Ref_DBH']) * 100, 2)
+            elif parameter == 'DBH':
+                df['Ref_DBH'] = df2['Ref_DBH']
+                df['AE_DBH (cm)'] = round((df['Ref_DBH'] - df['Ex_DBH']).abs(), 2)
+                df['APE_DBH (%)'] = round((df['AE_DBH (cm)'] / df['Ref_DBH']) * 100, 2)
 
-            dbh_mae = df['AE_DBH (cm)'].mean()
-            dbh_mape = df['APE_DBH (%)'].mean()
-            dbh_rmse = np.sqrt(mean_squared_error(df['Ref_DBH'], df['Ex_DBH']))
+                dbh_mae = df['AE_DBH (cm)'].mean()
+                dbh_mape = df['APE_DBH (%)'].mean()
+                dbh_rmse = np.sqrt(mean_squared_error(df['Ref_DBH'], df['Ex_DBH']))
 
-            df.to_csv(file_path)
+                df.to_csv(file_path)
 
-            text = f'''Analysis of DBH results Complete...\n\nMAE_DBH: {round(dbh_mae, 2)} cm \nMAPE_DBH: {round(dbh_mape, 2)} % \nRMSE_DBH: {round(dbh_rmse, 2)} cm \n\nResults saved to {file_path}'''
+                text = f'''Analysis of DBH results Complete...\n\nMAE_DBH: {round(dbh_mae, 2)} cm \nMAPE_DBH: {round(dbh_mape, 2)} % \nRMSE_DBH: {round(dbh_rmse, 2)} cm \n\nResults saved to {file_path}'''
 
+                self.create_log_widget(
+                    text = text,
+                    color = (0,1,0,1)
+                )
+                self.plot_regression(
+                    parameter = 'DBH',
+                    x = df['Ref_DBH'],
+                    y = df['Ex_DBH'],
+                    path = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
+                )
+                self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
+                self.create_log_widget(
+                    text = '\n\n\n\nRegression plot generation complete...',
+                    color = (0,1,0,1)
+                )
+        else:
             self.create_log_widget(
-                text = text,
-                color = (0,1,0,1)
+                text = '\n\n\nMissing the reference parameters file.',
+                color = (1,0,0,1)
             )
-            self.plot_regression(
-                parameter = 'DBH',
-                x = df['Ref_DBH'],
-                y = df['Ex_DBH'],
-                path = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
-            )
-            self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
-            self.create_log_widget(
-                text = '\n\n\nRegression plot generation complete...',
-                color = (0,1,0,1)
-            )
+
     
 
 
@@ -731,7 +764,7 @@ class ExtractScreenController:
     
     def reset(self):
         '''
-        Clears all configuration variables and resets the app in readiness to begin a fresh extraction
+        Resets all configuration variables to their default values and resets the app in readiness to begin a fresh extraction
         '''
         self.image_index = 0
         self.num_of_images = 0
@@ -741,12 +774,17 @@ class ExtractScreenController:
         self.FILE_MANAGER_SELECTOR = 'folder'
         self.CONFIG_FILE_PATH = None
 
+        self.set_display_images()
         self.toggle_scrolling_icons()
         self.initialize_sgbm_values()
 
-        self.view.ids.project_name.text = ''
+        self.view.ids.project_name.text = 'test'
         self.view.ids.parameter_dropdown_item.text = 'Select parameter'
         self.view.ids.segmentation_dropdown_item.text = 'Select approach'
+        self.view.ids.rectification_dropdown_item.text = 'No'
+        self.view.ids.dfov.text = '55'
+        self.view.ids.analyse_btn.disabled = True
+        self.view.ids.batch_extract_btn.disabled = True
         self.view.ids.scroll_layout.clear_widgets()
 
         label_text = "App has been reset and all configurations cleared."

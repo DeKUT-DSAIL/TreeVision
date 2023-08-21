@@ -20,7 +20,7 @@ def load_camera_params(config_file_path: str):
 
 
 
-def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel: np.ndarray, config_file_path: str, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
+def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, rectified: bool, sel: np.ndarray, config_file_path: str, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
     '''
     This function extracts the disparity map from left and right images of a stereo image pair.
     @param imgL The left image of the stereo pair
@@ -63,15 +63,22 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
     # ------------------------------------- #
     # STEREO RECTIFICATION
     # ------------------------------------- #
-    h1, w1 = imgL.shape
+    if not rectified:
+        h1, w1 = imgL.shape
 
-    xmap1, ymap1 = cv2.initUndistortRectifyMap(K1, D1, R1, P1, (w1,h1), cv2.CV_32FC1)
-    xmap2, ymap2 = cv2.initUndistortRectifyMap(K2, D2, R2, P2, (w1,h1), cv2.CV_32FC1)
+        xmap1, ymap1 = cv2.initUndistortRectifyMap(K1, D1, R1, P1, (w1,h1), cv2.CV_32FC1)
+        xmap2, ymap2 = cv2.initUndistortRectifyMap(K2, D2, R2, P2, (w1,h1), cv2.CV_32FC1)
 
-    imgL_rectified = cv2.remap(imgL, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
-    imgR_rectified = cv2.remap(imgR, xmap2, ymap2, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
-    mask_rectified = cv2.remap(mask, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
-    mask_rectified = morphology(mask_rectified, sel)
+        imgL_rectified = cv2.remap(imgL, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+        imgR_rectified = cv2.remap(imgR, xmap2, ymap2, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+        mask_rectified = cv2.remap(mask, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+    
+        mask_rectified = morphology(mask_rectified, sel)
+    
+    else:
+        mask_rectified = morphology(mask, sel)
+        imgL_rectified = imgL
+        imgR_rectified = imgR
 
     # -------------------------------- #
     # COMPUTE DISPARITY MAP
@@ -106,7 +113,7 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, sel:
 
 
 
-def extract(left_im, right_im, mask, sel, config_file_path, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
+def extract(left_im, right_im, mask, rectified, sel, config_file_path, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
     '''
     Extracts the disparity map and returns it. The arguments min_disp - disp_max_diff are taken from OpenCV's SGBM_create(). 
     Visit https://docs.opencv.org/3.4/d2/d85/classcv_1_1StereoSGBM.html#adb7a50ef5f200ad9559e9b0e976cfa59 for details
@@ -128,6 +135,7 @@ def extract(left_im, right_im, mask, sel, config_file_path, min_disp, num_disp, 
         imgL = left_im,
         imgR = right_im,
         mask = mask,
+        rectified = rectified,
         sel = sel,
         config_file_path = config_file_path,
         min_disp = min_disp,
