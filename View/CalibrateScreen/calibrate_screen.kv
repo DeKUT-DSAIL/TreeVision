@@ -117,22 +117,26 @@
                             text: "Select"
                             icon: "folder"
                             size_hint_x: 1
-                            on_release: root.controller.file_manager_open('folder')
+                            on_release: root.controller.file_manager_open('folder', 'images')
                 
                 MDBoxLayout:
                     spacing: dp(10)
                     AnchorLayout:
                         anchor_x: 'left'
-                        MDLabel:
-                            text: "Single cam calib file: "
+                        MDRectangleFlatIconButton:
+                            id: right_cam_file_select
+                            text: "Left camera file"
+                            icon: "file"
+                            size_hint_x: 1
+                            on_release: root.controller.file_manager_open('file', 'left')
                     AnchorLayout:
                         anchor_x: 'right'
                         MDRectangleFlatIconButton:
-                            id: images_select
-                            text: "Select"
+                            id: right_cam_file_select
+                            text: "Right camera file"
                             icon: "file"
                             size_hint_x: 1
-                            on_release: root.controller.file_manager_open('file')
+                            on_release: root.controller.file_manager_open('file', 'right')
                 
                 MDBoxLayout:
                     spacing: dp(10)

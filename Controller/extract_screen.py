@@ -305,7 +305,6 @@ class ExtractScreenController:
             self.view.ids.left_im.source = left_ims[0]
             self.view.ids.right_im.source = right_ims[0]
             self.view.ids.batch_extract_btn.disabled = False
-            return (left_ims, right_ims)
         
         self.create_log_widget(text = "Number of Left and Right Images Not equal!", color=(1,0,0,1))
     
@@ -320,7 +319,6 @@ class ExtractScreenController:
 
         if instance == 'next':
             self.image_index = (self.image_index + 1) % self.num_of_images
-            print(f"INDEX: {self.image_index}")
             return True
         elif instance == 'previous':
             self.image_index = (self.image_index - 1) % self.num_of_images

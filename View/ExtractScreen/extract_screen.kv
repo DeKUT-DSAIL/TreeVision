@@ -1,5 +1,6 @@
 #:kivy 2.1.0
 #:import dp kivy.metrics.dp
+#:import os os
 
 <MDLabel>:
     font_size: 12
@@ -41,6 +42,7 @@
                         source: "assets/images/extraction/FT01_IMG_20230309_103936_LEFT.jpg"
                         size: self.texture_size
                         allow_stretch: True
+                        on_source: root.ids.left_im_label.text = "LEFT: " + os.path.basename(self.source)
                 AnchorLayout:
                     anchor_x: 'right'
                     Image:
@@ -48,6 +50,7 @@
                         source: "assets/images/extraction/FT01_IMG_20230309_103936_RIGHT.jpg"
                         size: self.texture_size
                         allow_stretch: True
+                        on_source: root.ids.right_im_label.text = "RIGHT: " + os.path.basename(self.source)
             
             FloatLayout:
                 id: overlay_layout
@@ -64,6 +67,20 @@
                             pos: self.parent.pos
                             size: self.parent.size
         
+                MDLabel:
+                    id: left_im_label
+                    text: "PATH: "
+                    pos_hint: {"y": 0}
+                    center_x: root.width * 0.2
+                
+
+                MDLabel:
+                    id: right_im_label
+                    text: "PATH: "
+                    pos_hint: {"y": 0}
+                    center_x: root.width * 0.7
+
+                
                 MDIconButton:
                     id: previous_arrow
                     icon: 'arrow-left-circle-outline'

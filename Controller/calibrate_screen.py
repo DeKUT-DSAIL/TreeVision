@@ -13,6 +13,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from glob import glob
+from sys import platform
 from Controller.utils import utils
 
 from kivy.metrics import dp
@@ -32,12 +33,18 @@ class CalibrateScreenController:
     """
 
     FILE_MANAGER_SELECTOR = 'folder'
+    BUTTON_ID = None
     PROJECT_DIR = os.path.join('assets', 'projects')
     ASSET_IMS_DIR = os.path.join('assets', 'images')
     CONFIGS_DIR = "configs"
     IMAGES_DIR = None
-    SINGLE_CONFIG_FILE = None
+    LEFT_CONFIG_FILE = None
+    RIGHT_CONFIG_FILE = None
     SQUARE_SIZE = None
+
+    LEFT_IMS = None
+    RIGHT_IMS = None
+    UNPAIRED_IMS = None
 
     image_index = 0
     num_of_images = 0
@@ -57,10 +64,24 @@ class CalibrateScreenController:
             select_path = self.select_path
         )
 
+        self.set_display_images()
         self.toggle_scrolling_icons()
 
     def get_view(self) -> View.CalibrateScreen.calibrate_screen:
         return self.view
+    
+
+
+    def set_display_images(self):
+        '''
+        Sets the display images
+        '''
+        if platform == "win32":
+            self.view.ids.left_image.source = "assets\\images\\calibration\\pattern_cropped.png"
+            self.view.ids.right_image.source = "assets\\images\\calibration\\pattern_cropped.png"
+        elif platform in ["linux", "linux2"]:
+            self.view.ids.left_image.source = "assets/images/calibration/pattern_cropped.png"
+            self.view.ids.right_image.source = "assets/images/calibration/pattern_cropped.png"
     
 
 
@@ -71,11 +92,12 @@ class CalibrateScreenController:
     
 
 
-    def file_manager_open(self, selector):
+    def file_manager_open(self, selector, button_id):
         '''
         Opens the file manager when the triggering event in the user interface happens
         '''
         self.FILE_MANAGER_SELECTOR = selector
+        self.BUTTON_ID = button_id
 
         self.file_manager = MDFileManager(
             selector = self.FILE_MANAGER_SELECTOR,
@@ -100,8 +122,12 @@ class CalibrateScreenController:
             self.load_images()
             self.create_log_widget(f"Calibration images directory has been selected.\nIMAGES DIRECTORY PATH: {path}")
         else:
-            self.SINGLE_CONFIG_FILE = path
-            self.create_log_widget(f"Camera configuration file has been selected.\nCAMERA CONFIGURATION FILE PATH: {path}")
+            if self.BUTTON_ID == "left":
+                self.LEFT_CONFIG_FILE = path
+                self.create_log_widget(f"Left camera configuration file has been selected.\nFILE PATH: {path}")
+            elif self.BUTTON_ID == "right":
+                self.RIGHT_CONFIG_FILE = path
+                self.create_log_widget(f"Right camera configuration file has been selected.\nFILE PATH: {path}")
         
         self.toggle_scrolling_icons()
         self.exit_manager()
@@ -118,14 +144,15 @@ class CalibrateScreenController:
 
     def toggle_scrolling_icons(self):
         '''
-        Toggles the buttons for scrolling the images left and right based on whether the project path has been selected
+        Toggles the buttons for scrolling the images left and right based on whether the project images have been loaded
         or not. The buttons are toggled off if a project path with multiple images has not been selected.
         '''
 
-        if self.IMAGES_DIR == None:
+        if self.LEFT_IMS == None and self.RIGHT_IMS == None and self.UNPAIRED_IMS == None:
             self.view.ids.previous_arrow.opacity = 0
             self.view.ids.next_arrow.opacity = 0
-        else:
+        
+        elif len(self.LEFT_IMS) > 0 or len(self.RIGHT_IMS) > 0 or len(self.UNPAIRED_IMS) > 0:
             self.view.ids.previous_arrow.opacity = 1
             self.view.ids.next_arrow.opacity = 1
             self.view.ids.previous_arrow.on_release = lambda: self.show_next_image('previous')
@@ -156,13 +183,14 @@ class CalibrateScreenController:
         @param button_id: The ID of the scroll button clicked. It takes the values "next" or "previous"
         '''
 
-        left, right = self.load_images()
+        left, right, unpaired = self.LEFT_IMS, self.RIGHT_IMS, self.UNPAIRED_IMS
         left = sorted(left)
         right = sorted(right)
+        unpaired = sorted(unpaired)
 
         if self.on_button_press(button_id):
-            if len(right) == 0:
-                self.view.ids.left_image.source = left[self.image_index]
+            if len(right) == 0 and len(left) == 0:
+                self.view.ids.left_image.source = unpaired[self.image_index]
             else:
                 self.view.ids.left_image.source = left[self.image_index]
                 self.view.ids.right_image.source = right[self.image_index]
@@ -179,19 +207,56 @@ class CalibrateScreenController:
         Returns the paths to the calibration images. This works for both stereo and single camera calibration
         '''
         
-        left_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*LEFT*.jpg')))
-        right_ims = sorted(glob(os.path.join(self.IMAGES_DIR, '*RIGHT*.jpg')))
+        left_patterns = ['*LEFT.jpg', '*left.jpg', '*LEFT.png', '*left.png']
+        right_patterns = ['*RIGHT.jpg', '*right.jpg', '*RIGHT.png', '*right.png']
+        unpaired_patterns = ['*.jpg', '*.png']
 
-        self.num_of_images = len(left_ims)
-        self.view.ids.progress_bar.max = self.num_of_images
+        left_ims = []
+        right_ims = []
+        unpaired_ims = []
 
-        if len(right_ims) == 0:
-            self.view.ids.left_image.source = left_ims[0]
-            return (left_ims, right_ims)
+        for pattern in left_patterns:
+            left_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
+        
+        for pattern in right_patterns:
+            right_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
+        
+        for pattern in unpaired_patterns:
+            unpaired_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
+        
+        left_ims = sorted(list(set(left_ims)))
+        right_ims = sorted(list(set(right_ims)))
+        unpaired_ims = sorted(list(set(unpaired_ims)))
+
+        self.LEFT_IMS = left_ims
+        self.RIGHT_IMS = right_ims
+        self.UNPAIRED_IMS = unpaired_ims
+
+        self.num_of_images = min(len(left_ims), len(right_ims))
+
+        if len(right_ims) > 0 and len(left_ims) > 0:
+            self.create_log_widget(
+                text = "You seem to have paired LEFT and RIGHT images in this directory! Please remove any paired images before proceeding...",
+                color = (1,0,0,1)
+            )
+            return
+        
+        elif len(right_ims) == 0 or len(left_ims) == 0:
+            self.view.ids.left_image.source = unpaired_ims[0]
+            self.create_log_widget(
+                text = "You have successfully loaded unpaired images...",
+                color = (0,1,0,1)
+            )
+            return unpaired_ims
 
         elif self.verify_images(left_ims, right_ims):
+            self.view.ids.progress_bar.max = self.num_of_images
             self.view.ids.left_image.source = left_ims[0]
             self.view.ids.right_image.source = right_ims[0]
+            self.create_log_widget(
+                text = "You have successfully loaded stereo images...",
+                color = (0,1,0,1)
+            )
             return (left_ims, right_ims)
         
         self.create_log_widget(text = "Number of Left and Right Images NOT equal!", color = (1,0,0,1))
@@ -203,7 +268,7 @@ class CalibrateScreenController:
         Saves object points and image points obtained from calibration image
         """
 
-        left, _ = sorted(self.load_images())
+        left = self.LEFT_IMS
         self.view.ids.left_image.source = left[self.image_index]
 
         image = self.view.ids.left_image.source
@@ -250,7 +315,7 @@ class CalibrateScreenController:
         Saves object points and image points obtained from stereo images
         """
 
-        left, right = sorted(self.load_images())
+        left, right = self.LEFT_IMS, self.RIGHT_IMS
         self.view.ids.left_image.source = left[self.image_index]
         self.view.ids.right_image.source = right[self.image_index]
 
@@ -343,10 +408,15 @@ class CalibrateScreenController:
         Performs calibration of a stereo camera
         '''
 
-        stereo_save_file = os.path.join(self.CONFIGS_DIR, f"{self.view.ids.save_file.text}.yml")
+        project_name = self.view.ids.project_name.text
+        project_dir_path = os.path.join(self.CONFIGS_DIR, project_name)
+        if not os.path.exists(project_dir_path):
+            os.makedirs(project_dir_path)
 
-        K1, D1 = utils.load_coefficients(self.SINGLE_CONFIG_FILE)
-        K2, D2 = K1, D1
+        stereo_save_file = os.path.join(project_dir_path, f"{self.view.ids.save_file.text}.yml")
+
+        K1, D1 = utils.load_coefficients(self.LEFT_CONFIG_FILE)
+        K2, D2 = utils.load_coefficients(self.RIGHT_CONFIG_FILE)
 
         h = int(self.view.ids.image_height.text)
         w = int(self.view.ids.image_width.text)
@@ -392,8 +462,13 @@ class CalibrateScreenController:
             color = (0,1,0,1)
         )
 
+        project_name = self.view.ids.project_name.text
+        project_dir_path = os.path.join(self.CONFIGS_DIR, project_name)
+        if not os.path.exists(project_dir_path):
+            os.makedirs(project_dir_path)
+
         save_file = self.view.ids.save_file.text
-        save_file_path = os.path.join(self.CONFIGS_DIR, f"{save_file}.yml")
+        save_file_path = os.path.join(project_dir_path, f"{save_file}.yml")
         utils.save_coefficients(save_file_path, K, D)
         self.create_log_widget(text = f"Calibration parameters saved to: {save_file_path}")
 
@@ -409,7 +484,7 @@ class CalibrateScreenController:
         '''
         Schedules the 'save_points' function to run every 500ms
         '''
-        if self.check_valid_input() and bool(self.IMAGES_DIR):
+        if self.check_valid_input() and self.check_file_selection('single'):
             Clock.schedule_interval(self.save_points, 0.5)
     
 
@@ -418,7 +493,7 @@ class CalibrateScreenController:
         '''
         Schedules the 'save_stereo_points' function to run every 500ms
         '''
-        if self.check_valid_input() and self.check_file_selection():
+        if self.check_valid_input() and self.check_file_selection('stereo'):
             Clock.schedule_interval(self.save_stereo_points, 0.5)
     
 
@@ -488,23 +563,31 @@ class CalibrateScreenController:
 
         if not all(checks):
             self.create_log_widget(
-                text = f"Missing or invalid inputs: {[input.name for input in inputs if not input.is_valid()]}.",
+                text = f"Missing these inputs: {[input.name for input in inputs if not input.is_valid()]}.",
                 color = (1,0,0,1)
             )
-        # print(checks)
+        
         return all(checks)
 
 
 
-    def check_file_selection(self):
+    def check_file_selection(self, mode):
         '''
         Checks that calibration images and camera configuration file have been selected
         '''
-        file_checks = [self.IMAGES_DIR, self.SINGLE_CONFIG_FILE]
-        labels = [
-            "Calibration images directory not selected",
-            "Camera calibration file not selected"
-        ]
+        if mode == 'single':
+            file_checks = [self.IMAGES_DIR]
+            labels = [
+                "Calibration images directory not selected"
+            ]
+        elif mode == 'stereo':
+            file_checks = [self.IMAGES_DIR, self.LEFT_CONFIG_FILE, self.RIGHT_CONFIG_FILE]
+            labels = [
+                "Calibration images directory not selected",
+                "Left camera calibration file not selected",
+                "Right camera calibration file not selected"
+            ]
+        
         statuses = [bool(file_check) for file_check in file_checks]
 
         for i, status in enumerate(statuses):
@@ -513,7 +596,7 @@ class CalibrateScreenController:
                     text=labels[i],
                     color=(1, 0, 0, 1)
                 )
-        # print(statuses)
+        
         return all(statuses)
 
 
@@ -523,7 +606,8 @@ class CalibrateScreenController:
         Clears all configuration variables and resets the app in readiness to begin a fresh calibration
         '''
         self.IMAGES_DIR = None
-        self.SINGLE_CONFIG_FILE = None
+        self.LEFT_CONFIG_FILE = None
+        self.RIGHT_CONFIG_FILE = None
         self.SQUARE_SIZE = None
 
         self.image_index = 0
@@ -533,6 +617,7 @@ class CalibrateScreenController:
         self.left_imgpoints = []
         self.right_imgpoints = []
 
+        self.set_display_images()
         self.toggle_scrolling_icons()
 
         self.view.ids.progress_bar.value = 0
