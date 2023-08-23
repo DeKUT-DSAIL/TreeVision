@@ -1,4 +1,5 @@
 #:kivy 2.1.0
+#:import os os
 
 <CalibrateScreenView>:
 
@@ -20,6 +21,7 @@
                         source: "assets/images/calibration/pattern_cropped.png"
                         size: self.texture_size
                         allow_stretch: True
+                        on_source: root.ids.left_im_label.text = "LEFT: " + os.path.basename(self.source)
                 AnchorLayout:
                     anchor_x: 'right'
                     Image:
@@ -27,6 +29,7 @@
                         source: "assets/images/calibration/pattern_cropped.png"
                         size: self.texture_size
                         allow_stretch: True
+                        on_source: root.ids.right_im_label.text = "RIGHT: " + os.path.basename(self.source)
             
             # OVERLAY ON THE IMAGES
             FloatLayout:
@@ -43,6 +46,21 @@
                         Rectangle:
                             pos: self.parent.pos
                             size: self.parent.size
+                
+
+                MDLabel:
+                    id: left_im_label
+                    text: "PATH: "
+                    pos_hint: {"y": 0}
+                    center_x: root.width * 0.2
+                
+
+                MDLabel:
+                    id: right_im_label
+                    text: "PATH: "
+                    pos_hint: {"y": 0}
+                    center_x: root.width * 0.7
+                
         
                 MDIconButton:
                     id: previous_arrow
@@ -231,14 +249,18 @@
                     AnchorLayout:
                         anchor_x: "left"
                         MDRaisedButton:
+                            id: calibrate_single
                             text: "Calibrate Single"
                             md_bg_color: "green"
+                            disabled: True
                             on_release: root.controller.update_save_points()
                     AnchorLayout:
                         anchor_x: "right"
                         MDRaisedButton:
+                            id: calibrate_stereo
                             text: "Calibrate Stereo"
                             md_bg_color: "green"
+                            disabled: True
                             on_release: root.controller.update_save_stereo_points()
 
             

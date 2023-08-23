@@ -129,6 +129,9 @@ class CalibrateScreenController:
                 self.RIGHT_CONFIG_FILE = path
                 self.create_log_widget(f"Right camera configuration file has been selected.\nFILE PATH: {path}")
         
+        if self.verify_config_files():
+            self.view.ids.calibrate_stereo.disabled = False
+        
         self.toggle_scrolling_icons()
         self.exit_manager()
 
@@ -189,16 +192,22 @@ class CalibrateScreenController:
         unpaired = sorted(unpaired)
 
         if self.on_button_press(button_id):
-            if len(right) == 0 and len(left) == 0:
-                self.view.ids.left_image.source = unpaired[self.image_index]
-            else:
+            if len(left) > 0 and len(right) > 0:
                 self.view.ids.left_image.source = left[self.image_index]
                 self.view.ids.right_image.source = right[self.image_index]
+            elif len(unpaired) > 0:
+                self.view.ids.left_image.source = unpaired[self.image_index]
     
 
 
     def verify_images(self, left_ims, right_ims):
         return len(left_ims) == len(right_ims)
+    
+
+
+    def verify_config_files(self):
+        return self.LEFT_CONFIG_FILE != None and self.RIGHT_CONFIG_FILE != None
+    
     
     
     
@@ -221,45 +230,44 @@ class CalibrateScreenController:
         for pattern in right_patterns:
             right_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
         
-        for pattern in unpaired_patterns:
-            unpaired_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
-        
         left_ims = sorted(list(set(left_ims)))
         right_ims = sorted(list(set(right_ims)))
-        unpaired_ims = sorted(list(set(unpaired_ims)))
-
         self.LEFT_IMS = left_ims
         self.RIGHT_IMS = right_ims
-        self.UNPAIRED_IMS = unpaired_ims
-
-        self.num_of_images = min(len(left_ims), len(right_ims))
-
-        if len(right_ims) > 0 and len(left_ims) > 0:
-            self.create_log_widget(
-                text = "You seem to have paired LEFT and RIGHT images in this directory! Please remove any paired images before proceeding...",
-                color = (1,0,0,1)
-            )
-            return
         
-        elif len(right_ims) == 0 or len(left_ims) == 0:
+        if (len(self.RIGHT_IMS) > 0) != (len(self.LEFT_IMS) > 0):
+            for pattern in unpaired_patterns:
+                unpaired_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
+        
+        unpaired_ims = sorted(list(set(unpaired_ims)))
+        self.UNPAIRED_IMS = unpaired_ims
+        # unpaired_ims = self.LEFT_IMS if self.LEFT_IMS != None else self.RIGHT_IMS
+        # self.UNPAIRED_IMS = unpaired_ims
+        
+        if len(unpaired_ims) > 0:
+            self.num_of_images = len(unpaired_ims)
             self.view.ids.left_image.source = unpaired_ims[0]
+            self.view.ids.calibrate_single.disabled = False
             self.create_log_widget(
                 text = "You have successfully loaded unpaired images...",
                 color = (0,1,0,1)
             )
-            return unpaired_ims
 
-        elif self.verify_images(left_ims, right_ims):
-            self.view.ids.progress_bar.max = self.num_of_images
-            self.view.ids.left_image.source = left_ims[0]
-            self.view.ids.right_image.source = right_ims[0]
-            self.create_log_widget(
-                text = "You have successfully loaded stereo images...",
-                color = (0,1,0,1)
-            )
-            return (left_ims, right_ims)
-        
-        self.create_log_widget(text = "Number of Left and Right Images NOT equal!", color = (1,0,0,1))
+        elif len(self.RIGHT_IMS) > 0 and len(self.LEFT_IMS) > 0:
+            if self.verify_images(left_ims, right_ims):
+                self.num_of_images = min(len(left_ims), len(right_ims))
+                self.view.ids.progress_bar.max = self.num_of_images
+                self.view.ids.left_image.source = left_ims[0]
+                self.view.ids.right_image.source = right_ims[0]
+                self.create_log_widget(
+                    text = "You have successfully loaded stereo images...",
+                    color = (0,1,0,1)
+                )
+            else:
+                self.create_log_widget(
+                    text = "Number of Left and Right Images NOT equal!",
+                    color = (1,0,0,1)
+                )
     
 
 
@@ -268,8 +276,15 @@ class CalibrateScreenController:
         Saves object points and image points obtained from calibration image
         """
 
-        left = self.LEFT_IMS
-        self.view.ids.left_image.source = left[self.image_index]
+        if len(self.RIGHT_IMS) > 0 and len(self.LEFT_IMS) > 0:
+            self.create_log_widget(
+                text = "You seem to have paired LEFT and RIGHT images in this directory! Please remove any paired images before proceeding...",
+                color = (1,0,0,1)
+            )
+            self.unschedule_on_calibrate()
+
+        images = self.UNPAIRED_IMS
+        self.view.ids.left_image.source = images[self.image_index]
 
         image = self.view.ids.left_image.source
         img = cv2.imread(image)
@@ -298,7 +313,7 @@ class CalibrateScreenController:
 
         self.view.ids.progress_bar.value = self.image_index + 1
         
-        if self.image_index < len(left) - 1:
+        if self.image_index < len(images) - 1:
             self.image_index += 1
         else:
             self.create_log_widget(text = 'Object and Image Points Saved...')
@@ -316,6 +331,14 @@ class CalibrateScreenController:
         """
 
         left, right = self.LEFT_IMS, self.RIGHT_IMS
+
+        if not self.verify_images(left, right):
+            self.create_log_widget(
+                    text = "Number of Left and Right Images NOT equal! \nPlease check before proceeding...",
+                    color = (1,0,0,1)
+                )
+            self.unschedule_save_stereo_points()
+        
         self.view.ids.left_image.source = left[self.image_index]
         self.view.ids.right_image.source = right[self.image_index]
 
