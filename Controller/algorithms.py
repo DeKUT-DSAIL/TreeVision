@@ -262,7 +262,7 @@ def median_base_pixel(image):
 
 
 
-def median_bh_pixels(image):
+def median_bh_pixels(image, bh):
     '''
     Returns the median pixel intensity from the region of interest at the breast height of the tree in the disparity map
 
@@ -270,8 +270,6 @@ def median_bh_pixels(image):
     '''
 
     pixels = []
-    zc = disp_to_dist(median_base_pixel(image))
-    bh = compute_bh(image, zc)
     sub_image = image[bh - 5 : bh + 5, :]
 
     rows, columns = np.nonzero(sub_image)
@@ -396,7 +394,7 @@ def compute_bh(img, zc, baseline, focal_length, dfov, cx, cy):
 
 
 
-def compute_dbh(image, mask, dfov):
+def compute_dbh(image, mask, baseline, focal_length, dfov, cx, cy):
     '''
     Extracts the DBH from the segmented disparity map
     @param image: The segmented disparity map
@@ -408,14 +406,14 @@ def compute_dbh(image, mask, dfov):
     base_depth = disp_to_dist(base_px)
     print(f"Trunk base depth: {round(base_depth, 2)}m")
 
-    bh = compute_bh(img=image, zc=base_depth)
+    bh = compute_bh(image, base_depth, baseline, focal_length, dfov, cx, cy)
     print(f"Breast Height Location: {bh} pixels from the top")
 
     bh_pixels = np.nonzero(mask[bh, :])[0]
     sd = bh_pixels.size
     print(f"The DBH spans {sd} pixels")
 
-    da = disp_to_dist(median_bh_pixels(image))
+    da = disp_to_dist(median_bh_pixels(image=image, bh=bh))
     print(f"Depth of breast height: {round(da, 2)}m")
 
     h, w = image.shape

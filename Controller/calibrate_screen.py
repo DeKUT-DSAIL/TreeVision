@@ -246,6 +246,7 @@ class CalibrateScreenController:
         
         if len(unpaired_ims) > 0:
             self.num_of_images = len(unpaired_ims)
+            self.view.ids.progress_bar.max = self.num_of_images
             self.view.ids.left_image.source = unpaired_ims[0]
             self.view.ids.calibrate_single.disabled = False
             self.create_log_widget(
@@ -495,9 +496,9 @@ class CalibrateScreenController:
         utils.save_coefficients(save_file_path, K, D)
         self.create_log_widget(text = f"Calibration parameters saved to: {save_file_path}")
 
-        self.plot_scatter(error_info)
+        self.plot_scatter(error_info, project_dir_path)
 
-        scatter_plot_path = os.path.join(self.IMAGES_DIR, "calib_error_scatter.jpg")
+        scatter_plot_path = os.path.join(project_dir_path, "calib_error_scatter.jpg")
         self.view.ids.right_image.source = scatter_plot_path
         self.create_log_widget(text = "Error Scatter Plot Created", color = (0,1,0,1))
     
@@ -537,7 +538,7 @@ class CalibrateScreenController:
 
 
 
-    def plot_scatter(self, error_info):
+    def plot_scatter(self, error_info, path):
         """
         This function creates a scatterplot of the residual errors due to differences between original and 
         reprojected image points
@@ -565,7 +566,7 @@ class CalibrateScreenController:
         plt.tight_layout()
         plt.text(-1.1, 1.7, 'ME' + str(round(mean_error, 4)))
 
-        plt.savefig(os.path.join(self.IMAGES_DIR, "calib_error_scatter.jpg"), dpi=600)
+        plt.savefig(os.path.join(path, "calib_error_scatter.jpg"), dpi=600)
     
 
 
@@ -574,6 +575,7 @@ class CalibrateScreenController:
         Checks that all required text input is valid
         '''
         inputs = [
+            self.view.ids.project_name,
             self.view.ids.save_file,
             self.view.ids.image_width,
             self.view.ids.image_height,
@@ -645,6 +647,8 @@ class CalibrateScreenController:
 
         self.view.ids.progress_bar.value = 0
         self.view.ids.project_name.text = ''
+        self.view.ids.calibrate_single.disabled = True
+        self.view.ids.calibrate_stereo.disabled = True
 
         label_text = "App has been reset and all configurations cleared."
 

@@ -59,7 +59,6 @@ class ExtractScreenController:
     HORZ_FIELD_OF_VIEW = None
     VERT_FIELD_OF_VIEW = None
 
-    IMAGE_FORMAT = "JPG"
     LEFT_IMS = None
     RIGHT_IMS = None
 
@@ -306,7 +305,8 @@ class ExtractScreenController:
             self.view.ids.right_im.source = right_ims[0]
             self.view.ids.batch_extract_btn.disabled = False
         
-        self.create_log_widget(text = "Number of Left and Right Images Not equal!", color=(1,0,0,1))
+        else:
+            self.create_log_widget(text = "Number of Left and Right Images Not equal!", color=(1,0,0,1))
     
 
 
@@ -345,33 +345,37 @@ class ExtractScreenController:
         '''
 
         project = self.view.project_name.text 
-        
         project_path = os.path.join(self.PROJECT_DIR, f'{project}')
         dmaps_path = os.path.join(project_path, 'disparity_maps')
         results_path = os.path.join(project_path, 'results')
 
         self.DISPARITY_MAPS_DIR = dmaps_path
         self.RESULTS_DIR = results_path
-        
+
         if not os.path.exists(project_path):
-            os.makedirs(dmaps_path) if not os.path.exists(dmaps_path) else None
-            os.makedirs(results_path) if not os.path.exists(results_path) else None
-            self.create_log_widget(text = "Project folders have been created!")
+            for path in (dmaps_path, results_path):
+                os.makedirs(path, exist_ok=True)
+            self.create_log_widget(text="Project folders have been created!")
 
         parameter = self.view.parameter_dropdown_item.text
-        if parameter == 'DBH':
-            results_file = os.path.join(self.RESULTS_DIR, 'results_dbh.csv')
-            columns = ['Ref_DBH', 'Ex_DBH', 'AE_DBH (cm)', 'APE_DBH (%)']
-        elif parameter == 'CD & TH':
-            results_file = os.path.join(self.RESULTS_DIR, 'results_cd_th.csv')
-            columns = ['Ref_TH', 'Ex_TH', 'AE_TH (cm)', 'APE_TH (%)', 'Ref_CD', 'Ex_CD', 'AE_CD (cm)', 'APE_CD (%)']
+        parameters_dict = {
+            'DBH': ('results_dbh.csv', ['Ref_DBH', 'Ex_DBH', 'AE_DBH (cm)', 'APE_DBH (%)']),
+            'CD & TH': ('results_cd_th.csv', ['Ref_TH', 'Ex_TH', 'AE_TH (cm)', 'APE_TH (%)', 'Ref_CD', 'Ex_CD', 'AE_CD (cm)', 'APE_CD (%)'])
+        }
 
-        if not os.path.exists(results_file):
-            results_df = pd.DataFrame(columns=columns)
-            results_df.index.name = 'Filename'
-            results_df.to_csv(results_file)
-        
-        return True
+        if parameter in parameters_dict:
+            results_file, columns = parameters_dict[parameter]
+            results_file = os.path.join(self.RESULTS_DIR, results_file)
+
+            if not os.path.exists(results_file):
+                results_df = pd.DataFrame(columns=columns)
+                results_df.index.name = 'Filename'
+                results_df.to_csv(results_file)
+        else:
+            self.create_log_widget(
+                text="Please choose a parameter to extract.",
+                color=(1, 0, 0, 1)
+            )
 
 
 
@@ -612,7 +616,11 @@ class ExtractScreenController:
             inputs = {
                 "image": dmap,
                 "mask": mask, 
-                "dfov": self.DIAG_FIELD_OF_VIEW
+                "baseline": baseline,
+                "focal_length": focal_length,
+                "dfov": self.DIAG_FIELD_OF_VIEW,
+                "cx": cx,
+                "cy": cy
             }
             return [[parameter], [algorithms.compute_dbh(**inputs)]]
         
