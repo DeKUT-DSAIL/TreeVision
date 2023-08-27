@@ -6,7 +6,7 @@
 # Requirements file
 REQ_FILE=requirements.txt
 
-source ~/miniconda3/etc/profile.d/conda.sh
+source "C:\ProgramData\Anaconda3\etc\profile.d\conda.sh"
 
 # Install required packages
 conda install kivy=2.1.0 -c conda-forge

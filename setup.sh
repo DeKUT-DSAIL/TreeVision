@@ -7,7 +7,7 @@
 # VERSION=0.1.0
 
 # Define the name of the virtual environment
-VENV_NAME="myenv"
+VENV_NAME="treevision"
 
 # Create virtual environment
 conda create -n $VENV_NAME python=3.9
