@@ -52,6 +52,7 @@ class MainScreenController:
         if len(self.cameras) >= 2:
             self.left_cam_index = self.cameras[-2]
             self.right_cam_index = self.cameras[-1]
+            print("FOUND AT LEAST 2 CAMERAS...")
 
         camera_items = [
             {
@@ -91,6 +92,12 @@ class MainScreenController:
         Sets the default tab on the capture screen. There are two tabs i.e., the stereo camera tab and the single camera tab
         '''
         self.view.ids.bottom_navigation.switch_tab("screen 2")
+
+    def on_pre_enter(self):
+        '''
+        Switches the cameras on just before we enter this screen
+        '''
+        self.start_stereo_cameras()
 
     def switch_screen(self, screen_name):
         '''
@@ -242,33 +249,28 @@ class MainScreenController:
         self.left_capture = cv2.VideoCapture(self.left_cam_index, cv2.CAP_V4L)
         self.left_capture.set(3, 1280)
         self.left_capture.set(4, 720)
-        self.left_video_event = Clock.schedule_interval(partial(self.load_video, "left"), 1.0 / 60.0)
+        self.left_video_event = Clock.schedule_interval(partial(self.load_video, "left"), 1.0 / 66.0)
 
         self.right_camera = self.view.ids.stereo_camera_screen.ids.right_camera
         self.right_capture = cv2.VideoCapture(self.right_cam_index, cv2.CAP_V4L)
         self.right_capture.set(3, 1280)
         self.right_capture.set(4, 720)
-        self.right_video_event = Clock.schedule_interval(partial(self.load_video, "right"), 1.0 / 60.0)
+        self.right_video_event = Clock.schedule_interval(partial(self.load_video, "right"), 1.0 / 66.0)
 
 
     def stop_stereo_cameras(self, explore=False, cam=None):
         self.stereo_flag = False
 
-        if not explore:
-            self.left_video_event.cancel()
-            self.right_video_event.cancel()
-            self.right_capture.release()
-            self.left_capture.release()
-        else:
-            if cam == "left":
-                self.right_video_event.cancel()
-                self.right_capture.release()
-            elif cam == 'right':
-                self.left_video_event.cancel()
-                self.left_capture.release()
+        self.left_video_event.cancel()
+        self.right_video_event.cancel()
+        self.right_capture.release()
+        self.left_capture.release()
+        Clock.unschedule(partial(self.load_video, "left"))
+        Clock.unschedule(partial(self.load_video, "right"))
 
         texture = Texture.create(size=(720, 1280))
         texture.blit_buffer(bytes([255, 255, 255] * 720 * 1280), colorfmt='rgb', bufferfmt='ubyte')
+
         self.left_camera.texture = texture
         self.right_camera.texture = texture
 
@@ -277,9 +279,10 @@ class MainScreenController:
         '''
         Toggles stereo cameras on and off
         '''
-        if self.left_video_event:
+        if self.left_video_event and self.right_video_event:
             self.stop_stereo_cameras()
             self.left_video_event = None
+            self.right_video_event = None
             self.view.ids.stereo_camera_screen.ids.camera_state_toggle.icon = "camera"
         else :
             self.start_stereo_cameras()
