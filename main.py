@@ -114,6 +114,12 @@ class TreeVision(MDApp):
         '''
         self.manager_screens.transition.direction = direction
         self.manager_screens.current = name
+
+        if name == "main-screen":
+            import View.screens
+            screens = View.screens.screens
+            controller = screens[name]["controller"]()
+            controller.view.show_confirmation_dialog()
     
 
     def on_keyboard_down(self, window, keyboard, keycode, text, modifiers) -> None:

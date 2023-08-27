@@ -12,17 +12,6 @@
         use_text: True
 
         MDBottomNavigationItem:
-            name: "screen 1"
-            icon: 'camera-gopro'
-            text: "Stereo"
-            on_enter: stereo_camera_screen.controller.start_stereo_cameras()
-            on_pre_leave: stereo_camera_screen.controller.stop_stereo_cameras()
-
-            StereoCameraView:
-                id: stereo_camera_screen
-                controller: root.controller
-
-        MDBottomNavigationItem:
             name: "screen 2"
             icon: "camera-outline"
             text: "Camera"
@@ -31,6 +20,17 @@
 
             SingleCameraView:
                 id: camera_screen
+                controller: root.controller
+        
+        MDBottomNavigationItem:
+            name: "screen 1"
+            icon: 'camera-gopro'
+            text: "Stereo"
+            on_enter: stereo_camera_screen.controller.start_stereo_cameras()
+            on_pre_leave: stereo_camera_screen.controller.stop_stereo_cameras()
+
+            StereoCameraView:
+                id: stereo_camera_screen
                 controller: root.controller
         
     # switch screens

@@ -50,8 +50,8 @@ class MainScreenController:
         self.default_camera_index = self.cameras[0] if self.cameras else toast("No Camera attached!")
 
         if len(self.cameras) >= 2:
-            self.left_cam_index = self.cameras[-2]
-            self.right_cam_index = self.cameras[-1]
+            self.left_cam_index = self.cameras[0]
+            self.right_cam_index = self.cameras[1]
             print("FOUND AT LEAST 2 CAMERAS...")
 
         camera_items = [
@@ -197,7 +197,7 @@ class MainScreenController:
             ret, frame = self.right_capture.read()
             self.right_image_frame = frame
             self.right_camera.texture = self.create_texture(frame)
-        else:
+        elif side == "single":
             ret, frame = self.capture.read()
             self.image_frame = frame
             self.image.texture = self.create_texture(frame)
@@ -224,11 +224,13 @@ class MainScreenController:
             cam_id = self.default_camera_index
         if self.prev_cam_id:
             cam_id = self.prev_cam_id
+        # print(f"CAM: {cam_id}")
         self.image = self.view.ids.camera_screen.ids.camera_canvas
-        self.capture = cv2.VideoCapture(cam_id, cv2.CAP_V4L)
+        self.capture = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW)
+        # print(f"OPEN: {self.capture.isOpened()}")
         self.capture.set(3, 1280)
         self.capture.set(4, 720)
-        self.video_event = Clock.schedule_interval(self.load_video, 1.0 / 60.0)
+        self.video_event = Clock.schedule_interval(partial(self.load_video, "single"), 1.0 / 60.0)
     
     def toggle_camera(self):
         '''
