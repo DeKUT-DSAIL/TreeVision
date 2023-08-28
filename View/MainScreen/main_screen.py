@@ -12,9 +12,10 @@ class MainScreenView(BaseScreenView):
     current_screen = StringProperty()
     
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(MainScreenView, self).__init__(**kwargs)
         self.theme_cls = ThemeManager()
         self.theme_cls.theme_style = "Dark"
+        print(f"W: {self.width}, H: {self.height}")
     
 
     def show_confirmation_dialog(self):
@@ -38,7 +39,7 @@ class PopupWindow(MDBoxLayout):
     Popup window for the user to provide some input
     '''
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super(PopupWindow, self).__init__(**kwargs)
         self.orientation = 'vertical'
         self.spacing = '12dp'
         self.size_hint_y = None

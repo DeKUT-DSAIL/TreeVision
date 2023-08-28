@@ -38,6 +38,9 @@ class MainScreenController:
         self.left_video_event = None
         self.right_video_event = None
         self.view = View.MainScreen.main_screen.MainScreenView(controller=self)
+        self.height = self.view.ids.camera_screen.ids.camera_canvas.height
+        self.width = self.view.ids.camera_screen.ids.camera_canvas.width
+        print(f"H: {self.height}")
         self.stereo_flag = False
         self.single_flag = False
         self.root_folder = os.path.join(os.getcwd(), "assets/images/captured")
@@ -52,7 +55,6 @@ class MainScreenController:
         if len(self.cameras) >= 2:
             self.left_cam_index = self.cameras[0]
             self.right_cam_index = self.cameras[1]
-            print("FOUND AT LEAST 2 CAMERAS...")
 
         camera_items = [
             {
@@ -92,12 +94,8 @@ class MainScreenController:
         Sets the default tab on the capture screen. There are two tabs i.e., the stereo camera tab and the single camera tab
         '''
         self.view.ids.bottom_navigation.switch_tab("screen 2")
+    
 
-    def on_pre_enter(self):
-        '''
-        Switches the cameras on just before we enter this screen
-        '''
-        self.start_stereo_cameras()
 
     def switch_screen(self, screen_name):
         '''
@@ -204,12 +202,28 @@ class MainScreenController:
 
     def create_texture(self, frame) -> Texture:
         try:
-            buffer = frame.tobytes()
-            texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
-            texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
+            buffer = frame.tostring()
+            # texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
+            # texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
+
+            img_ratio = frame.shape[1] / frame.shape[0]
+            widget_ratio = self.width / self.height
+            if img_ratio > widget_ratio:
+                new_height = int(self.width / img_ratio)
+                resized_frame = cv2.resize(frame, (int(self.width), new_height))
+            else:
+                new_width = int(self.height * img_ratio)
+                resized_frame = cv2.resize(frame, (new_width, int(self.height)))
+
+            # Convert to Kivy-compatible texture
+            image_texture = Texture.create(size=(resized_frame.shape[1], resized_frame.shape[0]), colorfmt='bgr')
+            image_texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
+
+            return image_texture
+        
         except AttributeError:
             return Texture.create(size=(720, 1280), colorfmt='bgr')
-        return texture
+
 
     def stop_camera(self, *args):
         self.video_event.cancel()
@@ -224,10 +238,8 @@ class MainScreenController:
             cam_id = self.default_camera_index
         if self.prev_cam_id:
             cam_id = self.prev_cam_id
-        # print(f"CAM: {cam_id}")
         self.image = self.view.ids.camera_screen.ids.camera_canvas
         self.capture = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW)
-        # print(f"OPEN: {self.capture.isOpened()}")
         self.capture.set(3, 1280)
         self.capture.set(4, 720)
         self.video_event = Clock.schedule_interval(partial(self.load_video, "single"), 1.0 / 60.0)
@@ -248,13 +260,13 @@ class MainScreenController:
         self.stereo_flag = True
 
         self.left_camera = self.view.ids.stereo_camera_screen.ids.left_camera
-        self.left_capture = cv2.VideoCapture(self.left_cam_index, cv2.CAP_V4L)
+        self.left_capture = cv2.VideoCapture(self.left_cam_index, cv2.CAP_DSHOW)
         self.left_capture.set(3, 1280)
         self.left_capture.set(4, 720)
         self.left_video_event = Clock.schedule_interval(partial(self.load_video, "left"), 1.0 / 66.0)
 
         self.right_camera = self.view.ids.stereo_camera_screen.ids.right_camera
-        self.right_capture = cv2.VideoCapture(self.right_cam_index, cv2.CAP_V4L)
+        self.right_capture = cv2.VideoCapture(self.right_cam_index, cv2.CAP_DSHOW)
         self.right_capture.set(3, 1280)
         self.right_capture.set(4, 720)
         self.right_video_event = Clock.schedule_interval(partial(self.load_video, "right"), 1.0 / 66.0)
