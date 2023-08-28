@@ -3,6 +3,6 @@ from kivy.uix.button import Button
 from kivy.uix.image import Image
 
 
-class MyImage(Image, Button):
+class MyImage(Image):
     cam = StringProperty()
     image_radius = ListProperty(defaultvalue=[1])

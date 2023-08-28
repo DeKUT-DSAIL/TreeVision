@@ -40,7 +40,6 @@ class MainScreenController:
         self.view = View.MainScreen.main_screen.MainScreenView(controller=self)
         self.height = self.view.ids.camera_screen.ids.camera_canvas.height
         self.width = self.view.ids.camera_screen.ids.camera_canvas.width
-        print(f"H: {self.height}")
         self.stereo_flag = False
         self.single_flag = False
         self.root_folder = os.path.join(os.getcwd(), "assets/images/captured")
@@ -202,21 +201,9 @@ class MainScreenController:
 
     def create_texture(self, frame) -> Texture:
         try:
+            frame = cv2.flip(frame, -1)
             buffer = frame.tostring()
-            # texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
-            # texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
-
-            img_ratio = frame.shape[1] / frame.shape[0]
-            widget_ratio = self.width / self.height
-            if img_ratio > widget_ratio:
-                new_height = int(self.width / img_ratio)
-                resized_frame = cv2.resize(frame, (int(self.width), new_height))
-            else:
-                new_width = int(self.height * img_ratio)
-                resized_frame = cv2.resize(frame, (new_width, int(self.height)))
-
-            # Convert to Kivy-compatible texture
-            image_texture = Texture.create(size=(resized_frame.shape[1], resized_frame.shape[0]), colorfmt='bgr')
+            image_texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
             image_texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
 
             return image_texture
@@ -229,8 +216,8 @@ class MainScreenController:
         self.video_event.cancel()
         self.capture.release()
 
-        texture = Texture.create(size=(720, 1280))
-        texture.blit_buffer(bytes([255, 255, 255] * 720 * 1280), colorfmt='rgb', bufferfmt='ubyte')
+        texture = Texture.create(size=(1280, 720))
+        texture.blit_buffer(bytes([255, 255, 255] * 1280 * 720), colorfmt='rgb', bufferfmt='ubyte')
         self.image.texture = texture
 
     def start_camera(self, cam_id=None, *args):

@@ -1,6 +1,7 @@
 import cv2
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 from kivy.uix.button import Button
 from kivy.clock import Clock
@@ -9,13 +10,14 @@ from kivy.graphics.texture import Texture
 
 Builder.load_string('''
 <CameraWidget>:
-    size_hint: 1, 0.9
+    id: cam
 
 <MyApp>:
     orientation: 'vertical'
 
     CameraWidget:
         id: camera_widget
+        size_hint: 1, 0.9
 
     Button:
         text: 'Exit'
@@ -36,10 +38,9 @@ class CameraWidget(Image):
         Clock.schedule_once(self.schedule_frame, 1.0 / 30)  # Schedule the next frame
 
     def update_image(self, frame):
-        # Convert BGR to RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_rgb = cv2.flip(frame_rgb, -1)
 
-        # Resize the frame while maintaining aspect ratio
         img_ratio = frame.shape[1] / frame.shape[0]
         widget_ratio = self.width / self.height
         if img_ratio > widget_ratio:
@@ -49,15 +50,13 @@ class CameraWidget(Image):
             new_width = int(self.height * img_ratio)
             resized_frame = cv2.resize(frame_rgb, (new_width, int(self.height)))
 
-        # Convert to Kivy-compatible texture
-        buf1 = resized_frame.tostring()
+        buffer = resized_frame.tostring()
         image_texture = Texture.create(size=(resized_frame.shape[1], resized_frame.shape[0]), colorfmt='rgb')
-        image_texture.blit_buffer(buf1, colorfmt='rgb', bufferfmt='ubyte')
+        image_texture.blit_buffer(buffer, colorfmt='rgb', bufferfmt='ubyte')
 
-        # Update the texture of the Image widget
         self.texture = image_texture
 
-class MyApp(BoxLayout):
+class MyApp(FloatLayout):
     pass
 
 class CameraStreamApp(App):

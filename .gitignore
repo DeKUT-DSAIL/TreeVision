@@ -1,5 +1,6 @@
 .vscode
 tests.ipynb
+test.py
 analysis.ipynb
 rename.ipynb
 /calib

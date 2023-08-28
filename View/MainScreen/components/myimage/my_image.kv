@@ -1,12 +1,8 @@
-<-MyImage>:
-    allow_stretch: True
-    keep_ratio: True
+#:kivy 2.1.0
 
-    canvas:
-        Color:
-            rgb: (1, 1, 1, 1)
-        RoundedRectangle:
-            texture: self.texture
-            size: self.size
-            pos: self.pos
-            radius: self.image_radius
+<MyImage>:
+    allow_stretch: False
+    keep_ratio: True
+    texture: self.texture
+    size: self.size
+    pos: self.pos

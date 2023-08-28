@@ -5,15 +5,10 @@
     MDFloatLayout:
         orientation: "vertical"
 
-        MDBoxLayout:
-            pos_hint: {'top': 1}
-            size_hint: 1, 0.93
-            
-            MyImage:
-                id: camera_canvas
-                size_hint: None, None
-                size: self.texture_size
-
+        MyImage:
+            id: camera_canvas
+            size_hint: 1, 0.95
+            pos_hint: {'top': 1, 'center_x': .5}
 
         MDIconButton:
             icon: "close"
