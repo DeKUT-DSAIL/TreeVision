@@ -169,8 +169,8 @@ def threshold_disparity(image):
 
     peak_index = np.argmax(hist)
 
-    thresh1 = np.where(hist == hist[peak_index])[0][0] - 20
-    thresh2 = np.where(hist == hist[peak_index])[0][0] + 20
+    thresh1 = np.where(hist == hist[peak_index])[0][0] - 10
+    thresh2 = np.where(hist == hist[peak_index])[0][0] + 10
 
     thresholded = image.copy()
     thresholded[image < thresh1] = 0
