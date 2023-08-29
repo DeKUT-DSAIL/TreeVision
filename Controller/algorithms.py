@@ -290,19 +290,28 @@ def median_crown_pixel(image):
     @param image: Source image, usually the segmented disparity map
     '''
 
-    pixels = []
-    left = convex_hull(image)[2]
+    left_pixels = []
+    right_pixels = []
 
-    sub_image = image[:, left[1] : left[1] + 41]
-    rows, columns = np.nonzero(sub_image)
+    left, right = convex_hull(image)[2:4]
+    sub_image_left = image[:, left[1] : left[1] + 41]
+    sub_image_right = image[:, right[1] - 40 : right[1] + 1]
+
+    rows, columns = np.nonzero(sub_image_left)
     for row, column in zip(rows, columns):
-        pixels.append(sub_image[row, column])
+        left_pixels.append(sub_image_left[row, column])
 
-    pixels = np.array(pixels)
-    med = int(np.median(pixels))
-    image[left] = med
+    rows, columns = np.nonzero(sub_image_right)
+    for row, column in zip(rows, columns):
+        right_pixels.append(sub_image_right[row, column])
 
-    return med
+    med_left = int(np.median(left_pixels))
+    med_right = int(np.median(right_pixels))
+    
+    image[left] = med_left
+    image[right] = med_right
+
+    return med_left, med_right
 
 
 
@@ -438,18 +447,24 @@ def compute_cd(image, baseline, focal_length, dfov, cx, cy):
     '''
 
     left, right = convex_hull(image)[2:4]
-    crown_px = pixel_of_interest(image, 'CD')
-    print(f"Crown edge pixel intensity: {crown_px}")
+    left_crown_px, right_crown_px = pixel_of_interest(image, 'CD')
     
-    z = disp_to_dist(crown_px)
-    disparity = baseline * focal_length / z
-    x = baseline * (left[0] - cy) / disparity
-    y = baseline * (left[1] - cx) / disparity
-    print(f"Real word coordinates: {round(x, 2), round(y, 2), round(z, 2)}")
+    z1 = disp_to_dist(left_crown_px)
+    left_edge_disparity = baseline * focal_length / z1
+    x1 = baseline * (left[1] - cx) / left_edge_disparity
+    y1 = baseline * (left[0] - cy) / left_edge_disparity
+
+    z2 = disp_to_dist(right_crown_px)
+    right_edge_disparity = baseline * focal_length / z2
+    x2 = baseline * (right[1] - cx) / right_edge_disparity
+    y2 = baseline * (right[0] - cy) / right_edge_disparity
+
+    print(f"Left crown edge coordinates: {round(x1, 2), round(y1, 2), round(z1, 2)}")
+    print(f"Right crown edge coordinates: {round(x2, 2), round(y2, 2), round(z2, 2)}")
 
     sc = right[1] - left[1]
     print(f"Crown spans {sc} pixels")
-    da = cv2.norm(np.array([x, y, z]))
+    da = cv2.norm(np.array([x1, y1, z1]))
 
     h, w = image.shape
     hfov, _ = calculate_fields_of_view(dfov, w, h)
@@ -458,6 +473,7 @@ def compute_cd(image, baseline, focal_length, dfov, cx, cy):
 
     print(f"Left crown extreme is {round(da, 2)}m away")
     print(f"CD: {round(CD, 2)}m")
+    print(f"Direct CD: {round(abs(x2 - x1), 2)}m")
 
     return CD
 
@@ -477,16 +493,16 @@ def compute_th(image, baseline, focal_length, dfov, cx, cy):
     print(f"Base: {base_px}")
     
     zb = disp_to_dist(base_px)
-    disparity = baseline * focal_length / zb
-    xb = baseline * (base[0] - cy) / disparity
-    yb = baseline * (base[1] - cx) / disparity
-    print(f"Real world coordinates of base: {round(xb, 2), round(yb, 2), round(zb, 2)}")
+    base_disparity = baseline * focal_length / zb
+    xb = baseline * (base[1] - cx) / base_disparity
+    yb = baseline * (base[0] - cy) / base_disparity
+    print(f"Base coordinates: {round(xb, 2), round(yb, 2), round(zb, 2)}")
 
     zt = disp_to_dist(top_px)
-    disparity = baseline * focal_length / zt
-    xt = baseline * (top[0] - cy) / disparity
-    yt = baseline * (top[1] - cx) / disparity
-    print(f"Real world coordinates of top: {round(xt, 2), round(yt, 2), round(zt, 2)}")    
+    top_disparity = baseline * focal_length / zt
+    xt = baseline * (top[1] - cx) / top_disparity
+    yt = baseline * (top[0] - cy) / top_disparity
+    print(f"Top coordinates: {round(xt, 2), round(yt, 2), round(zt, 2)}")    
 
     st = base[0] - top[0]
     db = cv2.norm(np.array([xb, yb, zb]))
@@ -500,5 +516,6 @@ def compute_th(image, baseline, focal_length, dfov, cx, cy):
     print(f"Tree base is {round(db, 2)}m away")
     print(f"Tree top is {round(dt, 2)}m away")
     print(f"TH: {round(TH, 2)}m")
+    print(f"Direct TH: {round(abs(yt - yb), 2)}m")
 
     return TH

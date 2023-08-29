@@ -388,7 +388,6 @@ class ExtractScreenController:
         left_img_path = self.view.left_im.source
         right_img_path = self.view.right_im.source
         rectified = self.view.ids.rectification_dropdown_item.text
-        print(f"STATUS: {rectified}")
         
         if rectified == "Yes":
             rec_status = True
@@ -400,7 +399,6 @@ class ExtractScreenController:
         mask_filename = left_img_filename.split(".")[0] + "_mask.*"
 
         mask_path =  glob(os.path.join(folder_path, mask_filename))[0]
-        print(f"MASK: {mask_path}")
 
         left = cv2.imread(left_img_path, 0)
         right = cv2.imread(right_img_path, 0)
@@ -429,9 +427,8 @@ class ExtractScreenController:
                 dmap_filename = left_img_path.split('\\')[-1].split('.')[0] + '_disparity.jpg'
             elif platform == "linux" or platform == "linux2":
                 dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
-            print(f"DMAP: {dmap_filename}")
+            
             dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
-            print(f"PATH: {dmap_path}")
 
             cv2.imwrite(dmap_path, dmap)
             return dmap_path, mask_path
