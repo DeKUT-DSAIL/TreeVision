@@ -216,8 +216,8 @@ class CalibrateScreenController:
         Returns the paths to the calibration images. This works for both stereo and single camera calibration
         '''
         
-        left_patterns = ['*LEFT.jpg', '*left.jpg', '*LEFT.png', '*left.png']
-        right_patterns = ['*RIGHT.jpg', '*right.jpg', '*RIGHT.png', '*right.png']
+        left_patterns = ['*LEFT*.jpg', '*left*.jpg', '*LEFT*.png', '*left*.png']
+        right_patterns = ['*RIGHT*.jpg', '*right*.jpg', '*RIGHT*.png', '*right*.png']
         unpaired_patterns = ['*.jpg', '*.png']
 
         left_ims = []

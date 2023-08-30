@@ -602,6 +602,7 @@ class ExtractScreenController:
         parameter = self.view.parameter_dropdown_item.text
         dmap = cv2.imread(self.view.right_im.source, 0)
         mask = cv2.imread(mask_path, 0)
+        mask = algorithms.rectify(mask, self.CONFIG_FILE_PATH, "left")
         K, _, _, _, _, _, _, _, T, _ = algorithms.load_camera_params(self.CONFIG_FILE_PATH)
 
         focal_length = K[0, 0]

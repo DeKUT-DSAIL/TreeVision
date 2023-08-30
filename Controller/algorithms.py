@@ -20,6 +20,42 @@ def load_camera_params(config_file_path: str):
 
 
 
+def rectify(image, config_file_path, side):
+    '''
+    Rectifies an image based on camera calibration parameters
+    '''
+
+    [K1, K2, D1, D2, R1, R2, P1, P2, T, _] = load_camera_params(config_file_path)
+
+    '''
+    We know that
+
+            |f  0   cx1  0|                             |f  0   cx2  Tx*f|
+    P1 =    |0  f   cy   0|         and         P2  =   |0  f   cy   0   |
+            |0  f   1    0|                             |0  f   1    0   |
+            
+    and in our case, cx1 = cx2 = cx
+    '''
+
+    f = K1[0,0]
+    Tx = T[0,0]
+    P1 = np.hstack((K1, np.array([[0],[0],[0]])))
+    P2 = np.hstack((K2, np.array([[Tx*f],[0],[0]])))
+
+    h1, w1 = image.shape
+
+    if side == "left":
+        xmap1, ymap1 = cv2.initUndistortRectifyMap(K1, D1, R1, P1, (w1,h1), cv2.CV_32FC1)
+        rectified_image = cv2.remap(image, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+    elif side == "right":
+        xmap2, ymap2 = cv2.initUndistortRectifyMap(K2, D2, R2, P2, (w1,h1), cv2.CV_32FC1)
+        rectified_image = cv2.remap(image, xmap2, ymap2, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+    
+    return rectified_image
+
+
+
+
 def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, rectified: bool, sel: np.ndarray, config_file_path: str, min_disp, num_disp, block_size, uniqueness_ratio, speckle_window_size, speckle_range, disp_max_diff):
     '''
     This function extracts the disparity map from left and right images of a stereo image pair.
@@ -30,48 +66,19 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, rect
     '''
 
     # ------------------------------------- #
-    # SETUP
+    # FILTER
     # ------------------------------------- #
     imgL = cv2.GaussianBlur(imgL, (5,5), 0)
     imgR = cv2.GaussianBlur(imgR, (5,5), 0)
-
-    # read camera data
-    [K1, K2, D1, D2, R1, R2, P1, P2, T, _] = load_camera_params(config_file_path)
-
-    '''
-    We know that
-
-            |f  0   cx1  0|
-    P1 =    |0  f   cy   0|
-            |0  f   1    0|
-
-    and 
-
-            |f  0   cx2  Tx*f|
-    P2 =    |0  f   cy   0   |
-            |0  f   1    0   |
-
-    and in our case, cx1 = cx2 = cx
-    '''
-
-    f = K1[0,0]
-    Tx = T[0,0]
-    P1 = np.hstack((K1, np.array([[0],[0],[0]])))
-    P2 = np.hstack((K2, np.array([[Tx*f],[0],[0]])))
-
 
     # ------------------------------------- #
     # STEREO RECTIFICATION
     # ------------------------------------- #
     if not rectified:
-        h1, w1 = imgL.shape
 
-        xmap1, ymap1 = cv2.initUndistortRectifyMap(K1, D1, R1, P1, (w1,h1), cv2.CV_32FC1)
-        xmap2, ymap2 = cv2.initUndistortRectifyMap(K2, D2, R2, P2, (w1,h1), cv2.CV_32FC1)
-
-        imgL_rectified = cv2.remap(imgL, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
-        imgR_rectified = cv2.remap(imgR, xmap2, ymap2, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
-        mask_rectified = cv2.remap(mask, xmap1, ymap1, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+        imgL_rectified = rectify(imgL, config_file_path, "left")
+        imgR_rectified = rectify(imgR, config_file_path, "right")
+        mask_rectified = rectify(mask, config_file_path, "left")
     
         mask_rectified = morphology(mask_rectified, sel)
     
@@ -84,7 +91,6 @@ def compute_depth_map(imgL: np.ndarray, imgR: np.ndarray, mask: np.ndarray, rect
     # COMPUTE DISPARITY MAP
     # -------------------------------- #
 
-    # Matched blocked size
     stereo = cv2.StereoSGBM_create(minDisparity = min_disp,
             numDisparities = num_disp,
             blockSize = block_size,
@@ -147,7 +153,7 @@ def extract(left_im, right_im, mask, rectified, sel, config_file_path, min_disp,
         disp_max_diff = disp_max_diff
     )
 
-    depth = threshold_disparity(dmap['R'])
+    depth = threshold_disparity(dmap['O'])
 
     return depth
 
@@ -193,9 +199,9 @@ def disp_to_dist(x):
     @param x: The disparity value (usually the greyscale intensity of a pixel in the disparity map) to be resolved into distance in m
     '''
     y = (346*x**2 -116.7*x - 1.961) / (x**3 - 5.863*x**2 + 47.24*x + 487.6)
-    # Q = np.float32([[1,0,0,-640],[0,1,0,-360],[0,0,0,1442],[0,0,1/130,0]])
-    # _, _, y = cv2.reprojectImageTo3D(np.array([x], dtype=np.float32), Q)[0,0]
-    # y = y / 1000
+    Q = np.float32([[1,0,0,-640],[0,1,0,-360],[0,0,0,1442],[0,0,1/130,0]])
+    _, _, y = cv2.reprojectImageTo3D(np.array([x], dtype=np.float32), Q)[0,0]
+    y = y / 1000
     
     return y
 
@@ -262,7 +268,7 @@ def median_base_pixel(image):
 
 
 
-def median_bh_pixels(image, bh):
+def median_bh_pixel(image, bh):
     '''
     Returns the median pixel intensity from the region of interest at the breast height of the tree in the disparity map
 
@@ -384,8 +390,8 @@ def compute_bh(img, zc, baseline, focal_length, dfov, cx, cy):
     h, w = img.shape
     disparity = baseline * focal_length / zc
     base = convex_hull(img)[0]
-    xc = baseline * (base[0] - cy) / disparity
-    yc = baseline * (base[1] - cx) / disparity
+    xc = baseline * (base[1] - cx) / disparity
+    yc = baseline * (base[0] - cy) / disparity
 
     # applying the geometry for deriving the position of the breast height
     dg = cv2.norm(np.array([xc, yc, zc]))
@@ -396,7 +402,8 @@ def compute_bh(img, zc, baseline, focal_length, dfov, cx, cy):
     print(f"Angle subtended by breast height at camera: {round(np.rad2deg(theta), 2)} degrees")
     
     _, vfov = calculate_fields_of_view(dfov, w, h)
-    sh = (h / np.tan(vfov / 2)) * np.tan(theta/2) # no. of pixels from base to the breast height (1.3m above the ground)
+    sh = (h / np.tan(vfov / 2)) * np.tan(theta / 2) # no. of pixels from base to the breast height (1.3m above the ground)
+    print(f"Distance in pixels from base to breast height: {sh}")
     bh = base[0] - np.int64(sh) # row number where breast height is found
     
     return bh
@@ -419,17 +426,40 @@ def compute_dbh(image, mask, baseline, focal_length, dfov, cx, cy):
     print(f"Breast Height Location: {bh} pixels from the top")
 
     bh_pixels = np.nonzero(mask[bh, :])[0]
-    sd = bh_pixels.size
+    xmax = bh_pixels.max() # left_edge = (bh, xmin)
+    xmin = bh_pixels.min() # right_edge = (bh, xmax)
+    sd = xmax - xmin
     print(f"The DBH spans {sd} pixels")
 
-    da = disp_to_dist(median_bh_pixels(image=image, bh=bh))
-    print(f"Depth of breast height: {round(da, 2)}m")
+    bh_px = median_bh_pixel(image=image, bh=bh)
+    za = disp_to_dist(bh_px)
+    zb = za
+    print(f"Depth of breast height: {round(za, 2)}m")
+
+    # Coordinates of left edge of the breast height
+    left_edge_disparity = baseline * focal_length / za
+    xa = baseline * (xmin - cx) / left_edge_disparity
+    ya = baseline * (bh - cy) / left_edge_disparity
+
+    # Coordinates of right edge of the breast height
+    right_edge_disparity = baseline * focal_length / zb
+    xb = baseline * (xmax - cx) / right_edge_disparity
+    yb = baseline * (bh - cy) / right_edge_disparity
+
+    print(f"Left BH edge coordinates: {round(xa, 2), round(ya, 2), round(za, 2)}")
+    print(f"Right BH edge coordinates: {round(xb, 2), round(yb, 2), round(zb, 2)}")
+
+    visible_dbh = xb - xa
+    tangent_a = cv2.norm(np.array([xa, ya, za]))
+    actual_dbh = visible_dbh * tangent_a / (np.sqrt(tangent_a ** 2 - (visible_dbh / 2) ** 2))
+    print(f"Tangent A: {round(tangent_a, 2)}, \tTangent B: {round(cv2.norm(np.array([xb, yb, zb])), 2)}")
+    print(f"Other DBH: {actual_dbh}")
 
     h, w = image.shape
     hfov, _ = calculate_fields_of_view(dfov, w, h)
     theta = np.arctan(sd * (np.tan(hfov / 2) / w))
     print(f"Angle subtended by trunk width at camera: {round(np.rad2deg(theta), 2)} degrees.")
-    D = 2 * da * np.tan(theta)
+    D = 2 * za * np.tan(theta)
     return D
 
 
