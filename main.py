@@ -12,9 +12,7 @@ DEBUG=1 python main.py
 import importlib
 import os
 import cv2
-
 from kivy import Config
-
 from PIL import ImageGrab
 
 # TODO: You may know an easier way to get the size of a computer display.
@@ -154,32 +152,57 @@ TreeVision().run()
 # 
 # from kivymd.app import MDApp
 # from kivymd.uix.screenmanager import MDScreenManager
-# 
+
 # from View.screens import screens
-# 
-# 
-# class Forest(MDApp):
+
+
+# class TreeVision(MDApp):
 #     def __init__(self, **kwargs):
 #         super().__init__(**kwargs)
 #         self.load_all_kv_files(self.directory)
 #         # This is the screen manager that will contain all the screens of your
 #         # application.
 #         self.manager_screens = MDScreenManager()
-#         
+        
 #     def build(self) -> MDScreenManager:
 #         self.generate_application_screens()
+
+#         LabelBase.register(name="Inter", fn_regular="assets/fonts/Inter-Medium.ttf")
+#         theme_font_styles.append("Inter")
+#         self.theme_cls.font_styles["Inter"] = ["Inter", 16, False, 0.15]
+#         self.theme_cls.primary_palette = "Red"
+#         self.theme_cls.material_style = "M3"
+#         self.theme_cls.theme_style = "Dark"
+
+#         self.modules = {
+#             'Capture': [
+#                 'camera-iris',
+#                 "on_release", lambda x: self.set_screen('main-screen', 'left'),
+#             ],
+
+#             'Calibrate': [
+#                 'cog-outline',
+#                 "on_release", lambda x: self.set_screen('calibrate screen', 'left'),
+#             ],
+
+#             'Extract': [
+#                 'tape-measure',
+#                 "on_release", lambda x: self.set_screen('extract screen', 'right'),
+#             ]
+#         }
+        
 #         return self.manager_screens
-# 
+
 #     def generate_application_screens(self) -> None:
 #         """
 #         Creating and adding screens to the screen manager.
 #         You should not change this cycle unnecessarily. He is self-sufficient.
-# 
+
 #         If you need to add any screen, open the `View.screens.py` module and
 #         see how new screens are added according to the given application
 #         architecture.
 #         """
-# 
+
 #         for i, name_screen in enumerate(screens.keys()):
 #             model = screens[name_screen]["model"]()
 #             controller = screens[name_screen]["controller"](model)
@@ -187,6 +210,31 @@ TreeVision().run()
 #             view.manager_screens = self.manager_screens
 #             view.name = name_screen
 #             self.manager_screens.add_widget(view)
-# 
-# 
-# Forest().run()
+    
+
+#     def create_image_directories(self):
+#         images_dir = os.path.join(self.directory, "assets/images/captured")
+#         thumbnail_dir = os.path.join(self.directory, "assets/images/thumbnails")
+
+#         if not os.path.exists(images_dir):
+#             os.makedirs(images_dir)
+#         elif not os.path.exists(thumbnail_dir):
+#             os.makedirs(thumbnail_dir)
+    
+
+#     def on_start(self):
+#         self.manager_screens.current = 'extract screen'
+#         self.create_image_directories()
+    
+
+#     def set_screen(self, name, direction):
+#         '''
+#         Sets the current screen to 'name'
+#         @param name: Name of the screen to switch to
+#         @param direction: Direction of the transition
+#         '''
+#         self.manager_screens.transition.direction = direction
+#         self.manager_screens.current = name
+
+
+# TreeVision().run()

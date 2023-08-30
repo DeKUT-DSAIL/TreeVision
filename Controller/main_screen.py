@@ -201,7 +201,7 @@ class MainScreenController:
 
     def create_texture(self, frame) -> Texture:
         try:
-            frame = cv2.flip(frame, -1)
+            frame = cv2.flip(frame, 0)
             buffer = frame.tostring()
             image_texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
             image_texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
@@ -269,8 +269,8 @@ class MainScreenController:
         Clock.unschedule(partial(self.load_video, "left"))
         Clock.unschedule(partial(self.load_video, "right"))
 
-        texture = Texture.create(size=(720, 1280))
-        texture.blit_buffer(bytes([255, 255, 255] * 720 * 1280), colorfmt='rgb', bufferfmt='ubyte')
+        texture = Texture.create(size=(1280, 720))
+        texture.blit_buffer(bytes([255, 255, 255] * 1280 * 720), colorfmt='rgb', bufferfmt='ubyte')
 
         self.left_camera.texture = texture
         self.right_camera.texture = texture
