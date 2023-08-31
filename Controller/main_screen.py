@@ -268,9 +268,13 @@ class MainScreenController:
         if self.video_event:
             self.stop_camera()
             self.video_event = None
+            self.view.ids.camera_screen.ids.camera_menu.disabled = True
+            self.view.ids.camera_screen.ids.camera_capture.disabled = True
             self.view.ids.camera_screen.ids.camera_toggle.icon = "camera"
         else :
             self.start_camera()
+            self.view.ids.camera_screen.ids.camera_menu.disabled = False
+            self.view.ids.camera_screen.ids.camera_capture.disabled = False
             self.view.ids.camera_screen.ids.camera_toggle.icon = "camera-off"
 
     def start_stereo_cameras(self):
@@ -314,9 +318,13 @@ class MainScreenController:
             self.stop_stereo_cameras()
             self.left_video_event = None
             self.right_video_event = None
+            self.view.ids.stereo_camera_screen.ids.stereo_camera_swap.disabled = True
+            self.view.ids.stereo_camera_screen.ids.stereo_camera_capture.disabled = True
             self.view.ids.stereo_camera_screen.ids.camera_state_toggle.icon = "camera"
         else :
             self.start_stereo_cameras()
+            self.view.ids.stereo_camera_screen.ids.stereo_camera_swap.disabled = False
+            self.view.ids.stereo_camera_screen.ids.stereo_camera_capture.disabled = False
             self.view.ids.stereo_camera_screen.ids.camera_state_toggle.icon = "camera-off"
     
 

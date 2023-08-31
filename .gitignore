@@ -1,5 +1,6 @@
 .vscode
 test.ipynb
+tests.ipynb
 test.py
 analysis.ipynb
 rename.ipynb

@@ -40,17 +40,20 @@
                     ripple_scale: .5
                     icon: "camera-flip-outline"
                     user_font_size: "30sp"
+                    disabled: True
                     on_release: root.controller.camera_menu_object.open()
 
                 MDFloatingActionButton:
+                    id: camera_capture
                     icon: "circle-outline"
                     pos_hint: {'center_x': .5, 'center_y': .5}
+                    disabled: True
                     on_release: root.controller.capture_image()
 
                 MDIconButton:
                     id: camera_toggle
                     ripple_scale: .5
-                    icon: "camera-off"
+                    icon: "camera"
                     user_font_size: "30sp"
                     on_release: root.controller.toggle_camera()
 

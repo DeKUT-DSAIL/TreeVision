@@ -45,15 +45,18 @@
                 pos_hint: {"center_x": .5, 'center_y': .5}
 
                 MDIconButton:
-                    id: stereo_calibrator
+                    id: stereo_camera_swap
                     ripple_scale: .5
                     icon: "camera-switch"
                     user_font_size: "30sp"
+                    disabled: True
                     on_release: root.controller.swap_cameras()
 
                 MDFloatingActionButton:
+                    id: stereo_camera_capture
                     icon: "circle-outline"
                     pos_hint: {'center_x': .5, 'center_y': .5}
+                    disabled: True
                     on_release: root.controller.capture_image(stereo=True)
 
                 MDIconButton:
