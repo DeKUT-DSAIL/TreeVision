@@ -59,6 +59,10 @@ class MainScreenController:
         if len(self.cameras) >= 2:
             self.left_cam_index = self.cameras[0]
             self.right_cam_index = self.cameras[1]
+            self.view.ids.stereo_tab.disabled = False
+        
+        elif len(self.cameras) == 1:
+            self.view.ids.stereo_tab.disabled = True
 
         camera_items = [
             {
@@ -243,6 +247,7 @@ class MainScreenController:
 
 
     def stop_camera(self, *args):
+        self.single_flag = False
         self.video_event.cancel()
         self.capture.release()
 
@@ -251,10 +256,13 @@ class MainScreenController:
         self.image.texture = texture
 
     def start_camera(self, cam_id=None, *args):
+        self.single_flag = True
+        
         if not cam_id and not self.prev_cam_id:
             cam_id = self.default_camera_index
         if self.prev_cam_id:
             cam_id = self.prev_cam_id
+        
         self.image = self.view.ids.camera_screen.ids.camera_canvas
         self.capture = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW)
         self.capture.set(3, self.FRAME_WIDTH)
@@ -279,18 +287,21 @@ class MainScreenController:
 
     def start_stereo_cameras(self):
         self.stereo_flag = True
+        
+        if len(self.cameras) >= 2:
+            self.left_camera = self.view.ids.stereo_camera_screen.ids.left_camera
+            self.left_capture = cv2.VideoCapture(self.left_cam_index, cv2.CAP_DSHOW)
+            self.left_capture.set(3, self.FRAME_WIDTH)
+            self.left_capture.set(4, self.FRAME_HEIGHT)
+            self.left_video_event = Clock.schedule_interval(partial(self.load_video, "left"), 1.0 / 66.0)
 
-        self.left_camera = self.view.ids.stereo_camera_screen.ids.left_camera
-        self.left_capture = cv2.VideoCapture(self.left_cam_index, cv2.CAP_DSHOW)
-        self.left_capture.set(3, self.FRAME_WIDTH)
-        self.left_capture.set(4, self.FRAME_HEIGHT)
-        self.left_video_event = Clock.schedule_interval(partial(self.load_video, "left"), 1.0 / 66.0)
-
-        self.right_camera = self.view.ids.stereo_camera_screen.ids.right_camera
-        self.right_capture = cv2.VideoCapture(self.right_cam_index, cv2.CAP_DSHOW)
-        self.right_capture.set(3, self.FRAME_WIDTH)
-        self.right_capture.set(4, self.FRAME_HEIGHT)
-        self.right_video_event = Clock.schedule_interval(partial(self.load_video, "right"), 1.0 / 66.0)
+            self.right_camera = self.view.ids.stereo_camera_screen.ids.right_camera
+            self.right_capture = cv2.VideoCapture(self.right_cam_index, cv2.CAP_DSHOW)
+            self.right_capture.set(3, self.FRAME_WIDTH)
+            self.right_capture.set(4, self.FRAME_HEIGHT)
+            self.right_video_event = Clock.schedule_interval(partial(self.load_video, "right"), 1.0 / 66.0)
+        else:
+            toast("You have less than 2 cameras connected!")
 
 
     def stop_stereo_cameras(self, explore=False, cam=None):
