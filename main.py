@@ -37,6 +37,7 @@ from kivy.properties import DictProperty
 
 class TreeVision(MDApp):
     KV_DIRS = [os.path.join(os.getcwd(), "View")]
+    PREVIOUS_SCREEN = None
     modules = DictProperty()
 
     def __init__(self, **kwargs):
@@ -110,14 +111,10 @@ class TreeVision(MDApp):
         @param name: Name of the screen to switch to
         @param direction: Direction of the transition
         '''
+        self.PREVIOUS_SCREEN = self.manager_screens.current
+        print(f"PREV: {self.PREVIOUS_SCREEN}")
         self.manager_screens.transition.direction = direction
         self.manager_screens.current = name
-
-        # if name == "main-screen":
-        #     import View.screens
-        #     screens = View.screens.screens
-        #     controller = screens[name]["controller"]()
-        #     controller.view.show_confirmation_dialog()
     
 
     def on_keyboard_down(self, window, keyboard, keycode, text, modifiers) -> None:

@@ -29,6 +29,7 @@ class MainScreenController:
     """
 
     prev_cam_id = None
+    PREVIOUS_SCREEN = None
 
     PROJECT_NAME = None
     FRAME_WIDTH = None
@@ -91,9 +92,13 @@ class MainScreenController:
             index += 1
             i -= 1
         return self.cameras
-    
+
 
     def close_dialog(self, instance):
+        self.view.dialog.dismiss()
+    
+
+    def accept_dialog_input(self, instance):
         self.PROJECT_NAME = self.view.dialog.content_cls.ids.project_name.text
         self.FRAME_WIDTH = int(self.view.dialog.content_cls.ids.frame_width.text)
         self.FRAME_HEIGHT = int(self.view.dialog.content_cls.ids.frame_height.text)
@@ -102,9 +107,9 @@ class MainScreenController:
             toast("Please provide a project name")
         
         else:
-            print(f"Project: {self.PROJECT_NAME}")
-            print(f"Frame W: {self.FRAME_WIDTH}")
-            print(f"Frame H: {self.FRAME_HEIGHT}")
+            project_path = os.path.join("assets/images/captured", self.PROJECT_NAME)
+            if not os.path.exists(project_path):
+                os.makedirs(project_path)
             
             self.view.dialog.dismiss()
 
@@ -122,7 +127,11 @@ class MainScreenController:
         Switches to the screen with the name `screen_name`
         @param screen_name: Name of the screen to switch to
         '''
+        self.PREVIOUS_SCREEN = self.view.manager_screens.current
+        print(f"PREV: {self.PREVIOUS_SCREEN}")
         self.view.manager_screens.current = screen_name
+        if screen_name == 'main-screen':
+            self.close_dialog()
     
     def swap_cameras(self):
         '''
@@ -142,7 +151,7 @@ class MainScreenController:
         """ Function to capture the images """
         time_str = time.strftime("%Y%m%d_%H%M%S")
         if not stereo:
-            image_path = f"{self.root_folder}/IMG_{time_str}.jpg"
+            image_path = f"{self.root_folder}/{self.PROJECT_NAME}/IMG_{time_str}.jpg"
             self.current_image = image_path
             thumbnail_path = f"{self.root_thumbnail}/IMG_{time_str}.jpg"
             thumbnail_widget = ThumbnailView()
@@ -157,8 +166,8 @@ class MainScreenController:
             else:
                 toast("Failed to save")
         else:
-            left_image_path = f"{self.root_folder}/IMG_{time_str}_LEFT.jpg"
-            right_image_path = f"{self.root_folder}/IMG_{time_str}_RIGHT.jpg"
+            left_image_path = f"{self.root_folder}/{self.PROJECT_NAME}/IMG_{time_str}_LEFT.jpg"
+            right_image_path = f"{self.root_folder}/{self.PROJECT_NAME}/IMG_{time_str}_RIGHT.jpg"
             self.right_current_image = right_image_path
             self.left_current_image = left_image_path
             left_thumbnail_path = f"{self.root_thumbnail}/IMG_{time_str}_LEFT.jpg"
@@ -200,7 +209,7 @@ class MainScreenController:
         Displays a selected image on the screen
         '''
         image_name = instance.image_source.split("/")[-1]
-        image_path = os.path.join(self.root_folder, image_name)
+        image_path = os.path.join(self.root_folder, self.PROJECT_NAME, image_name)
         image_screen = self.view.manager_screens.get_screen("image-screen")
         image_screen.ids.image_section.image_source = image_path
         image_screen.ids.image_section.image_name = image_name
@@ -230,15 +239,15 @@ class MainScreenController:
             return image_texture
         
         except AttributeError:
-            return Texture.create(size=(720, 1280), colorfmt='bgr')
+            return Texture.create(size=(self.FRAME_HEIGHT, self.FRAME_WIDTH), colorfmt='bgr')
 
 
     def stop_camera(self, *args):
         self.video_event.cancel()
         self.capture.release()
 
-        texture = Texture.create(size=(1280, 720))
-        texture.blit_buffer(bytes([255, 255, 255] * 1280 * 720), colorfmt='rgb', bufferfmt='ubyte')
+        texture = Texture.create(size=(self.FRAME_WIDTH, self.FRAME_HEIGHT))
+        texture.blit_buffer(bytes([255, 255, 255] * self.FRAME_WIDTH * self.FRAME_HEIGHT), colorfmt='rgb', bufferfmt='ubyte')
         self.image.texture = texture
 
     def start_camera(self, cam_id=None, *args):
@@ -248,8 +257,8 @@ class MainScreenController:
             cam_id = self.prev_cam_id
         self.image = self.view.ids.camera_screen.ids.camera_canvas
         self.capture = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW)
-        self.capture.set(3, 1280)
-        self.capture.set(4, 720)
+        self.capture.set(3, self.FRAME_WIDTH)
+        self.capture.set(4, self.FRAME_HEIGHT)
         self.video_event = Clock.schedule_interval(partial(self.load_video, "single"), 1.0 / 60.0)
     
     def toggle_camera(self):
@@ -269,14 +278,14 @@ class MainScreenController:
 
         self.left_camera = self.view.ids.stereo_camera_screen.ids.left_camera
         self.left_capture = cv2.VideoCapture(self.left_cam_index, cv2.CAP_DSHOW)
-        self.left_capture.set(3, 1280)
-        self.left_capture.set(4, 720)
+        self.left_capture.set(3, self.FRAME_WIDTH)
+        self.left_capture.set(4, self.FRAME_HEIGHT)
         self.left_video_event = Clock.schedule_interval(partial(self.load_video, "left"), 1.0 / 66.0)
 
         self.right_camera = self.view.ids.stereo_camera_screen.ids.right_camera
         self.right_capture = cv2.VideoCapture(self.right_cam_index, cv2.CAP_DSHOW)
-        self.right_capture.set(3, 1280)
-        self.right_capture.set(4, 720)
+        self.right_capture.set(3, self.FRAME_WIDTH)
+        self.right_capture.set(4, self.FRAME_HEIGHT)
         self.right_video_event = Clock.schedule_interval(partial(self.load_video, "right"), 1.0 / 66.0)
 
 
@@ -290,8 +299,8 @@ class MainScreenController:
         Clock.unschedule(partial(self.load_video, "left"))
         Clock.unschedule(partial(self.load_video, "right"))
 
-        texture = Texture.create(size=(1280, 720))
-        texture.blit_buffer(bytes([255, 255, 255] * 1280 * 720), colorfmt='rgb', bufferfmt='ubyte')
+        texture = Texture.create(size=(self.FRAME_WIDTH, self.FRAME_HEIGHT))
+        texture.blit_buffer(bytes([255, 255, 255] * self.FRAME_WIDTH * self.FRAME_HEIGHT), colorfmt='rgb', bufferfmt='ubyte')
 
         self.left_camera.texture = texture
         self.right_camera.texture = texture
