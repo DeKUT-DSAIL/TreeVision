@@ -30,6 +30,10 @@ class MainScreenController:
 
     prev_cam_id = None
 
+    PROJECT_NAME = None
+    FRAME_WIDTH = None
+    FRAME_HEIGHT = None
+
     def __init__(self):
         self.left_current_image = None
         self.right_current_image = None
@@ -87,6 +91,23 @@ class MainScreenController:
             index += 1
             i -= 1
         return self.cameras
+    
+
+    def close_dialog(self, instance):
+        self.PROJECT_NAME = self.view.dialog.content_cls.ids.project_name.text
+        self.FRAME_WIDTH = int(self.view.dialog.content_cls.ids.frame_width.text)
+        self.FRAME_HEIGHT = int(self.view.dialog.content_cls.ids.frame_height.text)
+
+        if self.PROJECT_NAME == '':
+            toast("Please provide a project name")
+        
+        else:
+            print(f"Project: {self.PROJECT_NAME}")
+            print(f"Frame W: {self.FRAME_WIDTH}")
+            print(f"Frame H: {self.FRAME_HEIGHT}")
+            
+            self.view.dialog.dismiss()
+
 
     def change_default_tab(self, *args):
         '''

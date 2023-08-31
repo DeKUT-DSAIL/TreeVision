@@ -45,3 +45,24 @@
         label_text_color: "white"
         color_icon_root_button: "white"
         color_icon_stack_button: "white"
+
+
+<PopupWindow>:
+    orientation: 'vertical'
+    spacing: '12dp'
+    size_hint_y: None
+    height: '200dp'
+
+    MDTextField:
+        id: project_name
+        hint_text: 'Project name'
+  
+    MDTextField:
+        id: frame_width
+        hint_text: 'Frame width (px)'
+        text: '1280'
+    
+    MDTextField:
+        id: frame_height
+        hint_text: 'Frame height (px)'
+        text: '720'
