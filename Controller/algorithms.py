@@ -460,7 +460,7 @@ def compute_dbh(image, mask, baseline, focal_length, dfov, cx, cy):
     theta = np.arctan(sd * (np.tan(hfov / 2) / w))
     print(f"Angle subtended by trunk width at camera: {round(np.rad2deg(theta), 2)} degrees.")
     D = 2 * za * np.tan(theta)
-    return D
+    return actual_dbh
 
 
 
@@ -501,11 +501,13 @@ def compute_cd(image, baseline, focal_length, dfov, cx, cy):
     theta = 2 * np.arctan(sc * (np.tan(hfov / 2) / w))
     CD = 2 * da * np.tan(theta/2)
 
+    actual_cd = abs(x2 - x1)
+
     print(f"Left crown extreme is {round(da, 2)}m away")
     print(f"CD: {round(CD, 2)}m")
     print(f"Direct CD: {round(abs(x2 - x1), 2)}m")
 
-    return CD
+    return actual_cd
 
 
 
@@ -543,9 +545,11 @@ def compute_th(image, baseline, focal_length, dfov, cx, cy):
     theta = 2 * np.arctan(st * (np.tan(vfov / 2) / h))
     TH = np.abs(dt * np.sin(theta) / np.sin(phi))
 
+    actual_th = abs(yt - yb)
+
     print(f"Tree base is {round(db, 2)}m away")
     print(f"Tree top is {round(dt, 2)}m away")
     print(f"TH: {round(TH, 2)}m")
     print(f"Direct TH: {round(abs(yt - yb), 2)}m")
 
-    return TH
+    return actual_th
