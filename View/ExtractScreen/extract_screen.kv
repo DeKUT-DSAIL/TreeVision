@@ -114,6 +114,17 @@
             md_bg_color: app.theme_cls.primary_color
             MDLabel:
                 text: "Configurations (Parameter Extraction)"
+            MDFillRoundFlatIconButton:
+                id: info
+                text: "About"
+                text_color: "white"
+                icon: 'information-variant'
+                icon_color: 'white'
+                theme_icon_color: 'Custom'
+                md_bg_color: (.75, .15, .0, 1)
+                pos_hint: {"center_x": .95, "center_y": .5}
+                # on_release: root.controller.show_confirmation_dialog()
+
         MDBoxLayout:
             orientation: "horizontal"
             size_hint: 1, 0.3
@@ -401,7 +412,7 @@
             icon: 'refresh'
             icon_color: 'white'
             theme_icon_color: 'Custom'
-            md_bg_color: app.theme_cls.primary_color
+            md_bg_color: (.7176, .1098, .1098, 1)
             pos_hint: {"center_x": .95, "center_y": .95}
             on_release: root.controller.show_confirmation_dialog()
 

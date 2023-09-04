@@ -58,7 +58,7 @@ class TreeVision(MDApp):
         LabelBase.register(name="Inter", fn_regular="assets/fonts/Inter-Medium.ttf")
         theme_font_styles.append("Inter")
         self.theme_cls.font_styles["Inter"] = ["Inter", 16, False, 0.15]
-        self.theme_cls.primary_palette = "Red"
+        self.theme_cls.primary_palette = "Green"
         self.theme_cls.material_style = "M3"
         self.theme_cls.theme_style = "Dark"
 
