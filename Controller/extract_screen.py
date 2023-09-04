@@ -11,11 +11,14 @@ from kivy.metrics import dp
 from kivy.utils import rgba
 from kivy.properties import StringProperty
 
+from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.list import OneLineIconListItem
-from kivymd.uix.button import MDIconButton
+from kivymd.uix.button import MDFlatButton, MDRectangleFlatButton, MDRaisedButton
 from kivymd.uix.label import MDLabel
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.dialog import MDDialog
 from kivymd.toast import toast
 from kivy.clock import Clock
 
@@ -41,6 +44,9 @@ class ExtractScreenController:
     The controller implements the strategy pattern. The controller connects to
     the view to control its actions.
     """
+    
+    app = MDApp.get_running_app()
+    dialog = None
 
     image_index = 0
     num_of_images = 0
@@ -52,6 +58,7 @@ class ExtractScreenController:
     IMAGES_DIR = 'test/full_trees'
     FILE_MANAGER_SELECTOR = 'folder'
     SELECT_BUTTON_ID = None
+    THIS_PROJECT = None
 
     CONFIG_FILE_PATH = 'configs/stereo_kieni.yml'
     REF_PARAMS_FILE = None
@@ -208,7 +215,7 @@ class ExtractScreenController:
             select_path = self.select_path
         )
 
-        self.file_manager.show(os.path.expanduser("."))
+        self.file_manager.show(os.path.expanduser("~"))
         self.manager_open = True
 
     
@@ -345,6 +352,7 @@ class ExtractScreenController:
         '''
 
         project = self.view.project_name.text 
+        self.THIS_PROJECT = project
         project_path = os.path.join(self.PROJECT_DIR, f'{project}')
         dmaps_path = os.path.join(project_path, 'disparity_maps')
         results_path = os.path.join(project_path, 'results')
@@ -359,8 +367,8 @@ class ExtractScreenController:
 
         parameter = self.view.parameter_dropdown_item.text
         parameters_dict = {
-            'DBH': ('results_dbh.csv', ['Ref_DBH', 'Ex_DBH', 'AE_DBH (cm)', 'APE_DBH (%)']),
-            'CD & TH': ('results_cd_th.csv', ['Ref_TH', 'Ex_TH', 'AE_TH (cm)', 'APE_TH (%)', 'Ref_CD', 'Ex_CD', 'AE_CD (cm)', 'APE_CD (%)'])
+            'DBH': (f'results_{self.THIS_PROJECT}_dbh.csv', ['Ref_DBH', 'Ex_DBH', 'AE_DBH (cm)', 'APE_DBH (%)']),
+            'CD & TH': (f'results_{self.THIS_PROJECT}_cd_th.csv', ['Ref_TH', 'Ex_TH', 'AE_TH (cm)', 'APE_TH (%)', 'Ref_CD', 'Ex_CD', 'AE_CD (cm)', 'APE_CD (%)'])
         }
 
         if parameter in parameters_dict:
@@ -489,9 +497,9 @@ class ExtractScreenController:
 
             parameter = self.view.parameter_dropdown_item.text
             if parameter == 'DBH':
-                results_file = os.path.join(self.RESULTS_DIR, 'results_dbh.csv')
+                results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
             elif parameter == 'CD & TH':
-                results_file = os.path.join(self.RESULTS_DIR, 'results_cd_th.csv')
+                results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
 
             results_df = pd.read_csv(results_file, index_col='Filename')
             results_df.loc[left_filename] = new_row
@@ -537,9 +545,9 @@ class ExtractScreenController:
 
         parameter = self.view.parameter_dropdown_item.text
         if parameter == 'DBH':
-            results_file = os.path.join(self.RESULTS_DIR, 'results_dbh.csv')
+            results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
         elif parameter == 'CD & TH':
-            results_file = os.path.join(self.RESULTS_DIR, 'results_cd_th.csv')
+            results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
 
         results_df = pd.read_csv(results_file, index_col='Filename')
         results_df.loc[left_filename] = new_row
@@ -645,9 +653,9 @@ class ExtractScreenController:
         '''
         parameter = self.view.parameter_dropdown_item.text
         if parameter == 'DBH':
-            file_path = os.path.join(self.RESULTS_DIR, 'results_dbh.csv')
+            file_path = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
         elif parameter == 'CD & TH':
-            file_path = os.path.join(self.RESULTS_DIR, 'results_cd_th.csv')
+            file_path = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
         
         if self.REF_PARAMS_FILE:
             df = pd.read_csv(file_path, index_col='Filename')
@@ -764,9 +772,49 @@ class ExtractScreenController:
         plt.legend()
         plt.savefig(path, dpi=600)
     
+
+
+    def show_confirmation_dialog(self):
+        '''
+        Shows a popup dialog modal for the user to confirm that they want the app settings to be reset. \n
+        Called when the reset button is pressed in the user interface
+        '''
+        if not self.dialog:
+            self.dialog = MDDialog(
+                title="Reset app settings",
+                type="custom",
+                content_cls=RefreshConfirm(),
+                auto_dismiss = False,
+                buttons=[
+                    MDRaisedButton(
+                        text="CANCEL",
+                        theme_text_color="Custom",
+                        text_color="white",
+                        md_bg_color="red",
+                        on_release=self.close_confirmation_dialog,
+                    ),
+                    MDRaisedButton(
+                        text="CONTINUE",
+                        theme_text_color="Custom",
+                        text_color="white",
+                        md_bg_color="green",
+                        on_release=self.reset,
+                    )
+                ],
+            )
+        self.dialog.open()
+    
+
+
+    def close_confirmation_dialog(self, instance):
+        '''
+        Dismisses the popup modal
+        '''
+        self.dialog.dismiss()
     
     
-    def reset(self):
+    
+    def reset(self, instance):
         '''
         Resets all configuration variables to their default values and resets the app in readiness to begin a fresh extraction
         '''
@@ -792,6 +840,7 @@ class ExtractScreenController:
         self.view.ids.scroll_layout.clear_widgets()
 
         label_text = "App has been reset and all configurations cleared."
+        self.dialog.dismiss()
         self.create_log_widget(label_text)
     
 
@@ -815,6 +864,11 @@ class ExtractScreenController:
         scrollview.scroll_y = 0
 
 
+class RefreshConfirm(MDBoxLayout):
+    '''
+    Popup modal for refreshing the application
+    '''
+    pass
 
 
 class IconListItem(OneLineIconListItem):

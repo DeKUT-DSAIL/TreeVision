@@ -1,6 +1,7 @@
 import importlib
 
 import View.CalibrateScreen.calibrate_screen
+from View.CalibrateScreen.calibrate_screen import RefreshConfirm
 
 # We have to manually reload the view module in order to apply the
 # changes made to the code on a subsequent hot reload.
@@ -23,6 +24,8 @@ from kivy.uix.textinput import TextInput
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.label import MDLabel
+from kivymd.uix.button import MDRaisedButton
+from kivymd.uix.dialog import MDDialog
 
 class CalibrateScreenController:
     """
@@ -31,6 +34,8 @@ class CalibrateScreenController:
     The controller implements the strategy pattern. The controller connects to
     the view to control its actions.
     """
+
+    dialog = None
 
     FILE_MANAGER_SELECTOR = 'folder'
     BUTTON_ID = None
@@ -626,7 +631,47 @@ class CalibrateScreenController:
 
 
 
-    def reset(self):
+    def show_confirmation_dialog(self):
+        '''
+        Shows a popup dialog modal for the user to confirm that they want the app settings to be reset. \n
+        Called when the reset button is pressed in the user interface
+        '''
+        if not self.dialog:
+            self.dialog = MDDialog(
+                title="Reset app settings",
+                type="custom",
+                content_cls=RefreshConfirm(),
+                auto_dismiss = False,
+                buttons=[
+                    MDRaisedButton(
+                        text="CANCEL",
+                        theme_text_color="Custom",
+                        text_color="white",
+                        md_bg_color="red",
+                        on_release=self.close_confirmation_dialog,
+                    ),
+                    MDRaisedButton(
+                        text="CONTINUE",
+                        theme_text_color="Custom",
+                        text_color="white",
+                        md_bg_color="green",
+                        on_release=self.reset,
+                    )
+                ],
+            )
+        self.dialog.open()
+    
+
+
+    def close_confirmation_dialog(self, instance):
+        '''
+        Dismisses the popup modal
+        '''
+        self.dialog.dismiss()
+
+
+
+    def reset(self, instance):
         '''
         Clears all configuration variables and resets the app in readiness to begin a fresh calibration
         '''
@@ -653,6 +698,7 @@ class CalibrateScreenController:
         label_text = "App has been reset and all configurations cleared."
 
         self.view.ids.scroll_layout.clear_widgets()
+        self.dialog.dismiss()
         self.create_log_widget(label_text)
 
     

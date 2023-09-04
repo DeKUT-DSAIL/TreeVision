@@ -66,7 +66,7 @@ class MainScreenController:
 
         camera_items = [
             {
-                "text": f"Camera {i}",
+                "text": f"Camera {i+1}",
                 "viewclass": "OneLineListItem",
                 "font_style": "Inter",
                 "on_release": lambda x=i: self.switch_camera(x),
@@ -132,7 +132,6 @@ class MainScreenController:
         @param screen_name: Name of the screen to switch to
         '''
         self.PREVIOUS_SCREEN = self.view.manager_screens.current
-        print(f"PREV: {self.PREVIOUS_SCREEN}")
         self.view.manager_screens.current = screen_name
         if screen_name == 'main-screen':
             self.close_dialog()

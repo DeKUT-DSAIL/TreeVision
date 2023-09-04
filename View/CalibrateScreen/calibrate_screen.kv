@@ -73,19 +73,7 @@
                     id: next_arrow
                     icon: 'arrow-right-circle-outline'
                     md_bg_color: app.theme_cls.primary_color
-                    pos_hint: {"center_x": .53, "center_y": .5}
-                
-
-                MDIconButton:
-                    id: reset
-                    icon: 'cog-refresh-outline'
-                    widget_style: 'ios'
-                    theme_icon_color: 'Custom'
-                    icon_color: 'white'
-                    md_bg_color: .15, .65, .9, 1
-                    pos_hint: {"center_x": .95, "center_y": .5}
-                    on_release: root.controller.reset()
-            
+                    pos_hint: {"center_x": .53, "center_y": .5}            
 
         # CONFIGURATIONS AND LOGGING
         MDBoxLayout:
@@ -290,6 +278,17 @@
             size_hint: 1, 0.045
             pos_hint: {"top": 0.045}
             md_bg_color: app.theme_cls.primary_dark
+        
+        MDFillRoundFlatIconButton:
+            id: reset
+            text: "Reset"
+            text_color: "white"
+            icon: 'refresh'
+            icon_color: 'white'
+            theme_icon_color: 'Custom'
+            md_bg_color: app.theme_cls.primary_color
+            pos_hint: {"center_x": .95, "center_y": .95}
+            on_release: root.controller.show_confirmation_dialog()
             
         MDFloatingActionButtonSpeedDial:
             id: speed_dial
