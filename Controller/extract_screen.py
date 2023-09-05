@@ -59,6 +59,7 @@ class ExtractScreenController:
     ASSET_DIR = 'assets'
     PROJECT_DIR = os.path.join(ASSET_DIR, 'projects')
     DISPARITY_MAPS_DIR = None
+    ANNOTATED_IMAGES_DIR = None
     RESULTS_DIR = None
     IMAGES_DIR = 'test/full_trees'
     FILE_MANAGER_SELECTOR = 'folder'
@@ -361,12 +362,14 @@ class ExtractScreenController:
         project_path = os.path.join(self.PROJECT_DIR, f'{project}')
         dmaps_path = os.path.join(project_path, 'disparity_maps')
         results_path = os.path.join(project_path, 'results')
+        annotated_images_path = os.path.join(project_path, 'annotated')
 
         self.DISPARITY_MAPS_DIR = dmaps_path
         self.RESULTS_DIR = results_path
+        self.ANNOTATED_IMAGES_DIR = annotated_images_path
 
         if not os.path.exists(project_path):
-            for path in (dmaps_path, results_path):
+            for path in (dmaps_path, results_path, annotated_images_path):
                 os.makedirs(path, exist_ok=True)
             self.create_log_widget(text="Project folders have been created!")
 
@@ -450,6 +453,75 @@ class ExtractScreenController:
     
 
 
+    def annotate_image(self, dmap_path, parameter, dfov, values_dict):
+        '''
+        Annotates an image by showing the location of its boundaries and superimposing the values of the estimated parameters
+        '''
+        K, _, _, _, _, _, _, _, T, _ = algorithms.load_camera_params(self.CONFIG_FILE_PATH)
+
+        dmap = cv2.imread(dmap_path, 0)
+        base_px = algorithms.pixel_of_interest(dmap, 'DBH')
+        base_depth = algorithms.disp_to_dist(base_px)
+
+        focal_length = K[0, 0]
+        cx = K[0, 2]
+        cy = K[1, 2]
+        baseline = T[0, 0] / 1000
+
+        base, top, left, right = algorithms.convex_hull(dmap)
+        base_loc = (base[1] - 200, base[0])
+        h, w = dmap.shape
+
+        left_image = cv2.imread(self.view.left_im.source)
+        B, G, R = cv2.split(left_image)
+
+        B = algorithms.rectify(B, self.CONFIG_FILE_PATH, 'left')
+        G = algorithms.rectify(G, self.CONFIG_FILE_PATH, 'left')
+        R = algorithms.rectify(R, self.CONFIG_FILE_PATH, 'left')
+
+        left_image = cv2.merge([B,G,R])
+
+        if parameter.lower() == 'dbh':
+            bh = algorithms.compute_bh(dmap, base_depth, baseline, focal_length, dfov, cx, cy)
+
+            cols = np.nonzero(dmap[bh, :])[0]
+            left_edge = (cols.min(), bh)
+            right_edge = (cols.max(), bh)
+
+            left_image = cv2.arrowedLine(left_image, (0, bh) ,left_edge, (0,0,255), 5)
+            left_image = cv2.arrowedLine(left_image, (w-1, bh) ,right_edge, (0,0,255), 5)
+            left_image = cv2.arrowedLine(left_image, (base[1]-200, bh), base_loc, (0,0,255), 5)
+
+            left_image = cv2.putText(left_image, f'{values_dict["DBH"]}cm', (cols.min()+5, bh+50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+            left_image = cv2.putText(left_image, '1.3m', (base[1]-180, int(h/2)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2, cv2.LINE_AA)
+
+            left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
+
+            return left_image
+        
+        else:
+            left_y, left_x = left
+            right_y, right_x = right
+            top_y, top_x = top
+            base_y, base_x = base
+
+            horz_arrow_y = int(np.mean([left_y, right_y]))
+            text_center_x = int(np.mean([left_x, right_x]))
+            text_center_y = int(np.mean([top_y, base_y]))
+
+            left_image = cv2.arrowedLine(left_image, (left_x, horz_arrow_y) , (right_x, horz_arrow_y), (0,0,255), 5, tipLength=0.1)
+            left_image = cv2.arrowedLine(left_image, (right_x, horz_arrow_y), (left_x, horz_arrow_y), (0,0,255), 5, tipLength=0.1)
+            left_image = cv2.arrowedLine(left_image, (right_x + 20, base_y) , (right_x + 20, top_y), (0,0,255), 5)
+
+            left_image = cv2.putText(left_image, f'{values_dict["CD"]}m', (text_center_x-75, horz_arrow_y-20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+            left_image = cv2.putText(left_image, f'{values_dict["TH"]}m', (right_x+50, text_center_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+
+            left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
+
+            return left_image
+    
+
+
     def verify_project_name(self):
         '''
         Verifies that the camera calibration file is available and contains all the necessary parameters
@@ -486,11 +558,26 @@ class ExtractScreenController:
             self.create_project_directories()
             self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
             dmap_path, mask_path = self.compute_and_save_disparity()
-            self.view.right_im.source = dmap_path
+            
+            parameter = self.view.parameter_dropdown_item.text
 
             parameters, values = self.compute_parameter(mask_path)
+            values_dict = {}
+            for i in range(len(parameters)):
+                values_dict[parameters[i]] = values[i]
+
+            annotated_image = self.annotate_image(dmap_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
 
             left_filename = os.path.basename(self.view.left_im.source)
+
+            if platform == 'win32':
+                annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
+            elif platform in ['linux', 'linux2']:
+                annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
+            
+            annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
+            cv2.imwrite(annotated_image_path, annotated_image)
+            self.view.right_im.source = annotated_image_path
 
             self.display_parameters_on_logs(
                 image = left_filename,
@@ -500,7 +587,6 @@ class ExtractScreenController:
 
             new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
 
-            parameter = self.view.parameter_dropdown_item.text
             if parameter == 'DBH':
                 results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
             elif parameter == 'CD & TH':
