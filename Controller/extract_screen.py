@@ -368,10 +368,10 @@ class ExtractScreenController:
         self.RESULTS_DIR = results_path
         self.ANNOTATED_IMAGES_DIR = annotated_images_path
 
-        if not os.path.exists(project_path):
-            for path in (dmaps_path, results_path, annotated_images_path):
+        for path in [dmaps_path, results_path, annotated_images_path]:
+            if not os.path.exists(path):
                 os.makedirs(path, exist_ok=True)
-            self.create_log_widget(text="Project folders have been created!")
+        self.create_log_widget(text="Project folders have been created!")
 
         parameter = self.view.parameter_dropdown_item.text
         parameters_dict = {
@@ -492,10 +492,10 @@ class ExtractScreenController:
             left_image = cv2.arrowedLine(left_image, (w-1, bh) ,right_edge, (0,0,255), 5)
             left_image = cv2.arrowedLine(left_image, (base[1]-200, bh), base_loc, (0,0,255), 5)
 
-            left_image = cv2.putText(left_image, f'{values_dict["DBH"]}cm', (cols.min()+5, bh+50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+            left_image = cv2.putText(left_image, f'{round(values_dict["DBH"], 2)}cm', (cols.min()+5, bh+50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
             left_image = cv2.putText(left_image, '1.3m', (base[1]-180, int(h/2)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2, cv2.LINE_AA)
 
-            left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
+            # left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
 
             return left_image
         
@@ -509,14 +509,14 @@ class ExtractScreenController:
             text_center_x = int(np.mean([left_x, right_x]))
             text_center_y = int(np.mean([top_y, base_y]))
 
-            left_image = cv2.arrowedLine(left_image, (left_x, horz_arrow_y) , (right_x, horz_arrow_y), (0,0,255), 5, tipLength=0.1)
-            left_image = cv2.arrowedLine(left_image, (right_x, horz_arrow_y), (left_x, horz_arrow_y), (0,0,255), 5, tipLength=0.1)
+            left_image = cv2.arrowedLine(left_image, (left_x, horz_arrow_y) , (right_x, horz_arrow_y), (0,0,255), 5)
+            left_image = cv2.arrowedLine(left_image, (right_x, horz_arrow_y), (left_x, horz_arrow_y), (0,0,255), 5)
             left_image = cv2.arrowedLine(left_image, (right_x + 20, base_y) , (right_x + 20, top_y), (0,0,255), 5)
 
-            left_image = cv2.putText(left_image, f'{values_dict["CD"]}m', (text_center_x-75, horz_arrow_y-20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
-            left_image = cv2.putText(left_image, f'{values_dict["TH"]}m', (right_x+50, text_center_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+            left_image = cv2.putText(left_image, f'{round(values_dict["CD"], 2)}m', (text_center_x-75, horz_arrow_y-20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+            left_image = cv2.putText(left_image, f'{round(values_dict["TH"], 2)}m', (right_x+50, text_center_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
 
-            left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
+            # left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
 
             return left_image
     
@@ -561,7 +561,7 @@ class ExtractScreenController:
             
             parameter = self.view.parameter_dropdown_item.text
 
-            parameters, values = self.compute_parameter(mask_path)
+            parameters, values = self.compute_parameter(dmap_path, mask_path)
             values_dict = {}
             for i in range(len(parameters)):
                 values_dict[parameters[i]] = values[i]
@@ -616,15 +616,27 @@ class ExtractScreenController:
         self.view.right_im.source = right_img
 
         self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
-
         dmap_path, mask_path = self.compute_and_save_disparity()
-        
-        self.view.right_im.source = dmap_path
-        self.view.ids.progress_bar.value = self.image_index + 1
 
-        parameters, values = self.compute_parameter(mask_path)
+        parameters, values = self.compute_parameter(dmap_path, mask_path)
+        values_dict = {}
+        for i in range(len(parameters)):
+            values_dict[parameters[i]] = values[i]
+
+        parameter = self.view.parameter_dropdown_item.text
+        annotated_image = self.annotate_image(dmap_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
 
         left_filename = os.path.basename(self.view.left_im.source)
+        if platform == 'win32':
+            annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
+        elif platform in ['linux', 'linux2']:
+            annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
+        
+        annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
+        cv2.imwrite(annotated_image_path, annotated_image)
+        self.view.right_im.source = annotated_image_path
+
+        self.view.ids.progress_bar.value = self.image_index + 1
 
         self.display_parameters_on_logs(
             image = left_filename,
@@ -634,7 +646,6 @@ class ExtractScreenController:
 
         new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
 
-        parameter = self.view.parameter_dropdown_item.text
         if parameter == 'DBH':
             results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
         elif parameter == 'CD & TH':
@@ -691,7 +702,7 @@ class ExtractScreenController:
 
     
 
-    def compute_parameter(self, mask_path):
+    def compute_parameter(self, dmap_path, mask_path):
         '''
         Computes the parameter selected by the user e.g. DBH, CD, TH. Both CD and TH are computed at once since they are
         both extracted from the same segmented disparity map.
@@ -699,7 +710,7 @@ class ExtractScreenController:
         @param mask_path: The path where the segmented disparity map is saved
         '''
         parameter = self.view.parameter_dropdown_item.text
-        dmap = cv2.imread(self.view.right_im.source, 0)
+        dmap = cv2.imread(dmap_path, 0)
         mask = cv2.imread(mask_path, 0)
         mask = algorithms.rectify(mask, self.CONFIG_FILE_PATH, "left")
         K, _, _, _, _, _, _, _, T, _ = algorithms.load_camera_params(self.CONFIG_FILE_PATH)
@@ -941,7 +952,12 @@ class ExtractScreenController:
         '''
         Opens the User Guide of TreeVision using the the system default application
         '''
-        os.startfile("TreeVision User Guide.pdf")    
+        try:
+            os.startfile("TreeVision User Guide.pdf")
+        except FileNotFoundError:
+            toast('User guide not found!')
+        else:
+            toast('User Guide has been launched')
     
     
     def reset(self, instance):
