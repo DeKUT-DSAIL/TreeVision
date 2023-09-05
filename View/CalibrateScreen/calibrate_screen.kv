@@ -1,6 +1,17 @@
 #:kivy 2.1.0
 #:import os os
 
+<InfoPopup>:
+    orientation: 'vertical'
+    spacing: '12dp'
+    size_hint_y: None
+    height: '50dp'
+
+    LinkLabel:
+        id: info_text
+        text: "[color=FFFFFF]TreeVision is a software tool that uses 3D computer vision to estimate biophysical parameters to trees. It has tools for capturing images, calibrating stereo and single cameras, and for extracting the attributes of trees from stereoscopic images. Visit the[/color] [ref=https://github.com/DeKUT-DSAIL/TreeVision][color=BF2700][u]GitHub Repository[/u][/color][/ref] [color=FFFFFF]to learn more[/color]"
+        markup: True
+
 <CalibrateScreenView>:
 
     FloatLayout:
@@ -83,6 +94,26 @@
             md_bg_color: app.theme_cls.primary_color
             MDLabel:
                 text: "Configurations (Calibration)"
+            MDFillRoundFlatIconButton:
+                id: open_user_guide
+                text: "User Guide"
+                text_color: "white"
+                icon: 'file'
+                icon_color: 'white'
+                theme_icon_color: 'Custom'
+                md_bg_color: (.75, .15, .0, 1)
+                pos_hint: {"center_x": .75, "center_y": .5}
+                on_release: root.controller.open_user_guide()
+            MDFillRoundFlatIconButton:
+                id: info
+                text: "About"
+                text_color: "white"
+                icon: 'information-variant'
+                icon_color: 'white'
+                theme_icon_color: 'Custom'
+                md_bg_color: (.75, .15, .0, 1)
+                pos_hint: {"center_x": .95, "center_y": .5}
+                on_release: root.controller.show_info_popup_modal()
         
 
         MDBoxLayout:

@@ -27,7 +27,11 @@ from . import algorithms
 import cv2
 import numpy as np
 import pandas as pd
+import webbrowser
 from sklearn.metrics import mean_squared_error
+
+from View.ExtractScreen.extract_screen import RefreshConfirm
+from View.ExtractScreen.extract_screen import InfoPopupModal
 
 # We have to manually reload the view module in order to apply the
 # changes made to the code on a subsequent hot reload.
@@ -47,6 +51,7 @@ class ExtractScreenController:
     
     app = MDApp.get_running_app()
     dialog = None
+    info_popup_modal = None
 
     image_index = 0
     num_of_images = 0
@@ -806,12 +811,51 @@ class ExtractScreenController:
     
 
 
+    def show_info(self):
+        '''
+        Called when the user clicks on the 'About' button in the user interface. It displays a popup modal with
+        information about the TreeVision software
+        '''
+        if not self.info_popup_modal:
+            self.info_popup_modal = MDDialog(
+                title="About TreeVision",
+                type="custom",
+                content_cls = InfoPopupModal(),
+                auto_dismiss=False,
+                buttons=[
+                    MDRaisedButton(
+                        text="OK",
+                        theme_text_color="Custom",
+                        text_color="white",
+                        md_bg_color="green",
+                        on_release=self.close_info_popup,
+                    )
+                ]
+            )
+        self.info_popup_modal.open()
+    
+
+
     def close_confirmation_dialog(self, instance):
         '''
-        Dismisses the popup modal
+        Dismisses the confirmation popup dialog
         '''
         self.dialog.dismiss()
     
+
+
+    def close_info_popup(self, instance):
+        '''
+        Dismisses the app info popup modal
+        '''
+        self.info_popup_modal.dismiss()
+    
+
+    def open_user_guide(self):
+        '''
+        Opens the User Guide of TreeVision using the the system default application
+        '''
+        os.startfile("TreeVision User Guide.pdf")    
     
     
     def reset(self, instance):
@@ -862,13 +906,6 @@ class ExtractScreenController:
         scrollview = self.view.ids.scrollview
         layout.add_widget(logwidget)
         scrollview.scroll_y = 0
-
-
-class RefreshConfirm(MDBoxLayout):
-    '''
-    Popup modal for refreshing the application
-    '''
-    pass
 
 
 class IconListItem(OneLineIconListItem):

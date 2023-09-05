@@ -16,3 +16,10 @@ class RefreshConfirm(MDBoxLayout):
     Popup modal for refreshing the application
     '''
     pass
+
+
+class InfoPopup(MDBoxLayout):
+    '''
+    Popup modal that provides information about the TreeVision software
+    '''
+    pass

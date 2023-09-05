@@ -1,11 +1,31 @@
-import cv2
+from kivy.app import App
+from kivy.uix.label import Label
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.modalview import ModalView
+from kivy.lang import Builder
+from kivy.utils import platform
+import webbrowser
 
-cap = cv2.VideoCapture(0)
+KV='''
+BoxLayout:
+    orientation: 'vertical'
+    LinkLabel:
+        text: "[color=FFFFFF]TreeVision is a software tool that uses 3D computer vision to estimate biophysical parameters to trees. Visit the [/color] [ref=https://github.com/DeKUT-DSAIL/TreeVision][color=BF2700][u]GitHub Repository[/u][/color][/ref] [color=FFFFFF]to learn more[/color]"
+        markup: True
+'''
 
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+class LinkLabel(Label):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(on_ref_press=self.on_link_click)
 
-ret, frame = cap.read()
-print(frame.shape)
+    def on_link_click(self, instance, value):
+        # Open the link in a web browser when clicked
+        webbrowser.open(value)
 
-cv2.imwrite("new.jpg", frame)
+class MyClickableLinkApp(App):
+    def build(self):
+        return Builder.load_string(KV)
+
+if __name__ == '__main__':
+    MyClickableLinkApp().run()

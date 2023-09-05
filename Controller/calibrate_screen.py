@@ -27,6 +27,8 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.dialog import MDDialog
 
+from View.CalibrateScreen.calibrate_screen import InfoPopup
+
 class CalibrateScreenController:
     """
     The `CalibrateScreenController` class represents a controller implementation.
@@ -36,6 +38,7 @@ class CalibrateScreenController:
     """
 
     dialog = None
+    info_popup = None
 
     FILE_MANAGER_SELECTOR = 'folder'
     BUTTON_ID = None
@@ -663,11 +666,51 @@ class CalibrateScreenController:
     
 
 
+    def show_info_popup_modal(self):
+        '''
+        Called when the user clicks on the 'About' button in the user interface. It displays a popup modal with
+        information about the TreeVision software
+        '''
+        if not self.info_popup:
+            self.info_popup = MDDialog(
+                title="About TreeVision",
+                type="custom",
+                content_cls = InfoPopup(),
+                auto_dismiss=False,
+                buttons=[
+                    MDRaisedButton(
+                        text="OK",
+                        theme_text_color="Custom",
+                        text_color="white",
+                        md_bg_color="green",
+                        on_release=self.close_info_popup,
+                    )
+                ]
+            )
+        self.info_popup.open()
+    
+
+
     def close_confirmation_dialog(self, instance):
         '''
         Dismisses the popup modal
         '''
         self.dialog.dismiss()
+    
+
+
+    def close_info_popup(self, instance):
+        '''
+        Dismisses the app info popup modal
+        '''
+        self.info_popup.dismiss()
+    
+
+    def open_user_guide(self):
+        '''
+        Opens the User Guide of TreeVision using the the system default application
+        '''
+        os.startfile("TreeVision User Guide.pdf")  
 
 
 
