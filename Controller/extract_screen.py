@@ -61,12 +61,12 @@ class ExtractScreenController:
     DISPARITY_MAPS_DIR = None
     ANNOTATED_IMAGES_DIR = None
     RESULTS_DIR = None
-    IMAGES_DIR = 'test/full_trees'
+    IMAGES_DIR = None
     FILE_MANAGER_SELECTOR = 'folder'
     SELECT_BUTTON_ID = None
     THIS_PROJECT = None
 
-    CONFIG_FILE_PATH = 'configs/stereo_kieni.yml'
+    CONFIG_FILE_PATH = None
     REF_PARAMS_FILE = None
     DIAG_FIELD_OF_VIEW = None
     HORZ_FIELD_OF_VIEW = None
@@ -535,12 +535,30 @@ class ExtractScreenController:
 
     def verify_config_file(self):
         '''
-        Verifies that the camera calibration file is available and contains all the necessary parameters
+        Verifies that the camera calibration file contains all the necessary parameters
         '''
-        if self.CONFIG_FILE_PATH == None:
-            return False
-        else:
-            return True
+        rectified = self.view.ids.rectification_dropdown_item.text
+
+        try:
+            file = cv2.FileStorage(self.CONFIG_FILE_PATH, cv2.FILE_STORAGE_READ)
+            
+            try:
+                nodes = file.root().keys()
+            
+            except  Exception:
+                toast("Camera calibration file is empty!")
+            
+            else:
+                if rectified == 'Yes':
+                    necessary_keys = ['K1','K2','T','Q']
+                    return all(key in nodes for key in necessary_keys)
+                
+                elif rectified == 'No':
+                    necessary_keys = ['K1','K2','D1','D2','T','R1','R2','P1','P2','Q']
+                    return all(key in nodes for key in necessary_keys)
+        
+        except Exception:
+            toast("The file you provided is not a valid YAML file.")
 
         
 
@@ -548,8 +566,15 @@ class ExtractScreenController:
         '''
         Called when the "Extract" button on the user interface is pressed
         '''
-        if not self.verify_config_file():
-            self.create_log_widget(text = "Missing camera configuration file path!", color=(1,0,0,1))
+        if self.CONFIG_FILE_PATH == None:
+            toast("Missing camera calibration file")
+            self.create_log_widget(text = "Missing camera calibration file!", color=(1,0,0,1))
+        
+        elif not self.verify_config_file():
+            self.create_log_widget(
+                text = "Ensure your calibration file is a valid YAML file, and has all the necessary matrices.", 
+                color=(1,0,0,1)
+            )
         
         elif not self.verify_project_name():
             self.create_log_widget(text = "Missing the project name! Please provide one to proceed.", color=(1,0,0,1))
@@ -977,8 +1002,6 @@ class ExtractScreenController:
         self.initialize_sgbm_values()
 
         self.view.ids.project_name.text = 'test'
-        self.view.ids.parameter_dropdown_item.text = 'Select parameter'
-        self.view.ids.segmentation_dropdown_item.text = 'Select approach'
         self.view.ids.rectification_dropdown_item.text = 'No'
         self.view.ids.dfov.text = '55'
         self.view.ids.analyse_btn.disabled = True
