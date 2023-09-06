@@ -269,6 +269,56 @@ class ExtractScreenController:
     
 
 
+    def verify_user_input(self):
+        '''
+        Verifies that all the settings provided by the user are valid
+        '''
+        project_name = self.view.project_name.text
+        dfov = self.view.ids.dfov.text
+        min_disp = self.view.ids.min_disp.text
+        num_disp = self.view.ids.num_disp.text
+        block_size = self.view.ids.block_size.text
+        uniqueness_ratio = self.view.ids.uniqueness_ratio.text
+        speckle_window_size = self.view.ids.speckle_window_size.text
+        speckle_range = self.view.ids.speckle_range.text
+        disp_max_diff = self.view.ids.disp_max_diff.text
+
+        nums = {
+            'Field of View': dfov,
+            'minDisp': min_disp, 
+            'numDisp': num_disp, 
+            'blockSize': block_size, 
+            'uniquenessRatio': uniqueness_ratio, 
+            'speckleWindowSize': speckle_window_size, 
+            'speckleRange': speckle_range, 
+            'disp12MaxDiff': disp_max_diff
+        }
+
+        invalid_inputs = []
+    
+        for key in nums.keys():
+            try:
+                value = int(nums[key])
+            except  ValueError:
+                invalid_inputs.append(key)
+        
+        if project_name == '':
+            self.create_log_widget(
+                text = "'Project name' is not provided",
+                color = (1,0,0,1)
+            )
+        
+        if len(invalid_inputs) > 0:
+            for input in invalid_inputs:
+                self.create_log_widget(
+                    text = f"'{input}' must be a number!",
+                    color = (1,0,0,1)
+                )
+        
+        return not(len(invalid_inputs) > 0 or len(project_name) == 0)
+    
+
+
     def initialize_sgbm_values(self):
         '''
         Initializes the parameters of the SGBM algorithm
@@ -519,17 +569,6 @@ class ExtractScreenController:
             # left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
 
             return left_image
-    
-
-
-    def verify_project_name(self):
-        '''
-        Verifies that the camera calibration file is available and contains all the necessary parameters
-        '''
-        if self.view.ids.project_name.text  == '':
-            return False
-        else:
-            return True
 
     
 
@@ -576,8 +615,8 @@ class ExtractScreenController:
                 color=(1,0,0,1)
             )
         
-        elif not self.verify_project_name():
-            self.create_log_widget(text = "Missing the project name! Please provide one to proceed.", color=(1,0,0,1))
+        elif not self.verify_user_input():
+            toast("Some inputs are not valid!")
 
         else:
             self.create_project_directories()
@@ -706,12 +745,20 @@ class ExtractScreenController:
         '''
         Schedules the 'on_batch_extract_function' to run every 500ms
         '''
-        if not self.verify_config_file():
-            self.create_log_widget(text = "Missing camera configuration file path!", color=(1,0,0,1))
+        if self.CONFIG_FILE_PATH == None:
+            toast("Missing camera calibration file")
+            self.create_log_widget(text = "Missing camera calibration file!", color=(1,0,0,1))
             self.unschedule_batch_extraction()
         
-        elif not self.verify_project_name():
-            self.create_log_widget(text = "Missing the project name! Please provide one to proceed.", color=(1,0,0,1))
+        elif not self.verify_config_file():
+            self.create_log_widget(
+                text = "Ensure your calibration file is a valid YAML file, and has all the necessary matrices.", 
+                color=(1,0,0,1)
+            )
+            self.unschedule_batch_extraction()
+        
+        elif not self.verify_user_input():
+            toast("Some inputs are not valid!")
             self.unschedule_batch_extraction()
         
         else:
