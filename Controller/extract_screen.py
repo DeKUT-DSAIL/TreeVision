@@ -74,6 +74,7 @@ class ExtractScreenController:
 
     LEFT_IMS = None
     RIGHT_IMS = None
+    MASKS = None
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -333,8 +334,8 @@ class ExtractScreenController:
     
 
 
-    def verify_images(self, left_ims, right_ims):
-        return len(left_ims) == len(right_ims)
+    def verify_images(self, left_ims, right_ims, masks):
+        return len(left_ims) == len(right_ims) == len(masks)
     
 
 
@@ -342,34 +343,46 @@ class ExtractScreenController:
         '''
         Returns two lists for all paths to the left and right images. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
         '''
-        left_patterns = ['*LEFT.jpg', '*left.jpg', '*LEFT.png', '*left.png']
-        right_patterns = ['*RIGHT.jpg', '*right.jpg', '*RIGHT.png', '*right.png']
+        left_patterns = ['*LEFT*.jpg', '*left*.jpg', '*LEFT*.png', '*left*.png']
+        right_patterns = ['*RIGHT*.jpg', '*right*.jpg', '*RIGHT*.png', '*right*.png']
+        mask_patterns = ['*MASK*.jpg', '*mask*.jpg', '*MASK*.png', '*mask*.png']
 
         left_ims = []
         right_ims = []
+        masks = []
 
         for pattern in left_patterns:
             left_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
         
         for pattern in right_patterns:
             right_ims.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
+        
+        for pattern in mask_patterns:
+            masks.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
 
         left_ims = sorted(list(set(left_ims)))
         right_ims = sorted(list(set(right_ims)))
+        masks = sorted(list(set(masks)))
 
         self.LEFT_IMS = left_ims
         self.RIGHT_IMS = right_ims
+        self.MASKS = masks
 
         self.num_of_images = len(left_ims)
         self.view.ids.progress_bar.max = self.num_of_images
 
-        if self.verify_images(left_ims, right_ims):
+        if self.verify_images(left_ims, right_ims, masks):
             self.view.ids.left_im.source = left_ims[0]
             self.view.ids.right_im.source = right_ims[0]
             self.view.ids.batch_extract_btn.disabled = False
+            self.view.ids.extract_btn.disabled = False
         
         else:
-            self.create_log_widget(text = "Number of Left and Right Images Not equal!", color=(1,0,0,1))
+            self.view.ids.extract_btn.disabled = True
+            self.create_log_widget(
+                text = "The number of left images, right images, and masks MUST be equal!", 
+                color=(1,0,0,1)
+            )
     
 
 
@@ -545,8 +558,6 @@ class ExtractScreenController:
             left_image = cv2.putText(left_image, f'{round(values_dict["DBH"], 2)}cm', (cols.min()+5, bh+50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
             left_image = cv2.putText(left_image, '1.3m', (base[1]-180, int(h/2)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2, cv2.LINE_AA)
 
-            # left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
-
             return left_image
         
         else:
@@ -565,8 +576,6 @@ class ExtractScreenController:
 
             left_image = cv2.putText(left_image, f'{round(values_dict["CD"], 2)}m', (text_center_x-75, horz_arrow_y-20), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
             left_image = cv2.putText(left_image, f'{round(values_dict["TH"], 2)}m', (right_x+50, text_center_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
-
-            # left_image = cv2.cvtColor(left_image, cv2.COLOR_BGR2RGB)
 
             return left_image
 
