@@ -411,15 +411,16 @@
                     size_hint_y: 0.3
                     max: 100
                     value: 0
-                MDScrollView:  
+                ScrollView:  
                     id: scrollview
-                    MDBoxLayout:
+                    bar_width: 12
+                    smooth_scroll_end: 10
+                    GridLayout:
                         id: scroll_layout
-                        orientation: 'vertical'
-                        md_bg_color: 0, 0, 0, 1
-                        size_hint: 1, None
-                        spacing: 90
-                        padding: 10, 50
+                        cols: 1
+                        spacing: 10
+                        size_hint_y: None
+                        padding: 10, 15
                         height: self.minimum_height
         
         # This is the bottom strip

@@ -32,14 +32,12 @@ from sklearn.metrics import mean_squared_error
 
 from View.ExtractScreen.extract_screen import RefreshConfirm
 from View.ExtractScreen.extract_screen import InfoPopupModal
+from View.ExtractScreen.extract_screen import AutoSizedLabel
 
 # We have to manually reload the view module in order to apply the
 # changes made to the code on a subsequent hot reload.
 # If you no longer need a hot reload, you can delete this instruction.
 importlib.reload(View.ExtractScreen.extract_screen)
-from kivy.uix.image import Image
-
-from kivymd.uix.dropdownitem.dropdownitem import MDDropDownItem
 
 class ExtractScreenController:
     """
@@ -76,6 +74,8 @@ class ExtractScreenController:
     RIGHT_IMS = None
     MASKS = None
 
+    LOG_TEXT = "[color=ffffff]Welcome to DSAIL's TreeVision Software ...[/color]\n"
+
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
         Window.bind(on_keyboard = self.events)
@@ -87,6 +87,14 @@ class ExtractScreenController:
             exit_manager = self.exit_manager,
             select_path = self.select_path
         )
+
+        self.logwidget = MDLabel(
+                text = self.LOG_TEXT,
+                text_size = (None, None),
+                markup = True,
+                valign = 'middle',
+                theme_text_color = "Custom",
+            )
 
         self.parameter_menu_items = [
             {
@@ -238,14 +246,19 @@ class ExtractScreenController:
         if self.FILE_MANAGER_SELECTOR == 'folder':
             self.IMAGES_DIR = path 
             self.load_stereo_images()
-            self.create_log_widget(f"Project images directory has been selected.\nIMAGES DIRECTORY PATH: {path}")
+            self.LOG_TEXT = f"[color=ffffff]\n\nProject images directory has been selected.\nIMAGES DIRECTORY PATH: {path}[/color]"
+            self.create_log_widget()
+
         elif self.FILE_MANAGER_SELECTOR == 'file':
             if self.SELECT_BUTTON_ID == 1:
                 self.CONFIG_FILE_PATH = path
-                self.create_log_widget(f"Camera configuration file has been selected.\nCAMERA CONFIGURATION FILE PATH: {path}")
+                self.LOG_TEXT = f"[color=ffffff]\n\nCamera configuration file has been selected.\nCAMERA CONFIGURATION FILE PATH: {path}[/color]"
+                self.create_log_widget()
+
             elif self.SELECT_BUTTON_ID == 2:
                 self.REF_PARAMS_FILE = path
-                self.create_log_widget(f"Reference parameters file has been selected.\nREFERENCE PARAMETERS FILE PATH: {path}")
+                self.LOG_TEXT = f"[color=ffffff]Reference parameters file has been selected.\nREFERENCE PARAMETERS FILE PATH: {path}[/color]"
+                self.create_log_widget()
         
         self.toggle_scrolling_icons()
         self.exit_manager()
@@ -272,7 +285,7 @@ class ExtractScreenController:
 
     def verify_user_input(self):
         '''
-        Verifies that all the settings provided by the user are valid
+        Verifies that all the textual inputs provided by the user are valid
         '''
         project_name = self.view.project_name.text
         dfov = self.view.ids.dfov.text
@@ -304,17 +317,13 @@ class ExtractScreenController:
                 invalid_inputs.append(key)
         
         if project_name == '':
-            self.create_log_widget(
-                text = "'Project name' is not provided",
-                color = (1,0,0,1)
-            )
+            self.LOG_TEXT = "[color=ff0000]'Project name' is not provided[/color]"
+            self.create_log_widget()
         
         if len(invalid_inputs) > 0:
             for input in invalid_inputs:
-                self.create_log_widget(
-                    text = f"'{input}' must be a number!",
-                    color = (1,0,0,1)
-                )
+                self.LOG_TEXT = f"[color=ff0000]'{input}' must be a number![/color]"
+                self.create_log_widget()
         
         return not(len(invalid_inputs) > 0 or len(project_name) == 0)
     
@@ -341,7 +350,7 @@ class ExtractScreenController:
 
     def load_stereo_images(self):
         '''
-        Returns two lists for all paths to the left and right images. The left and right folder paths are taken from the dictionary with the keys "left" and "right"
+        Loads pairs of stereo images and their corresponding masks
         '''
         left_patterns = ['*LEFT*.jpg', '*left*.jpg', '*LEFT*.png', '*left*.png']
         right_patterns = ['*RIGHT*.jpg', '*right*.jpg', '*RIGHT*.png', '*right*.png']
@@ -360,9 +369,13 @@ class ExtractScreenController:
         for pattern in mask_patterns:
             masks.extend(glob(os.path.join(self.IMAGES_DIR, pattern)))
 
+        left_ims = [filename for filename in left_ims if 'mask' not in filename.lower()]
         left_ims = sorted(list(set(left_ims)))
         right_ims = sorted(list(set(right_ims)))
         masks = sorted(list(set(masks)))
+        print(len(left_ims))
+        print(len(right_ims))
+        print(len(masks))
 
         self.LEFT_IMS = left_ims
         self.RIGHT_IMS = right_ims
@@ -379,10 +392,8 @@ class ExtractScreenController:
         
         else:
             self.view.ids.extract_btn.disabled = True
-            self.create_log_widget(
-                text = "The number of left images, right images, and masks MUST be equal!", 
-                color=(1,0,0,1)
-            )
+            self.LOG_TEXT = "[color=ff0000]\n\nThe number of left images, right images, and masks MUST be equal![/color]"
+            self.create_log_widget()
     
 
 
@@ -434,7 +445,10 @@ class ExtractScreenController:
         for path in [dmaps_path, results_path, annotated_images_path]:
             if not os.path.exists(path):
                 os.makedirs(path, exist_ok=True)
-        self.create_log_widget(text="Project folders have been created!")
+        
+        log_text = "[color=ffffff]Project folders have been created![/color]"
+        self.LOG_TEXT += log_text
+        self.create_log_widget()
 
         parameter = self.view.parameter_dropdown_item.text
         parameters_dict = {
@@ -451,10 +465,8 @@ class ExtractScreenController:
                 results_df.index.name = 'Filename'
                 results_df.to_csv(results_file)
         else:
-            self.create_log_widget(
-                text="Please choose a parameter to extract.",
-                color=(1, 0, 0, 1)
-            )
+            self.LOG_TEXT = "[color=ffffff]Please choose a parameter to extract.[/color]"
+            self.create_log_widget()
 
 
 
@@ -616,13 +628,12 @@ class ExtractScreenController:
         '''
         if self.CONFIG_FILE_PATH == None:
             toast("Missing camera calibration file")
-            self.create_log_widget(text = "Missing camera calibration file!", color=(1,0,0,1))
+            self.LOG_TEXT = "[color=ff0000]\nMissing camera calibration file![/color]"
+            self.create_log_widget()
         
         elif not self.verify_config_file():
-            self.create_log_widget(
-                text = "Ensure your calibration file is a valid YAML file, and has all the necessary matrices.", 
-                color=(1,0,0,1)
-            )
+            self.LOG_TEXT = "[color=ff0000]\nEnsure your calibration file is a valid YAML file, and has all the necessary matrices.[/color]"
+            self.create_log_widget()
         
         elif not self.verify_user_input():
             toast("Some inputs are not valid!")
@@ -731,7 +742,8 @@ class ExtractScreenController:
         if self.image_index < len(left_ims) - 1:
             self.image_index += 1
         else:
-            self.create_log_widget(text = 'Batch extraction complete', color=(0,1,0,1))
+            self.LOG_TEXT = "[color=00ff00]Batch extraction complete[/color]"
+            self.create_log_widget()
             self.unschedule_batch_extraction()
             self.view.ids.analyse_btn.disabled = False
     
@@ -745,8 +757,8 @@ class ExtractScreenController:
         @param parameters: The parameter(s) being extracted
         @param values: The extracted value of the parameter
         '''
-        label_text = f'''=================================================== \n\nImage: {os.path.basename(image)} \n{parameters}: {[round(value, 2) for value in values]}'''
-        self.create_log_widget(label_text)
+        self.LOG_TEXT = f"[color=ffffff]=================================================== \n\nImage: {os.path.basename(image)} \n{parameters}: {[round(value, 2) for value in values]}[/color]"
+        self.create_log_widget()
 
 
 
@@ -756,14 +768,13 @@ class ExtractScreenController:
         '''
         if self.CONFIG_FILE_PATH == None:
             toast("Missing camera calibration file")
-            self.create_log_widget(text = "Missing camera calibration file!", color=(1,0,0,1))
+            self.LOG_TEXT = "[color=ff0000]Missing camera calibration file![/color]"
+            self.create_log_widget()
             self.unschedule_batch_extraction()
         
         elif not self.verify_config_file():
-            self.create_log_widget(
-                text = "Ensure your calibration file is a valid YAML file, and has all the necessary matrices.", 
-                color=(1,0,0,1)
-            )
+            self.LOG_TEXT = "[color=ff0000]Ensure your calibration file is a valid YAML file, and has all the necessary matrices.[/color]"
+            self.create_log_widget()
             self.unschedule_batch_extraction()
         
         elif not self.verify_user_input():
@@ -862,12 +873,9 @@ class ExtractScreenController:
                 
                 df.to_csv(file_path)
                 
-                text = f'''\n\n\n\n\nAnalysis of CD & TH results Complete...\n\nMAE_CD: {round(cd_mae, 2)} cm \nMAPE_CD: {round(cd_mape, 2)} % \nRMSE_CD: {round(cd_rmse, 2)} cm \n\nMAE_TH: {round(th_mae, 2)} cm \nMAPE_TH: {round(th_mape, 2)} % \nRMSE_TH: {round(th_rmse, 2)} cm \n\n\n\nResults saved to {file_path}'''
+                self.LOG_TEXT = f"[color=00ff00]\n\nAnalysis of CD & TH results Complete...\n\nMAE_CD: {round(cd_mae, 2)} cm \nMAPE_CD: {round(cd_mape, 2)} % \nRMSE_CD: {round(cd_rmse, 2)} cm \n\nMAE_TH: {round(th_mae, 2)} cm \nMAPE_TH: {round(th_mape, 2)} % \nRMSE_TH: {round(th_rmse, 2)} cm \n\nResults saved to {file_path}[/color]"
+                self.create_log_widget()
                 
-                self.create_log_widget(
-                    text = text,
-                    color = (0,1,0,1)
-                )
                 self.plot_regression(
                     parameter = 'CD',
                     x = df['Ref_CD'],
@@ -882,10 +890,9 @@ class ExtractScreenController:
                 )
                 self.view.ids.left_im.source = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
                 self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
-                self.create_log_widget(
-                    text = '\n\n\n\nRegression plot generation complete...',
-                    color = (0,1,0,1)
-                )
+                
+                self.LOG_TEXT = "[color=00ff00]\n\nRegression plot generation complete...[/color]"
+                self.create_log_widget()
             
             elif parameter == 'DBH':
                 df['Ref_DBH'] = df2['Ref_DBH']
@@ -898,12 +905,9 @@ class ExtractScreenController:
 
                 df.to_csv(file_path)
 
-                text = f'''Analysis of DBH results Complete...\n\nMAE_DBH: {round(dbh_mae, 2)} cm \nMAPE_DBH: {round(dbh_mape, 2)} % \nRMSE_DBH: {round(dbh_rmse, 2)} cm \n\nResults saved to {file_path}'''
-
-                self.create_log_widget(
-                    text = text,
-                    color = (0,1,0,1)
-                )
+                self.LOG_TEXT = f"[color=00ff00]\n\nAnalysis of DBH results Complete...\n\nMAE_DBH: {round(dbh_mae, 2)} cm \nMAPE_DBH: {round(dbh_mape, 2)} % \nRMSE_DBH: {round(dbh_rmse, 2)} cm \n\nResults saved to {file_path}[/color]"
+                self.create_log_widget()
+                
                 self.plot_regression(
                     parameter = 'DBH',
                     x = df['Ref_DBH'],
@@ -911,15 +915,12 @@ class ExtractScreenController:
                     path = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
                 )
                 self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
-                self.create_log_widget(
-                    text = '\n\n\n\nRegression plot generation complete...',
-                    color = (0,1,0,1)
-                )
+                
+                self.LOG_TEXT = "[color=00ff00]\n\nRegression plot generation complete...[/color]"
+                self.create_log_widget()
         else:
-            self.create_log_widget(
-                text = '\n\n\nMissing the reference parameters file.',
-                color = (1,0,0,1)
-            )
+            self.LOG_TEXT = "[color=ff0000]\n\nMissing the reference parameters file.[/color]"
+            self.create_log_widget()
 
     
 
@@ -1064,28 +1065,30 @@ class ExtractScreenController:
         self.view.ids.batch_extract_btn.disabled = True
         self.view.ids.scroll_layout.clear_widgets()
 
-        label_text = "App has been reset and all configurations cleared."
+        self.LOG_TEXT = "[color=ffffff]DSAIL TreeVision ... \nApp has been reset and all configurations cleared.[/color]"
         self.dialog.dismiss()
-        self.create_log_widget(label_text)
+        self.create_log_widget()
     
 
 
-    def create_log_widget(self, text, color=(1,1,1,1)):
+    def create_log_widget(self):
         '''
         Creates a widget to be added to the logging section on the user interfac
         @param text: The text contained on the widget
         '''
-        logwidget = MDLabel(
-                text = text,
+        # self.view.ids.scroll_layout.clear_widgets()
+        logwidget = AutoSizedLabel(
+                text = self.LOG_TEXT,
                 text_size = (None, None),
+                markup = True,
                 valign = 'middle',
                 theme_text_color = "Custom",
-                text_color = color
+                size_hint_y = None
             )
         
         layout = self.view.ids.scroll_layout
-        scrollview = self.view.ids.scrollview
         layout.add_widget(logwidget)
+        scrollview = self.view.ids.scrollview
         scrollview.scroll_y = 0
 
 

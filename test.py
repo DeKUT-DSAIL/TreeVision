@@ -1,31 +1,17 @@
-from kivy.app import App
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.modalview import ModalView
-from kivy.lang import Builder
-from kivy.utils import platform
-import webbrowser
+from kivy.uix.scrollview import ScrollView
+from kivy.core.window import Window
+from kivy.app import runTouchApp
 
-KV='''
-BoxLayout:
-    orientation: 'vertical'
-    LinkLabel:
-        text: "[color=FFFFFF]TreeVision is a software tool that uses 3D computer vision to estimate biophysical parameters to trees. Visit the [/color] [ref=https://github.com/DeKUT-DSAIL/TreeVision][color=BF2700][u]GitHub Repository[/u][/color][/ref] [color=FFFFFF]to learn more[/color]"
-        markup: True
-'''
+layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
+# Make sure the height is such that there is something to scroll.
+layout.bind(minimum_height=layout.setter('height'))
+for i in range(100):
+    label = Label(text="Hello World", size_hint_y=None, height=10)
+    layout.add_widget(label)
 
-class LinkLabel(Label):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.bind(on_ref_press=self.on_link_click)
+root = ScrollView(bar_width=12)
+root.add_widget(layout)
 
-    def on_link_click(self, instance, value):
-        # Open the link in a web browser when clicked
-        webbrowser.open(value)
-
-class MyClickableLinkApp(App):
-    def build(self):
-        return Builder.load_string(KV)
-
-if __name__ == '__main__':
-    MyClickableLinkApp().run()
+runTouchApp(root)

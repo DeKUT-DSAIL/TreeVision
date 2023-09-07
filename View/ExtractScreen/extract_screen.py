@@ -21,6 +21,13 @@ class ExtractScreenView(BaseScreenView):
     parameter_dropdown_item = ObjectProperty()
 
 
+class AutoSizedLabel(MDLabel):
+    '''
+    A label whose size adjusts depending on its contents
+    '''
+    def on_texture_size(self, instance, value):
+        self.height = value[1]
+
 class RefreshConfirm(MDBoxLayout):
     '''
     Popup modal for refreshing the application
