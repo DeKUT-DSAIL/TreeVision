@@ -5,6 +5,7 @@ import csv
 import matplotlib.pyplot as plt
 from glob import glob
 from sys import platform
+from pandas.errors import ParserError, EmptyDataError
 
 from kivy.core.window import Window
 from kivy.metrics import dp
@@ -373,9 +374,6 @@ class ExtractScreenController:
         left_ims = sorted(list(set(left_ims)))
         right_ims = sorted(list(set(right_ims)))
         masks = sorted(list(set(masks)))
-        print(len(left_ims))
-        print(len(right_ims))
-        print(len(masks))
 
         self.LEFT_IMS = left_ims
         self.RIGHT_IMS = right_ims
@@ -619,6 +617,78 @@ class ExtractScreenController:
         
         except Exception:
             toast("The file you provided is not a valid YAML file.")
+    
+
+
+    def verify_reference_file(self, path, param):
+        '''
+        Verifies that the file of reference values conforms to the expected format
+        '''
+        if path:
+            try:
+                df = pd.read_csv(path)
+                cols = list(df.columns)
+
+                if param.lower() == 'dbh':
+                    if cols == ['Filename','Ref_DBH']:
+                        try:
+                            mean_dbh = df['Ref_DBH'].mean()
+
+                        except TypeError:
+                            self.LOG_TEXT = "[color=ff0000]Your CSV file has non-numeric values for DBH.[/color]"
+                            self.create_log_widget()
+                            return False
+                    
+                    else:
+                        self.LOG_TEXT = "[color=ff0000]Missing required columns in CSV file.[/color]"
+                        self.create_log_widget()
+                        return False
+                
+                elif param.lower() == 'cd & th':
+                    if cols == ['Filename','Ref_CD','Ref_TH']:
+                        try:
+                            mean_cd = df['Ref_CD'].mean()
+                            mean_th = df['Ref_TH'].mean()
+                        
+                        except TypeError:
+                            self.LOG_TEXT = "[color=ff0000]Some columns in your CSV file have non-numeric values.[/color]"
+                            self.create_log_widget()
+                            return False
+                    
+                    else:
+                        self.LOG_TEXT = "[color=ff0000]Missing required columns in CSV file.[/color]"
+                        self.create_log_widget()
+                        return False
+                
+            except ParserError:
+                self.LOG_TEXT = "[color=ff0000]Please provide a valid CSV file.[/color]"
+                self.create_log_widget()
+                return False
+
+            except EmptyDataError:
+                self.LOG_TEXT = "[color=ff0000]You uploaded an empty CSV file.[/color]"
+                self.create_log_widget()
+                return False
+            
+            except FileNotFoundError:
+                self.LOG_TEXT = "[color=ff0000]Your file was not found. Please check the path you provided...[/color]"
+                self.create_log_widget()
+                return False
+
+            except Exception:
+                self.LOG_TEXT = "[color=ff0000]There is problem with your CSV file. Ensure it has the right format.[/color]"
+                self.create_log_widget()
+                return False
+
+            else:
+                self.LOG_TEXT = "[color=ff0000]Reference parameters CSV file successfully validated.[/color]"
+                self.create_log_widget()
+                return True
+        
+        else:
+            self.LOG_TEXT = "[color=ff0000]Missing reference parameters file.[/color]"
+            self.create_log_widget()
+            return False
 
         
 
@@ -845,82 +915,80 @@ class ExtractScreenController:
         Analyses the extracted results by comparing them to the ground truth values. It also shows
         regression plots for all the three parameters
         '''
-        parameter = self.view.parameter_dropdown_item.text
-        if parameter == 'DBH':
-            file_path = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
-        elif parameter == 'CD & TH':
+        parameter = self.view.parameter_dropdown_item.text          
+
+        if parameter == 'CD & TH' and self.verify_reference_file(self.REF_PARAMS_FILE, parameter):
             file_path = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
-        
-        if self.REF_PARAMS_FILE:
-            df = pd.read_csv(file_path, index_col='Filename')
+            df = pd.read_csv(file_path, index_col='Filename')  
             df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
+
+            df['Ref_TH'] = df2['Ref_TH']
+            df['Ref_CD'] = df2['Ref_CD']
+            df['AE_TH (cm)'] = round((df['Ref_TH'] - df['Ex_TH']).abs(), 2)
+            df['APE_TH (%)'] = round((df['AE_TH (cm)'] / df['Ref_TH']) * 100, 2)
+            df['AE_CD (cm)'] = round((df['Ref_CD'] - df['Ex_CD']).abs(), 2)
+            df['APE_CD (%)'] = round((df['AE_CD (cm)'] / df['Ref_CD']) * 100, 2)
+
+            cd_mae = df['AE_CD (cm)'].mean()
+            cd_mape = df['APE_CD (%)'].mean()
+            cd_rmse = np.sqrt(mean_squared_error(df['Ref_CD'], df['Ex_CD']))
+            th_mae = df['AE_TH (cm)'].mean()
+            th_mape = df['APE_TH (%)'].mean()
+            th_rmse = np.sqrt(mean_squared_error(df['Ref_TH'], df['Ex_TH']))
             
-
-            if parameter == 'CD & TH':
-                df['Ref_TH'] = df2['Ref_TH']
-                df['Ref_CD'] = df2['Ref_CD']
-                df['AE_TH (cm)'] = round((df['Ref_TH'] - df['Ex_TH']).abs(), 2)
-                df['APE_TH (%)'] = round((df['AE_TH (cm)'] / df['Ref_TH']) * 100, 2)
-                df['AE_CD (cm)'] = round((df['Ref_CD'] - df['Ex_CD']).abs(), 2)
-                df['APE_CD (%)'] = round((df['AE_CD (cm)'] / df['Ref_CD']) * 100, 2)
-
-                cd_mae = df['AE_CD (cm)'].mean()
-                cd_mape = df['APE_CD (%)'].mean()
-                cd_rmse = np.sqrt(mean_squared_error(df['Ref_CD'], df['Ex_CD']))
-                th_mae = df['AE_TH (cm)'].mean()
-                th_mape = df['APE_TH (%)'].mean()
-                th_rmse = np.sqrt(mean_squared_error(df['Ref_TH'], df['Ex_TH']))
-                
-                df.to_csv(file_path)
-                
-                self.LOG_TEXT = f"[color=00ff00]\n\nAnalysis of CD & TH results Complete...\n\nMAE_CD: {round(cd_mae, 2)} cm \nMAPE_CD: {round(cd_mape, 2)} % \nRMSE_CD: {round(cd_rmse, 2)} cm \n\nMAE_TH: {round(th_mae, 2)} cm \nMAPE_TH: {round(th_mape, 2)} % \nRMSE_TH: {round(th_rmse, 2)} cm \n\nResults saved to {file_path}[/color]"
-                self.create_log_widget()
-                
-                self.plot_regression(
-                    parameter = 'CD',
-                    x = df['Ref_CD'],
-                    y = df['Ex_CD'],
-                    path = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
-                )
-                self.plot_regression(
-                    parameter = 'TH',
-                    x = df['Ref_TH'],
-                    y = df['Ex_TH'],
-                    path = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
-                )
-                self.view.ids.left_im.source = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
-                self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
-                
-                self.LOG_TEXT = "[color=00ff00]\n\nRegression plot generation complete...[/color]"
-                self.create_log_widget()
+            df.to_csv(file_path)
             
-            elif parameter == 'DBH':
-                df['Ref_DBH'] = df2['Ref_DBH']
-                df['AE_DBH (cm)'] = round((df['Ref_DBH'] - df['Ex_DBH']).abs(), 2)
-                df['APE_DBH (%)'] = round((df['AE_DBH (cm)'] / df['Ref_DBH']) * 100, 2)
-
-                dbh_mae = df['AE_DBH (cm)'].mean()
-                dbh_mape = df['APE_DBH (%)'].mean()
-                dbh_rmse = np.sqrt(mean_squared_error(df['Ref_DBH'], df['Ex_DBH']))
-
-                df.to_csv(file_path)
-
-                self.LOG_TEXT = f"[color=00ff00]\n\nAnalysis of DBH results Complete...\n\nMAE_DBH: {round(dbh_mae, 2)} cm \nMAPE_DBH: {round(dbh_mape, 2)} % \nRMSE_DBH: {round(dbh_rmse, 2)} cm \n\nResults saved to {file_path}[/color]"
-                self.create_log_widget()
-                
-                self.plot_regression(
-                    parameter = 'DBH',
-                    x = df['Ref_DBH'],
-                    y = df['Ex_DBH'],
-                    path = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
-                )
-                self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
-                
-                self.LOG_TEXT = "[color=00ff00]\n\nRegression plot generation complete...[/color]"
-                self.create_log_widget()
-        else:
-            self.LOG_TEXT = "[color=ff0000]\n\nMissing the reference parameters file.[/color]"
+            self.LOG_TEXT = f"[color=00ff00]\n\nAnalysis of CD & TH results Complete...\n\nMAE_CD: {round(cd_mae, 2)} cm \nMAPE_CD: {round(cd_mape, 2)} % \nRMSE_CD: {round(cd_rmse, 2)} cm \n\nMAE_TH: {round(th_mae, 2)} cm \nMAPE_TH: {round(th_mape, 2)} % \nRMSE_TH: {round(th_rmse, 2)} cm \n\nResults saved to {file_path}[/color]"
             self.create_log_widget()
+            
+            self.plot_regression(
+                parameter = 'CD',
+                x = df['Ref_CD'],
+                y = df['Ex_CD'],
+                path = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
+            )
+            self.plot_regression(
+                parameter = 'TH',
+                x = df['Ref_TH'],
+                y = df['Ex_TH'],
+                path = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
+            )
+            self.view.ids.left_im.source = os.path.join(self.RESULTS_DIR, 'regression_CD.jpg')
+            self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_TH.jpg')
+            
+            self.LOG_TEXT = "[color=00ff00]\n\nRegression plot generation complete...[/color]"
+            self.create_log_widget()
+            
+        elif parameter == 'DBH' and self.verify_reference_file(self.REF_PARAMS_FILE, parameter):
+            file_path = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
+            df = pd.read_csv(file_path, index_col='Filename') 
+            df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
+            df['Ref_DBH'] = df2['Ref_DBH']
+            df['AE_DBH (cm)'] = round((df['Ref_DBH'] - df['Ex_DBH']).abs(), 2)
+            df['APE_DBH (%)'] = round((df['AE_DBH (cm)'] / df['Ref_DBH']) * 100, 2)
+
+            dbh_mae = df['AE_DBH (cm)'].mean()
+            dbh_mape = df['APE_DBH (%)'].mean()
+            dbh_rmse = np.sqrt(mean_squared_error(df['Ref_DBH'], df['Ex_DBH']))
+
+            df.to_csv(file_path)
+
+            self.LOG_TEXT = f"[color=00ff00]\n\nAnalysis of DBH results Complete...\n\nMAE_DBH: {round(dbh_mae, 2)} cm \nMAPE_DBH: {round(dbh_mape, 2)} % \nRMSE_DBH: {round(dbh_rmse, 2)} cm \n\nResults saved to {file_path}[/color]"
+            self.create_log_widget()
+            
+            self.plot_regression(
+                parameter = 'DBH',
+                x = df['Ref_DBH'],
+                y = df['Ex_DBH'],
+                path = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
+            )
+            self.view.ids.right_im.source = os.path.join(self.RESULTS_DIR, 'regression_DBH.jpg')
+            
+            self.LOG_TEXT = "[color=00ff00]\n\nRegression plot generation complete...[/color]"
+            self.create_log_widget()
+        
+        else:
+            toast("Choose file and upload again")
 
     
 
@@ -1038,6 +1106,8 @@ class ExtractScreenController:
             os.startfile("TreeVision User Guide.pdf")
         except FileNotFoundError:
             toast('User guide not found!')
+            self.LOG_TEXT = "[color=ff0000]Couldn't find the user guide.[/color]"
+            self.create_log_widget()
         else:
             toast('User Guide has been launched')
     
