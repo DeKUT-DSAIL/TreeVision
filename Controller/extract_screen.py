@@ -494,7 +494,7 @@ class ExtractScreenController:
         mask = cv2.imread(mask_path, 0)
         kernel = np.ones((3,3), np.uint8)
 
-        if self.verify_config_file():
+        if self.verify_config_file(rectified = rectified):
             dmap = algorithms.extract(
                 left_im = left, 
                 right_im = right, 
@@ -591,11 +591,11 @@ class ExtractScreenController:
 
     
 
-    def verify_config_file(self):
+    def verify_config_file(self, rectified):
         '''
-        Verifies that the camera calibration file contains all the necessary parameters
+        Verifies that the camera calibration file contains all the necessary matrices and that 
+        those matrices have the right dimensions
         '''
-        rectified = self.view.ids.rectification_dropdown_item.text
 
         try:
             file = cv2.FileStorage(self.CONFIG_FILE_PATH, cv2.FILE_STORAGE_READ)
@@ -603,20 +603,70 @@ class ExtractScreenController:
             try:
                 nodes = file.root().keys()
             
-            except  Exception:
-                toast("Camera calibration file is empty!")
+            except Exception:
+                self.LOG_TEXT = "[color=ff0000]Camera calibration file is empty![/color]"
+                self.create_log_widget()
+                return False
             
             else:
                 if rectified == 'Yes':
-                    necessary_keys = ['K1','K2','T','Q']
-                    return all(key in nodes for key in necessary_keys)
+                    necessary_keys = {
+                            'K1': (3,3),
+                            'K2': (3,3),
+                            'T': (3,1),
+                            'Q': (4,4)
+                    }
+                    if all(key in nodes for key in necessary_keys.keys()):
+                        for key in necessary_keys.keys():
+                            try:
+                                mat = file.getNode(key).mat()
+                                assert(mat.shape) == necessary_keys[key]
+                            except AssertionError:
+                                self.LOG_TEXT = "[color=ff0000]Some matrices have wrong dimensions[/color]"
+                                self.create_log_widget()
+                                return False
+                        
+                        return True
+                    
+                    else:
+                        self.LOG_TEXT = "[color=ff0000]Some matrices are missing in your calibration file[/color]"
+                        self.create_log_widget()
+                        return False
                 
                 elif rectified == 'No':
-                    necessary_keys = ['K1','K2','D1','D2','T','R1','R2','P1','P2','Q']
-                    return all(key in nodes for key in necessary_keys)
-        
+                    necessary_keys = {
+                            'K1': (3,3),
+                            'K2': (3,3),
+                            'D1': (1,5),
+                            'D2': (1,5),
+                            'T': (3,1),
+                            'R1': (3,3),
+                            'R2': (3,3),
+                            'P1': (3,4),
+                            'P2': (3,4),
+                            'Q': (4,4)
+                    }
+                    if all(key in nodes for key in necessary_keys.keys()):
+                        for key in necessary_keys.keys():
+                            try:
+                                mat = file.getNode(key).mat()
+                                assert(mat.shape) == necessary_keys[key]
+                            except AssertionError:
+                                self.LOG_TEXT = "[color=ff0000]Some matrices have wrong dimensions[/color]"
+                                self.create_log_widget()
+                                return False
+                        
+                        return True
+                    
+                    else:
+                        self.LOG_TEXT = "[color=ff0000]Some matrices are missing in your calibration file[/color]"
+                        self.create_log_widget()
+                        return False
+
         except Exception:
-            toast("The file you provided is not a valid YAML file.")
+            self.LOG_TEXT = "[color=ff0000]This file is not a valid YAML file.[/color]"
+            self.create_log_widget()
+            return False
     
 
 
@@ -696,12 +746,14 @@ class ExtractScreenController:
         '''
         Called when the "Extract" button on the user interface is pressed
         '''
+        rectified = self.view.ids.rectification_dropdown_item.text
+
         if self.CONFIG_FILE_PATH == None:
             toast("Missing camera calibration file")
             self.LOG_TEXT = "[color=ff0000]\nMissing camera calibration file![/color]"
             self.create_log_widget()
         
-        elif not self.verify_config_file():
+        elif not self.verify_config_file(rectified = rectified):
             self.LOG_TEXT = "[color=ff0000]\nEnsure your calibration file is a valid YAML file, and has all the necessary matrices.[/color]"
             self.create_log_widget()
         
@@ -836,13 +888,15 @@ class ExtractScreenController:
         '''
         Schedules the 'on_batch_extract_function' to run every 500ms
         '''
+        rectified = self.view.ids.rectification_dropdown_item.text
+        
         if self.CONFIG_FILE_PATH == None:
             toast("Missing camera calibration file")
             self.LOG_TEXT = "[color=ff0000]Missing camera calibration file![/color]"
             self.create_log_widget()
             self.unschedule_batch_extraction()
         
-        elif not self.verify_config_file():
+        elif not self.verify_config_file(rectified = rectified):
             self.LOG_TEXT = "[color=ff0000]Ensure your calibration file is a valid YAML file, and has all the necessary matrices.[/color]"
             self.create_log_widget()
             self.unschedule_batch_extraction()
