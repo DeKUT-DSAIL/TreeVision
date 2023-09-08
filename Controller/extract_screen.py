@@ -1,24 +1,19 @@
 import os
-import time
 import importlib
-import csv
 import matplotlib.pyplot as plt
 from glob import glob
 from sys import platform
 from pandas.errors import ParserError, EmptyDataError
 
 from kivy.core.window import Window
-from kivy.metrics import dp
-from kivy.utils import rgba
 from kivy.properties import StringProperty
 
 from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.list import OneLineIconListItem
-from kivymd.uix.button import MDFlatButton, MDRectangleFlatButton, MDRaisedButton
+from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.label import MDLabel
-from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.dialog import MDDialog
 from kivymd.toast import toast
 from kivy.clock import Clock
@@ -313,7 +308,7 @@ class ExtractScreenController:
     
         for key in nums.keys():
             try:
-                value = int(nums[key])
+                value = float(nums[key])
             except  ValueError:
                 invalid_inputs.append(key)
         
@@ -1200,7 +1195,7 @@ class ExtractScreenController:
         Creates a widget to be added to the logging section on the user interfac
         @param text: The text contained on the widget
         '''
-        # self.view.ids.scroll_layout.clear_widgets()
+        
         logwidget = AutoSizedLabel(
                 text = self.LOG_TEXT,
                 text_size = (None, None),

@@ -20,14 +20,13 @@ from Controller.utils import utils
 from kivy.metrics import dp
 from kivy.clock import Clock
 from kivy.factory import Factory
-from kivy.uix.textinput import TextInput
 from kivymd.uix.filemanager import MDFileManager
-from kivymd.uix.menu import MDDropdownMenu
-from kivymd.uix.label import MDLabel
 from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.dialog import MDDialog
+from kivymd.toast import toast
 
 from View.CalibrateScreen.calibrate_screen import InfoPopup
+from View.CalibrateScreen.calibrate_screen import AutoSizedLabel
 
 class CalibrateScreenController:
     """
@@ -53,6 +52,10 @@ class CalibrateScreenController:
     LEFT_IMS = None
     RIGHT_IMS = None
     UNPAIRED_IMS = None
+
+    LOG_TEXT = "[color=ffffff]Welcome to DSAIL's TreeVision Software ...[/color]\n"
+    READY_FOR_CALIBRATION = False
+    CALIB_MODE = None
 
     image_index = 0
     num_of_images = 0
@@ -128,17 +131,17 @@ class CalibrateScreenController:
         if self.FILE_MANAGER_SELECTOR == 'folder':
             self.IMAGES_DIR = path 
             self.load_images()
-            self.create_log_widget(f"Calibration images directory has been selected.\nIMAGES DIRECTORY PATH: {path}")
+            self.LOG_TEXT = f"[color=ffffff]Calibration images directory has been selected.\nIMAGES DIRECTORY PATH: {path}[/color]"
+            self.create_log_widget()
         else:
             if self.BUTTON_ID == "left":
                 self.LEFT_CONFIG_FILE = path
-                self.create_log_widget(f"Left camera configuration file has been selected.\nFILE PATH: {path}")
+                self.LOG_TEXT = f"[color=ffffff]Left camera configuration file has been selected.\nFILE PATH: {path}[/color]"
+                self.create_log_widget()
             elif self.BUTTON_ID == "right":
                 self.RIGHT_CONFIG_FILE = path
-                self.create_log_widget(f"Right camera configuration file has been selected.\nFILE PATH: {path}")
-        
-        if self.verify_config_files():
-            self.view.ids.calibrate_stereo.disabled = False
+                self.LOG_TEXT = f"[color=ffffff]Right camera configuration file has been selected.\nFILE PATH: {path}[/color]"
+                self.create_log_widget()
         
         self.toggle_scrolling_icons()
         self.exit_manager()
@@ -209,13 +212,136 @@ class CalibrateScreenController:
 
 
     def verify_images(self, left_ims, right_ims):
-        return len(left_ims) == len(right_ims)
+        '''
+        Verifies that stereo images have been loaded and that the number of left and right images 
+        are equal 
+        '''
+        equal = len(left_ims) == len(right_ims)
+        loaded = len(left_ims) > 0 and len(right_ims) > 0
+
+        if not loaded:
+            self.LOG_TEXT = f"[color=ff0000]Please choose location of images before proceeding...[/color]"
+            self.create_log_widget()
+        
+        elif not equal:
+            self.LOG_TEXT = f"[color=ff0000]Number of Left and Right Images NOT equal! \nPlease check before proceeding...[/color]"
+            self.create_log_widget()
+
+        return loaded and equal
     
 
 
-    def verify_config_files(self):
-        return self.LEFT_CONFIG_FILE != None and self.RIGHT_CONFIG_FILE != None
+    def verify_config_file(self, path):
+        '''
+        Verifies that the left and right single camera calibration file contains all the necessary matrices and that 
+        those matrices have the right dimensions
+        '''
+        if path:
+            try:
+                file = cv2.FileStorage(path, cv2.FILE_STORAGE_READ)
+                
+                try:
+                    nodes = file.root().keys()
+                
+                except Exception:
+                    self.LOG_TEXT = "[color=ff0000]Camera calibration file is empty![/color]"
+                    self.create_log_widget()
+                    return False
+                
+                else:
+                    necessary_keys = {'K': (3,3), 'D': (1,5)}
+                    if all(key in nodes for key in necessary_keys.keys()):
+                        for key in necessary_keys.keys():
+                            try:
+                                mat = file.getNode(key).mat()
+                                assert(mat.shape) == necessary_keys[key]
+                            except AssertionError:
+                                self.LOG_TEXT = "[color=ff0000]One or both matrices have wrong dimensions[/color]"
+                                self.create_log_widget()
+                                return False
+                        
+                        return True
+                    
+                    else:
+                        self.LOG_TEXT = "[color=ff0000]One or both matrices are missing in your calibration file.[/color]"
+                        self.create_log_widget()
+                        return False
+            
+            except Exception:
+                self.LOG_TEXT = "[color=ff0000]One or both calibration files you uploaded is not a valid YAML file.[/color]"
+                self.create_log_widget()
+                return False
+
+        else:
+            self.LOG_TEXT = "[color=ff0000]Missing one or both single calibration files.[/color]"
+            self.create_log_widget()
+            return False       
     
+
+
+    def verify_user_input(self):
+        '''
+        Verifies that all the textual inputs provided by the user are valid
+        '''
+        project_name = self.view.ids.project_name.text
+        save_file = self.view.ids.save_file.text
+        image_width = self.view.ids.image_width.text
+        image_height = self.view.ids.image_height.text
+        pattern_width = self.view.ids.pattern_width.text
+        pattern_height = self.view.ids.pattern_height.text
+        square_size = self.view.ids.square_size.text
+
+        nums = {
+            "Image W": image_width, 
+            'Image H': image_height, 
+            'Pattern W': pattern_width, 
+            'Pattern H': pattern_height, 
+            'Square size (mm)': square_size, 
+        }
+
+        invalid_inputs = []
+    
+        for key in nums.keys():
+            try:
+                value = float(nums[key])
+            except  ValueError:
+                invalid_inputs.append(key)
+        
+        if not project_name:
+            self.LOG_TEXT = "[color=ff0000]'Project name' is not provided[/color]"
+            self.create_log_widget()
+        
+        if not save_file:
+            self.LOG_TEXT = "[color=ff0000]'Calibration filename' is not provided[/color]"
+            self.create_log_widget()
+        
+        if len(invalid_inputs) > 0:
+            for input in invalid_inputs:
+                self.LOG_TEXT = f"[color=ff0000]'{input}' must be a number![/color]"
+                self.create_log_widget()
+        
+        return not(len(invalid_inputs) > 0 or len(project_name) == 0 or len(save_file) == 0)
+    
+
+
+    def do_preliminary_checks(self):
+        '''
+        Performs all preliminary checks to ensure TreeVision is ready for calibration
+        @param mode: Mode of calibration which is either 'single' or 'stereo'
+        '''
+        if self.verify_user_input():
+            self.READY_FOR_CALIBRATION = True
+            
+            if self.CALIB_MODE == 'single':
+                self.LOG_TEXT = "[color=db3f01]Single calibration mode...[/color]"
+                self.create_log_widget()
+                self.view.ids.calibrate_single.disabled = False
+            
+            elif self.CALIB_MODE == 'stereo':
+                if self.verify_config_file(self.LEFT_CONFIG_FILE) and self.verify_config_file(self.RIGHT_CONFIG_FILE):
+                    self.LOG_TEXT = "[color=db3f01]Stereo calibration mode...[/color]"
+                    self.create_log_widget()
+                    self.view.ids.calibrate_stereo.disabled = False
     
     
     
@@ -256,27 +382,21 @@ class CalibrateScreenController:
             self.num_of_images = len(unpaired_ims)
             self.view.ids.progress_bar.max = self.num_of_images
             self.view.ids.left_image.source = unpaired_ims[0]
-            self.view.ids.calibrate_single.disabled = False
-            self.create_log_widget(
-                text = "You have successfully loaded unpaired images...",
-                color = (0,1,0,1)
-            )
+            self.view.ids.preliminary_checks.disabled = False
+            self.CALIB_MODE = "single"
+            self.LOG_TEXT = f"[color=00ff00]You have successfully loaded unpaired images...[/color]"
+            self.create_log_widget()
 
-        elif len(self.RIGHT_IMS) > 0 and len(self.LEFT_IMS) > 0:
-            if self.verify_images(left_ims, right_ims):
-                self.num_of_images = min(len(left_ims), len(right_ims))
-                self.view.ids.progress_bar.max = self.num_of_images
-                self.view.ids.left_image.source = left_ims[0]
-                self.view.ids.right_image.source = right_ims[0]
-                self.create_log_widget(
-                    text = "You have successfully loaded stereo images...",
-                    color = (0,1,0,1)
-                )
-            else:
-                self.create_log_widget(
-                    text = "Number of Left and Right Images NOT equal!",
-                    color = (1,0,0,1)
-                )
+        # elif len(self.RIGHT_IMS) > 0 and len(self.LEFT_IMS) > 0:
+        elif self.verify_images(left_ims, right_ims):
+            self.num_of_images = min(len(left_ims), len(right_ims))
+            self.view.ids.progress_bar.max = self.num_of_images
+            self.view.ids.left_image.source = left_ims[0]
+            self.view.ids.right_image.source = right_ims[0]
+            self.view.ids.preliminary_checks.disabled = False
+            self.CALIB_MODE = "stereo"
+            self.LOG_TEXT = f"[color=00ff00]You have successfully loaded stereo images...[/color]"
+            self.create_log_widget()
     
 
 
@@ -286,10 +406,8 @@ class CalibrateScreenController:
         """
 
         if len(self.RIGHT_IMS) > 0 and len(self.LEFT_IMS) > 0:
-            self.create_log_widget(
-                text = "You seem to have paired LEFT and RIGHT images in this directory! Please remove any paired images before proceeding...",
-                color = (1,0,0,1)
-            )
+            self.LOG_TEXT = f"[color=ff0000]You seem to have paired LEFT and RIGHT images in this directory! Please remove any paired images before proceeding...[/color]"
+            self.create_log_widget()
             self.unschedule_on_calibrate()
 
         images = self.UNPAIRED_IMS
@@ -325,7 +443,8 @@ class CalibrateScreenController:
         if self.image_index < len(images) - 1:
             self.image_index += 1
         else:
-            self.create_log_widget(text = 'Object and Image Points Saved...')
+            self.LOG_TEXT = f"[color=ffffff]Object and Image Points Saved...[/color]"
+            self.create_log_widget()
             self.on_calibrate()
             drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
             for file in drawn_files:
@@ -340,13 +459,6 @@ class CalibrateScreenController:
         """
 
         left, right = self.LEFT_IMS, self.RIGHT_IMS
-
-        if not self.verify_images(left, right):
-            self.create_log_widget(
-                    text = "Number of Left and Right Images NOT equal! \nPlease check before proceeding...",
-                    color = (1,0,0,1)
-                )
-            self.unschedule_save_stereo_points()
         
         self.view.ids.left_image.source = left[self.image_index]
         self.view.ids.right_image.source = right[self.image_index]
@@ -393,7 +505,8 @@ class CalibrateScreenController:
             self.view.ids.left_image.source = drawn_left
             self.view.ids.right_image.source = drawn_right
         else:
-            self.create_log_widget(text = f"Couldn't find chessboard corners for {os.path.basename(imageL)} and {os.path.basename(imageR)}", color = (1,0,0,1))
+            self.LOG_TEXT = f"[color=ff0000]Couldn't find chessboard corners for {os.path.basename(imageL)} and {os.path.basename(imageR)}[/color]"
+            self.create_log_widget()
             self.unschedule_save_stereo_points()
 
         self.view.ids.progress_bar.value = self.image_index + 1
@@ -401,7 +514,8 @@ class CalibrateScreenController:
         if self.image_index < len(left) - 1:
             self.image_index += 1
         else:
-            self.create_log_widget(text = 'Object Points and Stereo Image Points Saved...')
+            self.LOG_TEXT = "[color=ffffff]Object Points and Stereo Image Points Saved...[/color]"
+            self.create_log_widget()
             self.stereo_calibrate()
             drawn_files = glob(os.path.join(self.ASSET_IMS_DIR, 'calibration/drawn*.jpg'))
             for file in drawn_files:
@@ -477,7 +591,8 @@ class CalibrateScreenController:
         )
 
         utils.save_stereo_coefficients(stereo_save_file, K1, D1, K2, D2, R, T, E, F, R1, R2, P1, P2, Q)
-        self.create_log_widget(text = f"Stereo Calibration Complete \nRMS: {round(ret, 4)}", color = (0,1,0,1))
+        self.LOG_TEXT = f"[color=ffffff]Stereo Calibration Complete \nRMS: {round(ret, 4)}[/color]"
+        self.create_log_widget()
     
 
 
@@ -489,10 +604,8 @@ class CalibrateScreenController:
         ret, K, D, R, T, image_points, object_points = self.single_calibrate()
         error_info = utils.projection_error(object_points, image_points, T, R, K, D)
 
-        self.create_log_widget(
-            text = f"Calibration finished \nCalibration RMS: {round(ret, 4)} \nCalibration ME: {round(error_info['ME'], 4)}",
-            color = (0,1,0,1)
-        )
+        self.LOG_TEXT = f"[color=00ff00]Calibration finished \nCalibration RMS: {round(ret, 4)} \nCalibration ME: {round(error_info['ME'], 4)}[/color]"
+        self.create_log_widget()
 
         project_name = self.view.ids.project_name.text
         project_dir_path = os.path.join(self.CONFIGS_DIR, project_name)
@@ -502,13 +615,15 @@ class CalibrateScreenController:
         save_file = self.view.ids.save_file.text
         save_file_path = os.path.join(project_dir_path, f"{save_file}.yml")
         utils.save_coefficients(save_file_path, K, D)
-        self.create_log_widget(text = f"Calibration parameters saved to: {save_file_path}")
+        self.LOG_TEXT = f"[color=00ff00]Calibration parameters saved to: {save_file_path}[/color]"
+        self.create_log_widget()
 
         self.plot_scatter(error_info, project_dir_path)
 
         scatter_plot_path = os.path.join(project_dir_path, "calib_error_scatter.jpg")
         self.view.ids.right_image.source = scatter_plot_path
-        self.create_log_widget(text = "Error Scatter Plot Created", color = (0,1,0,1))
+        self.LOG_TEXT = f"[color=00ff00]Error Scatter Plot Created[/color]"
+        self.create_log_widget()
     
 
 
@@ -516,8 +631,7 @@ class CalibrateScreenController:
         '''
         Schedules the 'save_points' function to run every 500ms
         '''
-        if self.check_valid_input() and self.check_file_selection('single'):
-            Clock.schedule_interval(self.save_points, 0.5)
+        Clock.schedule_interval(self.save_points, 0.5)
     
 
 
@@ -525,8 +639,7 @@ class CalibrateScreenController:
         '''
         Schedules the 'save_stereo_points' function to run every 500ms
         '''
-        if self.check_valid_input() and self.check_file_selection('stereo'):
-            Clock.schedule_interval(self.save_stereo_points, 0.5)
+        Clock.schedule_interval(self.save_stereo_points, 0.5)
     
 
 
@@ -595,10 +708,8 @@ class CalibrateScreenController:
         checks = [input.is_valid() for input in inputs]
 
         if not all(checks):
-            self.create_log_widget(
-                text = f"Missing these inputs: {[input.name for input in inputs if not input.is_valid()]}.",
-                color = (1,0,0,1)
-            )
+            self.LOG_TEXT = f"[color=ff0000]Missing these inputs: {[input.name for input in inputs if not input.is_valid()]}.[/color]"
+            self.create_log_widget()
         
         return all(checks)
 
@@ -625,10 +736,8 @@ class CalibrateScreenController:
 
         for i, status in enumerate(statuses):
             if not status:
-                self.create_log_widget(
-                    text=labels[i],
-                    color=(1, 0, 0, 1)
-                )
+                self.LOG_TEXT = f"[color=ff0000]{labels[i]}[/color]"
+                self.create_log_widget()
         
         return all(statuses)
 
@@ -710,7 +819,14 @@ class CalibrateScreenController:
         '''
         Opens the User Guide of TreeVision using the the system default application
         '''
-        os.startfile("TreeVision User Guide.pdf")  
+        try:
+            os.startfile("TreeVision User Guide.pdf")
+        except FileNotFoundError:
+            toast('User guide not found!')
+            self.LOG_TEXT = "[color=ff0000]Couldn't find the user guide.[/color]"
+            self.create_log_widget()
+        else:
+            toast('User Guide has been launched')
 
 
 
@@ -735,53 +851,33 @@ class CalibrateScreenController:
 
         self.view.ids.progress_bar.value = 0
         self.view.ids.project_name.text = ''
+        self.view.ids.preliminary_checks.disabled = True
         self.view.ids.calibrate_single.disabled = True
         self.view.ids.calibrate_stereo.disabled = True
 
-        label_text = "App has been reset and all configurations cleared."
-
         self.view.ids.scroll_layout.clear_widgets()
         self.dialog.dismiss()
-        self.create_log_widget(label_text)
+        self.LOG_TEXT = f"[color=ffffff]DSAIL TreeVision \nApp has been reset and all configurations cleared.[/color]"
+        self.create_log_widget()
 
     
 
-    def create_log_widget(self, text, color=(1,1,1,1)):
+    def create_log_widget(self):
         '''
-        Creates a widget to be added to the logging section on the user interface
+        Creates a widget to be added to the logging section on the user interfac
         @param text: The text contained on the widget
         '''
-        logwidget = MDLabel(
-                text = text,
+        
+        logwidget = AutoSizedLabel(
+                text = self.LOG_TEXT,
                 text_size = (None, None),
+                markup = True,
                 valign = 'middle',
                 theme_text_color = "Custom",
-                text_color = color
+                size_hint_y = None
             )
         
         layout = self.view.ids.scroll_layout
-        scrollview = self.view.ids.scrollview
-
-        # layout.spacing = logwidget.height * 0.8
         layout.add_widget(logwidget)
+        scrollview = self.view.ids.scrollview
         scrollview.scroll_y = 0
-
-
-
-class RequiredTextInput(TextInput):
-    '''
-    Implements a TextInput object that requires text input in the field
-    '''
-    def __init__(self, name = '', **kwargs):
-        super(RequiredTextInput, self).__init__(**kwargs)
-        self.id = kwargs.get('id', None)
-        self.name = name
-
-    def is_valid(self):
-        '''
-        Checks that the text is not empty
-        '''
-        return bool(self.text.strip())
-
-
-Factory.register('RequiredTextInput', cls=RequiredTextInput)

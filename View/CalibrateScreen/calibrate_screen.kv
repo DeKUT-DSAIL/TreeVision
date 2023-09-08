@@ -137,9 +137,8 @@
                             text: "Project name: "
                     AnchorLayout:
                         anchor_x: 'right'
-                        RequiredTextInput:
+                        TextInput:
                             id: project_name
-                            name: "Project name"
                             multiline: False
                 
                 MDBoxLayout:
@@ -184,9 +183,8 @@
                             text: "Calibration filename:"
                     AnchorLayout:
                         anchor_x: 'right'
-                        RequiredTextInput:
+                        TextInput:
                             id: save_file
-                            name: "Calibration filename"
                             multiline: False
                             text: "sample"
 
@@ -207,9 +205,8 @@
                         MDBoxLayout:
                             MDLabel:
                                 text: "W:"
-                            RequiredTextInput:
+                            TextInput:
                                 id: image_width
-                                name: "Image Width (W)"
                                 multiline: False
                                 text: "1280"
                     AnchorLayout:
@@ -218,9 +215,8 @@
                         MDBoxLayout:
                             MDLabel:
                                 text: "H:"
-                            RequiredTextInput:
+                            TextInput:
                                 id: image_height
-                                name: "Image Height (H)"
                                 multiline: False
                                 text: "720"
                 MDBoxLayout:
@@ -235,9 +231,8 @@
                         MDBoxLayout:
                             MDLabel:
                                 text: "W:"
-                            RequiredTextInput:
+                            TextInput:
                                 id: pattern_width
-                                name: "Pattern Width (W)"
                                 multiline: False
                                 text: "9"
                     AnchorLayout:
@@ -246,9 +241,8 @@
                         MDBoxLayout:
                             MDLabel:
                                 text: "H:"
-                            RequiredTextInput:
+                            TextInput:
                                 id: pattern_height
-                                name: "Pattern Height (H)"
                                 multiline: False
                                 text: "6"
 
@@ -259,15 +253,24 @@
                             text: "Square size (mm)"
                     AnchorLayout:
                         anchor_x: "right"
-                        RequiredTextInput:
+                        TextInput:
                             id: square_size
-                            name: "Square Size"
                             multiline: False
                             text: "24.5"
                 
-                MDBoxLayout:
+                GridLayout:
+                    cols: 3
+                    spacing: 50
                     AnchorLayout:
-                        anchor_x: "left"
+                        anchor_x: 'left'
+                        MDRaisedButton:
+                            id: preliminary_checks
+                            text: "Verify"
+                            md_bg_color: "orange"
+                            disabled: True
+                            on_release: root.controller.do_preliminary_checks()
+                    AnchorLayout:
+                        anchor_x: 'center'
                         MDRaisedButton:
                             id: calibrate_single
                             text: "Calibrate Single"
@@ -275,10 +278,10 @@
                             disabled: True
                             on_release: root.controller.update_save_points()
                     AnchorLayout:
-                        anchor_x: "right"
+                        anchor_x: 'right'
                         MDRaisedButton:
                             id: calibrate_stereo
-                            text: "Calibrate Stereo"
+                            text: "Calibrate"
                             md_bg_color: "green"
                             disabled: True
                             on_release: root.controller.update_save_stereo_points()
@@ -295,13 +298,14 @@
                     value: 0
                 MDScrollView:  
                     id: scrollview
-                    MDBoxLayout:
+                    bar_width: 12
+                    smooth_scroll_end: 10
+                    GridLayout:
                         id: scroll_layout
-                        orientation: 'vertical'
-                        md_bg_color: 0, 0, 0, 1
-                        size_hint: 1, None
-                        spacing: 50
-                        padding: 10, 50
+                        cols: 1
+                        spacing: 10
+                        size_hint_y: None
+                        padding: 10, 15
                         height: self.minimum_height
 
         # This is the bottom strip

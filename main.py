@@ -112,7 +112,6 @@ class TreeVision(MDApp):
         @param direction: Direction of the transition
         '''
         self.PREVIOUS_SCREEN = self.manager_screens.current
-        print(f"PREV: {self.PREVIOUS_SCREEN}")
         self.manager_screens.transition.direction = direction
         self.manager_screens.current = name
     
