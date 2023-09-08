@@ -1,13 +1,17 @@
 import os
 import importlib
 import matplotlib.pyplot as plt
+import cv2
+import numpy as np
+import pandas as pd
+
 from glob import glob
 from sys import platform
 from pandas.errors import ParserError, EmptyDataError
+from sklearn.metrics import mean_squared_error
 
 from kivy.core.window import Window
 from kivy.properties import StringProperty
-
 from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.menu import MDDropdownMenu
@@ -20,20 +24,7 @@ from kivy.clock import Clock
 
 import View.ExtractScreen.extract_screen
 from . import algorithms
-import cv2
-import numpy as np
-import pandas as pd
-import webbrowser
-from sklearn.metrics import mean_squared_error
-
-from View.ExtractScreen.extract_screen import RefreshConfirm
-from View.ExtractScreen.extract_screen import InfoPopupModal
-from View.ExtractScreen.extract_screen import AutoSizedLabel
-
-# We have to manually reload the view module in order to apply the
-# changes made to the code on a subsequent hot reload.
-# If you no longer need a hot reload, you can delete this instruction.
-importlib.reload(View.ExtractScreen.extract_screen)
+from View.ExtractScreen.extract_screen import RefreshConfirm, InfoPopupModal, AutoSizedLabel
 
 class ExtractScreenController:
     """

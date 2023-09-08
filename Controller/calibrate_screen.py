@@ -1,18 +1,9 @@
-import importlib
-
-import View.CalibrateScreen.calibrate_screen
-from View.CalibrateScreen.calibrate_screen import RefreshConfirm
-
-# We have to manually reload the view module in order to apply the
-# changes made to the code on a subsequent hot reload.
-# If you no longer need a hot reload, you can delete this instruction.
-importlib.reload(View.CalibrateScreen.calibrate_screen)
-
 import os
 import cv2
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import View.CalibrateScreen.calibrate_screen
 from glob import glob
 from sys import platform
 from Controller.utils import utils
@@ -25,8 +16,7 @@ from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.toast import toast
 
-from View.CalibrateScreen.calibrate_screen import InfoPopup
-from View.CalibrateScreen.calibrate_screen import AutoSizedLabel
+from View.CalibrateScreen.calibrate_screen import InfoPopup, AutoSizedLabel, RefreshConfirm
 
 class CalibrateScreenController:
     """
