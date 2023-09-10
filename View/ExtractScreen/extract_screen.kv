@@ -373,32 +373,42 @@
                                 multiline: False
                 
                 MDBoxLayout:
-                    orientation: 'vertical'
+                    orientation: 'horizontal'
                     spacing: 10
                     MDBoxLayout:
-                        spacing: 10
-                        MDRaisedButton:
-                            id: preliminary_checks_btn
-                            text: "Verify"
-                            md_bg_color: "orange"
-                            on_release: root.controller.on_extract()
-                        MDRaisedButton:
-                            id: extract_btn
-                            text: "Extract"
-                            md_bg_color: "green"
-                            on_release: root.controller.on_extract()
-                        MDRaisedButton:
-                            id: batch_extract_btn
-                            text: "Batch Extract"
-                            md_bg_color: "green"
-                            disabled: True
-                            on_release: root.controller.update_on_batch_extract()
-                        MDRaisedButton:
-                            id: analyse_btn
-                            text: "Analyse"
-                            md_bg_color: "orange"
-                            disabled: True
-                            on_release: root.controller.analyse_results()
+                        padding: (0, 0, 20, 0)
+                        AnchorLayout:
+                            anchor_x: 'left'
+                            MDRaisedButton:
+                                id: preliminary_checks_btn
+                                text: "Verify"
+                                md_bg_color: "orange"
+                                on_release: root.controller.on_extract()
+                        AnchorLayout:
+                            anchor_x: 'center'
+                            MDRaisedButton:
+                                id: extract_btn
+                                text: "Extract"
+                                md_bg_color: "green"
+                                on_release: root.controller.on_extract()
+                    MDBoxLayout:
+                        padding: (10, 0, 0, 0)
+                        AnchorLayout:
+                            anchor_x: 'right'
+                            MDRaisedButton:
+                                id: batch_extract_btn
+                                text: "Batch Extract"
+                                md_bg_color: "green"
+                                disabled: True
+                                on_release: root.controller.update_on_batch_extract()
+                        AnchorLayout:
+                            anchor_x: 'center'
+                            MDRaisedButton:
+                                id: analyse_btn
+                                text: "Analyse"
+                                md_bg_color: "orange"
+                                disabled: True
+                                on_release: root.controller.analyse_results()
 
 
             # COLUMN 3: LOGGING INFORMATION
