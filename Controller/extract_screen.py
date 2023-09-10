@@ -331,7 +331,39 @@ class ExtractScreenController:
 
 
     def verify_images(self, left_ims, right_ims, masks):
-        return len(left_ims) == len(right_ims) == len(masks)
+        '''
+        Verifies that the images folder selected has an equal number of left and right images as
+        as well as segmentation masks
+        @param left_ims: Left images
+        @param right_ims: Right images
+        @param masks: Segmentation masks for left images
+        '''
+        equal = len(left_ims) == len(right_ims) == len(masks)
+        loaded = len(left_ims) > 0 and len(right_ims) > 0 and len(masks) > 0
+
+        if not loaded:
+            self.LOG_TEXT = f"[color=ff0000]Please choose location of images before proceeding...[/color]"
+            self.create_log_widget()
+        
+        elif not equal:
+            self.LOG_TEXT = f"[color=ff0000]Number of Left images, Right images, and Masks NOT equal! \nPlease check before proceeding...[/color]"
+            self.create_log_widget()
+
+        return loaded and equal
+    
+
+
+    def do_preliminary_checks(self):
+        '''
+        Performs preliminary checks on all the user inputs as well as app configurations before the
+        extraction of tree parameters from the images can begin
+        '''
+        rectified = self.view.ids.rectification_dropdown_item.text
+        path = self.CONFIG_FILE_PATH
+        
+        if self.verify_config_file(path, rectified) and self.verify_user_input():
+            self.view.ids.extract_btn.disabled = False
+            self.view.ids.batch_extract_btn.disabled = False
     
 
 
@@ -371,8 +403,7 @@ class ExtractScreenController:
         if self.verify_images(left_ims, right_ims, masks):
             self.view.ids.left_im.source = left_ims[0]
             self.view.ids.right_im.source = right_ims[0]
-            self.view.ids.batch_extract_btn.disabled = False
-            self.view.ids.extract_btn.disabled = False
+            self.view.ids.preliminary_checks_btn.disabled = False
         
         else:
             self.view.ids.extract_btn.disabled = True
@@ -480,35 +511,32 @@ class ExtractScreenController:
         mask = cv2.imread(mask_path, 0)
         kernel = np.ones((3,3), np.uint8)
 
-        if self.verify_config_file(rectified = rectified):
-            dmap = algorithms.extract(
-                left_im = left, 
-                right_im = right, 
-                mask = mask,
-                rectified = rec_status,
-                sel = kernel, 
-                config_file_path = self.CONFIG_FILE_PATH,
-                min_disp = int(self.view.ids.min_disp.text),
-                num_disp = int(self.view.ids.num_disp.text),
-                block_size = int(self.view.ids.block_size.text),
-                uniqueness_ratio = int(self.view.ids.uniqueness_ratio.text),
-                speckle_window_size = int(self.view.ids.speckle_window_size.text),
-                speckle_range = int(self.view.ids.speckle_range.text),
-                disp_max_diff = int(self.view.ids.disp_max_diff.text)
-            )
-            
-            # change to left_img_path.split('\\') for Windows
-            if platform == "win32":
-                dmap_filename = left_img_path.split('\\')[-1].split('.')[0] + '_disparity.jpg'
-            elif platform == "linux" or platform == "linux2":
-                dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
-            
-            dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
+        dmap = algorithms.extract(
+            left_im = left, 
+            right_im = right, 
+            mask = mask,
+            rectified = rec_status,
+            sel = kernel, 
+            config_file_path = self.CONFIG_FILE_PATH,
+            min_disp = int(self.view.ids.min_disp.text),
+            num_disp = int(self.view.ids.num_disp.text),
+            block_size = int(self.view.ids.block_size.text),
+            uniqueness_ratio = int(self.view.ids.uniqueness_ratio.text),
+            speckle_window_size = int(self.view.ids.speckle_window_size.text),
+            speckle_range = int(self.view.ids.speckle_range.text),
+            disp_max_diff = int(self.view.ids.disp_max_diff.text)
+        )
+        
+        # change to left_img_path.split('\\') for Windows
+        if platform == "win32":
+            dmap_filename = left_img_path.split('\\')[-1].split('.')[0] + '_disparity.jpg'
+        elif platform == "linux" or platform == "linux2":
+            dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
+        
+        dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
+        cv2.imwrite(dmap_path, dmap)
 
-            cv2.imwrite(dmap_path, dmap)
-            return dmap_path, mask_path
-        else:
-            return False
+        return dmap_path, mask_path
     
 
 
@@ -577,82 +605,90 @@ class ExtractScreenController:
 
     
 
-    def verify_config_file(self, rectified):
+    def verify_config_file(self, path, rectified):
         '''
         Verifies that the camera calibration file contains all the necessary matrices and that 
         those matrices have the right dimensions
+        @param path: Path to the configuration file
+        @param rectified: Rectification status of the images and takes the values 'Yes' or 'No'
         '''
 
-        try:
-            file = cv2.FileStorage(self.CONFIG_FILE_PATH, cv2.FILE_STORAGE_READ)
-            
+        if path:
             try:
-                nodes = file.root().keys()
-            
+                file = cv2.FileStorage(self.CONFIG_FILE_PATH, cv2.FILE_STORAGE_READ)
+                
+                try:
+                    nodes = file.root().keys()
+                
+                except Exception:
+                    self.LOG_TEXT = "[color=ff0000]Camera calibration file is empty![/color]"
+                    self.create_log_widget()
+                    return False
+                
+                else:
+                    if rectified == 'Yes':
+                        necessary_keys = {
+                                'K1': (3,3),
+                                'K2': (3,3),
+                                'T': (3,1),
+                                'Q': (4,4)
+                        }
+                        if all(key in nodes for key in necessary_keys.keys()):
+                            for key in necessary_keys.keys():
+                                try:
+                                    mat = file.getNode(key).mat()
+                                    assert(mat.shape) == necessary_keys[key]
+                                except AssertionError:
+                                    self.LOG_TEXT = "[color=ff0000]Some matrices have wrong dimensions[/color]"
+                                    self.create_log_widget()
+                                    return False
+                            
+                            return True
+                        
+                        else:
+                            self.LOG_TEXT = "[color=ff0000]Some matrices are missing in your calibration file[/color]"
+                            self.create_log_widget()
+                            return False
+                    
+                    elif rectified == 'No':
+                        necessary_keys = {
+                                'K1': (3,3),
+                                'K2': (3,3),
+                                'D1': (1,5),
+                                'D2': (1,5),
+                                'T': (3,1),
+                                'R1': (3,3),
+                                'R2': (3,3),
+                                'P1': (3,4),
+                                'P2': (3,4),
+                                'Q': (4,4)
+                        }
+                        if all(key in nodes for key in necessary_keys.keys()):
+                            for key in necessary_keys.keys():
+                                try:
+                                    mat = file.getNode(key).mat()
+                                    assert(mat.shape) == necessary_keys[key]
+                                except AssertionError:
+                                    self.LOG_TEXT = "[color=ff0000]Some matrices have wrong dimensions[/color]"
+                                    self.create_log_widget()
+                                    return False
+                            
+                            return True
+                        
+                        else:
+                            self.LOG_TEXT = "[color=ff0000]Some matrices are missing in your calibration file[/color]"
+                            self.create_log_widget()
+                            return False
+
             except Exception:
-                self.LOG_TEXT = "[color=ff0000]Camera calibration file is empty![/color]"
+                self.LOG_TEXT = "[color=ff0000]This file is not a valid YAML file.[/color]"
                 self.create_log_widget()
                 return False
-            
-            else:
-                if rectified == 'Yes':
-                    necessary_keys = {
-                            'K1': (3,3),
-                            'K2': (3,3),
-                            'T': (3,1),
-                            'Q': (4,4)
-                    }
-                    if all(key in nodes for key in necessary_keys.keys()):
-                        for key in necessary_keys.keys():
-                            try:
-                                mat = file.getNode(key).mat()
-                                assert(mat.shape) == necessary_keys[key]
-                            except AssertionError:
-                                self.LOG_TEXT = "[color=ff0000]Some matrices have wrong dimensions[/color]"
-                                self.create_log_widget()
-                                return False
-                        
-                        return True
-                    
-                    else:
-                        self.LOG_TEXT = "[color=ff0000]Some matrices are missing in your calibration file[/color]"
-                        self.create_log_widget()
-                        return False
-                
-                elif rectified == 'No':
-                    necessary_keys = {
-                            'K1': (3,3),
-                            'K2': (3,3),
-                            'D1': (1,5),
-                            'D2': (1,5),
-                            'T': (3,1),
-                            'R1': (3,3),
-                            'R2': (3,3),
-                            'P1': (3,4),
-                            'P2': (3,4),
-                            'Q': (4,4)
-                    }
-                    if all(key in nodes for key in necessary_keys.keys()):
-                        for key in necessary_keys.keys():
-                            try:
-                                mat = file.getNode(key).mat()
-                                assert(mat.shape) == necessary_keys[key]
-                            except AssertionError:
-                                self.LOG_TEXT = "[color=ff0000]Some matrices have wrong dimensions[/color]"
-                                self.create_log_widget()
-                                return False
-                        
-                        return True
-                    
-                    else:
-                        self.LOG_TEXT = "[color=ff0000]Some matrices are missing in your calibration file[/color]"
-                        self.create_log_widget()
-                        return False
-
-        except Exception:
-            self.LOG_TEXT = "[color=ff0000]This file is not a valid YAML file.[/color]"
+        
+        else:
+            self.LOG_TEXT = "[color=ff0000]Missing the calibration file.[/color]"
             self.create_log_widget()
-            return False
+            return False 
     
 
 
@@ -732,61 +768,46 @@ class ExtractScreenController:
         '''
         Called when the "Extract" button on the user interface is pressed
         '''
-        rectified = self.view.ids.rectification_dropdown_item.text
-
-        if self.CONFIG_FILE_PATH == None:
-            toast("Missing camera calibration file")
-            self.LOG_TEXT = "[color=ff0000]\nMissing camera calibration file![/color]"
-            self.create_log_widget()
+        self.create_project_directories()
+        self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
+        dmap_path, mask_path = self.compute_and_save_disparity()
         
-        elif not self.verify_config_file(rectified = rectified):
-            self.LOG_TEXT = "[color=ff0000]\nEnsure your calibration file is a valid YAML file, and has all the necessary matrices.[/color]"
-            self.create_log_widget()
+        parameter = self.view.parameter_dropdown_item.text
+
+        parameters, values = self.compute_parameter(dmap_path, mask_path)
+        values_dict = {}
+        for i in range(len(parameters)):
+            values_dict[parameters[i]] = values[i]
+
+        annotated_image = self.annotate_image(dmap_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
+
+        left_filename = os.path.basename(self.view.left_im.source)
+
+        if platform == 'win32':
+            annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
+        elif platform in ['linux', 'linux2']:
+            annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
         
-        elif not self.verify_user_input():
-            toast("Some inputs are not valid!")
+        annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
+        cv2.imwrite(annotated_image_path, annotated_image)
+        self.view.right_im.source = annotated_image_path
 
-        else:
-            self.create_project_directories()
-            self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
-            dmap_path, mask_path = self.compute_and_save_disparity()
-            
-            parameter = self.view.parameter_dropdown_item.text
+        self.display_parameters_on_logs(
+            image = left_filename,
+            parameters = parameters,
+            values = values
+        )
 
-            parameters, values = self.compute_parameter(dmap_path, mask_path)
-            values_dict = {}
-            for i in range(len(parameters)):
-                values_dict[parameters[i]] = values[i]
+        new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
 
-            annotated_image = self.annotate_image(dmap_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
+        if parameter == 'DBH':
+            results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
+        elif parameter == 'CD & TH':
+            results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
 
-            left_filename = os.path.basename(self.view.left_im.source)
-
-            if platform == 'win32':
-                annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
-            elif platform in ['linux', 'linux2']:
-                annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
-            
-            annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
-            cv2.imwrite(annotated_image_path, annotated_image)
-            self.view.right_im.source = annotated_image_path
-
-            self.display_parameters_on_logs(
-                image = left_filename,
-                parameters = parameters,
-                values = values
-            )
-
-            new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
-
-            if parameter == 'DBH':
-                results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
-            elif parameter == 'CD & TH':
-                results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
-
-            results_df = pd.read_csv(results_file, index_col='Filename')
-            results_df.loc[left_filename] = new_row
-            results_df.to_csv(results_file)
+        results_df = pd.read_csv(results_file, index_col='Filename')
+        results_df.loc[left_filename] = new_row
+        results_df.to_csv(results_file)
 
 
 
@@ -874,25 +895,7 @@ class ExtractScreenController:
         '''
         Schedules the 'on_batch_extract_function' to run every 500ms
         '''
-        rectified = self.view.ids.rectification_dropdown_item.text
-        
-        if self.CONFIG_FILE_PATH == None:
-            toast("Missing camera calibration file")
-            self.LOG_TEXT = "[color=ff0000]Missing camera calibration file![/color]"
-            self.create_log_widget()
-            self.unschedule_batch_extraction()
-        
-        elif not self.verify_config_file(rectified = rectified):
-            self.LOG_TEXT = "[color=ff0000]Ensure your calibration file is a valid YAML file, and has all the necessary matrices.[/color]"
-            self.create_log_widget()
-            self.unschedule_batch_extraction()
-        
-        elif not self.verify_user_input():
-            toast("Some inputs are not valid!")
-            self.unschedule_batch_extraction()
-        
-        else:
-            Clock.schedule_interval(self.on_batch_extract, 0.5)
+        Clock.schedule_interval(self.on_batch_extract, 0.5)
     
 
 
@@ -1172,6 +1175,8 @@ class ExtractScreenController:
         self.view.ids.rectification_dropdown_item.text = 'No'
         self.view.ids.dfov.text = '55'
         self.view.ids.analyse_btn.disabled = True
+        self.view.ids.preliminary_checks_btn.disabled = True
+        self.view.ids.extract_btn.disabled = True
         self.view.ids.batch_extract_btn.disabled = True
         self.view.ids.scroll_layout.clear_widgets()
 

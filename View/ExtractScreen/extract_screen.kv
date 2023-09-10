@@ -383,13 +383,15 @@
                                 id: preliminary_checks_btn
                                 text: "Verify"
                                 md_bg_color: "orange"
-                                on_release: root.controller.on_extract()
+                                disabled: True
+                                on_release: root.controller.do_preliminary_checks()
                         AnchorLayout:
                             anchor_x: 'center'
                             MDRaisedButton:
                                 id: extract_btn
                                 text: "Extract"
                                 md_bg_color: "green"
+                                disabled: True
                                 on_release: root.controller.on_extract()
                     MDBoxLayout:
                         padding: (10, 0, 0, 0)
