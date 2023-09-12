@@ -157,6 +157,8 @@ class ExtractScreenController:
         )
         self.rectification_menu.bind()
 
+        self.LOG_TEXT = "[color=ffffff]Welcome to DSAIL TreeVision ...[/color]"
+        self.create_log_widget()
         self.set_display_images()
         self.toggle_scrolling_icons()
         self.initialize_sgbm_values()
@@ -768,46 +770,50 @@ class ExtractScreenController:
         '''
         Called when the "Extract" button on the user interface is pressed
         '''
-        self.create_project_directories()
-        self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
-        dmap_path, mask_path = self.compute_and_save_disparity()
+        if self.verify_user_input():
+            self.create_project_directories()
+            self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
+            dmap_path, mask_path = self.compute_and_save_disparity()
+            
+            parameter = self.view.parameter_dropdown_item.text
+
+            parameters, values = self.compute_parameter(dmap_path, mask_path)
+            values_dict = {}
+            for i in range(len(parameters)):
+                values_dict[parameters[i]] = values[i]
+
+            annotated_image = self.annotate_image(dmap_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
+
+            left_filename = os.path.basename(self.view.left_im.source)
+
+            if platform == 'win32':
+                annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
+            elif platform in ['linux', 'linux2']:
+                annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
+            
+            annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
+            cv2.imwrite(annotated_image_path, annotated_image)
+            self.view.right_im.source = annotated_image_path
+
+            self.display_parameters_on_logs(
+                image = left_filename,
+                parameters = parameters,
+                values = values
+            )
+
+            new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
+
+            if parameter == 'DBH':
+                results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
+            elif parameter == 'CD & TH':
+                results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
+
+            results_df = pd.read_csv(results_file, index_col='Filename')
+            results_df.loc[left_filename] = new_row
+            results_df.to_csv(results_file)
         
-        parameter = self.view.parameter_dropdown_item.text
-
-        parameters, values = self.compute_parameter(dmap_path, mask_path)
-        values_dict = {}
-        for i in range(len(parameters)):
-            values_dict[parameters[i]] = values[i]
-
-        annotated_image = self.annotate_image(dmap_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
-
-        left_filename = os.path.basename(self.view.left_im.source)
-
-        if platform == 'win32':
-            annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
-        elif platform in ['linux', 'linux2']:
-            annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
-        
-        annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
-        cv2.imwrite(annotated_image_path, annotated_image)
-        self.view.right_im.source = annotated_image_path
-
-        self.display_parameters_on_logs(
-            image = left_filename,
-            parameters = parameters,
-            values = values
-        )
-
-        new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
-
-        if parameter == 'DBH':
-            results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
-        elif parameter == 'CD & TH':
-            results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
-
-        results_df = pd.read_csv(results_file, index_col='Filename')
-        results_df.loc[left_filename] = new_row
-        results_df.to_csv(results_file)
+        else:
+            toast("Missing some inputs!")
 
 
 
@@ -895,7 +901,11 @@ class ExtractScreenController:
         '''
         Schedules the 'on_batch_extract_function' to run every 500ms
         '''
-        Clock.schedule_interval(self.on_batch_extract, 0.5)
+        if self.verify_user_input():
+            Clock.schedule_interval(self.on_batch_extract, 0.5)
+        else:
+            toast("Missing some inputs!")
+            self.unschedule_batch_extraction()
     
 
 
@@ -1178,6 +1188,7 @@ class ExtractScreenController:
         self.view.ids.preliminary_checks_btn.disabled = True
         self.view.ids.extract_btn.disabled = True
         self.view.ids.batch_extract_btn.disabled = True
+        self.view.ids.progress_bar.value = 0
         self.view.ids.scroll_layout.clear_widgets()
 
         self.LOG_TEXT = "[color=ffffff]DSAIL TreeVision ... \nApp has been reset and all configurations cleared.[/color]"
