@@ -20,6 +20,3 @@ REQ_FILE=requirements.txt
 # Install required packages
 conda install kivy=2.1.0 -c conda-forge
 pip install -r $REQ_FILE
-
-# Activate virtual environment
-source activate $VENV_NAME

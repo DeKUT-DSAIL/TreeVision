@@ -8,7 +8,7 @@ Stereoscopic vision is a computer vision technique that can be used retrieve the
 
 *DSAIL-TreeVision* can accurately estimate the values of the diameter at breast height (DBH), crown diameter (CD), and tree height (CD). The DBH is usually measured at 1.3 m above the trunk base and the algorithms presented in *DSAIL-TreeVision* can estimate this location with impressive accuracy. The algorithms for estimating these parameters are found inside the [Controller/algorithms.py](./Controller/algorithms.py) file
 
-*DSAIL-TreeVision* is built using the [Kivy](https://kivy.org/) and [KivyMD](https://kivymd.readthedocs.io/en/1.1.1/) Python packages.
+*DSAIL-TreeVision* is built using the [Kivy](https://kivy.org/) and [KivyMD](https://kivymd.readthedocs.io/en/1.1.1/) Python packages. You can learn how to use it by reading [the user guide](./TreeVision%20User%20Guide.pdf)
 
 ## The User Interface
 *DSAIL-TreeVision* comprises three modules i.e., the `Extract` module for extracting tree biophysical parameters, the `Calibrate` module for calibrating both single and stereo cameras, and the `Capture` module for capturing single and stereoscopic images. Each of these modules are accessed in different screens built in to the user interface. The `Extract` module is the default module displayed when the software is first run.
@@ -32,33 +32,99 @@ Below is a screenshot of the `Image acquisition interface`. The UI conntains wid
 
 One can switch between the stereo and single camera modes using the tab switch buttons at the bottom of the screen. In stereo mode, the user can the swap camera streams (make the right camera left, and the left right) using the camera swap button on the right hand side.
 
-## Setting Up and Installation
+## Installing Python
+Skip this section if you already have python installed.
+
+### Windows
+1. Download the [Miniconda3 setup](https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe) and double click on it and follow the prompts to install. In the installation prompt, make sure to enable `conda` to be added to the PATH environmental variable as show in the screenshot below.
+
+![add path](./assets/images/readme/conda_install.png)
+
+2. To confirm that Python was installed successfully, open command prompt and run the following command. The output should be the python version installed.
+```bash
+python --version
+```
+
+3. If the installation is verified, you can delete the installation file by running the following command on command prompt.
+```bash
+del Miniconda3-latest-Windows-x86_64.exe
+```
+
+4. Download the [Git Bash setup](https://git-scm.com/download/win) and install it. Leave the defaults when following the installation prompts. Once installation is complete, proceed to launch `Git Bash`.
+
+5. To initialize `Git Bash` to recognize the `conda` command, running the following command.
+```bash
+mv ~/.bash_profile ~/.bashrc
+conda init
+```
+
+6. Close `Git Bash` and reopen it. Run the following command and confirm that there is no error raised.
+```bash
+conda activate
+```
+
+### Linux
+1. Download the Miniconda3 installation file by running the following command in your terminal.
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+```
+
+2. Without closing the terminal, run the following command and follow the prompts to install Miniconda3.
+```bash
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+
+3. Confirm that python is installed by running this command in terminal. The output should the python version you just installed.
+```bash
+python --version
+```
+
+4. Once Python is installed, you can delete the installation file by running the following command.
+```bash
+rm Miniconda3-latest-Linux-x86_64.sh
+```
+
+### Other platforms
+Installation instructions for Miniconda3 ona all platforms can be found [here](https://docs.conda.io/projects/miniconda/en/latest/).
+
+## Setting Up *DSAIL-TreeVision*
 #### Note for Windows Users: Install [`Git Bash`](https://git-scm.com/download/win) before proceeding
-1. Clone this repository. The root directory will be saved in your computer as `TreeVision`
+1. Open your your file manager/explorer and navigate to  where you would like to save *`DSAIL-TreeVision`* files. 
+
+2. Right click on this location and select `Git Bash Here` if you are on Windows, or `open in terminal` if you are on Linux. This will open `Git Bash` or `Bash` in this location.
+
+3. Now go ahead and clone this github repository. To do this, copy and paste the following command on `Git Bash` or `Bash` and pressing enter. Once the process is complete, the root directory will be saved as `TreeVision`
 ```bash
 git clone https://github.com/DeKUT-DSAIL/DSAIL-TreeVision.git
 ```
 
-2. Open the application's root folder (`TreeVision`) in a terminal application. Use `bash` if you are on Linux or `Git Bash` if you are on Windows. Using `Git Bash` on Windows will make it easier to finish the setup process.
+4. On command line, open the application's root folder (`TreeVision`) by running the following command:
+```bash
+cd TreeVision
+```
 
-3. In the terminal, run the `setup.sh` script from the TreeVision's root directory, using the command:
+5. On command line, run the `setup.sh` script from the `DSAIL-TreeVision`'s root directory, using the command:
 ```bash
 bash setup.sh
 ```
 
-4. Run the `start.sh` script using the command:
+6. Run the `start.sh` script using the command:
 ```bash
 source start.sh
 ```
 
 ## Test Usage: Parameter Extraction
-A folder called `test` is included in `DSAIL-TreeVision`'s root directory. It contains a `full_trees` folder of 20 image pairs of full trees from which you can extract CDs and THs, and a `trunks` folder of 10 image pairs of tree trunks and their masks from which you can extract the DBHs. Follow these steps:
+A folder called `test` is included in *`DSAIL-TreeVision`'s* root directory. It contains a `full_trees` folder of 20 image pairs of full trees from which you can extract CDs and THs, and a `trunks` folder of 10 image pairs of tree trunks and their masks from which you can extract the DBHs. 
+
+By default, the file manager in *DSAIL-TreeVision* opens in the host system's `home` directory. On Windows, this will be the `C:\Users\<USER>` directory (replace \<USER> with the username you used in your PC). On Linux, this will be `/home` directory. By contrast, the test images you will be using in this test phase are found inside the root directory of the application. You will need to navigate form your `home` directory to application's root directory to select your files or folders. You can perform this navigation by clicking on the `back` button on the top left of the file manager user interface.
+
+To test tree parameter extraction on *`DSAIL-TreeVision`*, follow these steps:
 
 1. On the user interface, click on the green `Select project images` button to open the file manager. Navigate to the `TreeVision/test/full_trees` folder and select this folder by pressing the checkmark (tick) button on the bottom right of the screen. This folder has now been selected as the location of the images to be processed.
 
-2. Click on the `Calibrate File (YML)` button and navigate to the `configs/test` folder and click on the `stereo_full_trees.yml` file to select it. This file has now been selected as camera calibration to be used in processing the images uploaded in step 1.
+2. Click on the `Calibrate File (YML)` button and navigate to the `TreeVision/configs/test` folder and click on the `stereo_full_trees.yml` file to select it. This file has now been selected as camera calibration to be used in processing the images uploaded in step 1.
 
-3. Click on the `Select ref values file` button and the scroll down until you find the `test_cd_th.csv` file and click on it. This file has now been selected as the file containing the ground truth values of crown diameter (CD) and tree height (TH) for the trees in the images selected in step 1.
+3. Click on the `Select ref values file` button and the scroll down until you find the `TreeVision/test_cd_th.csv` file and click on it. This file has now been selected as the file containing the ground truth values of crown diameter (CD) and tree height (TH) for the trees in the images selected in step 1.
 
 4. Click on the orange `Verify` button. If you followed steps 1-3 correctly and did not modify any of the default settings on the interface, the `Extract` and `Batch Extract` buttons adjacent to the `Verify` button you clicked on should have turned green.
 
