@@ -426,40 +426,46 @@ def compute_dbh(image, mask, baseline, focal_length, dfov, cx, cy):
     print(f"Breast Height Location: {bh} pixels from the top")
 
     bh_pixels = np.nonzero(mask[bh, :])[0]
-    xmax = bh_pixels.max() # left_edge = (bh, xmin)
-    xmin = bh_pixels.min() # right_edge = (bh, xmax)
-    sd = xmax - xmin
-    print(f"The DBH spans {sd} pixels")
 
-    bh_px = median_bh_pixel(image=image, bh=bh)
-    za = disp_to_dist(bh_px)
-    zb = za
-    print(f"Depth of breast height: {round(za, 2)}m")
+    if bh_pixels.size == 0:
+        actual_dbh = 0
+    
+    else:
+        xmax = bh_pixels.max() # left_edge = (bh, xmin)
+        xmin = bh_pixels.min() # right_edge = (bh, xmax)
+        sd = xmax - xmin
+        print(f"The DBH spans {sd} pixels")
 
-    # Coordinates of left edge of the breast height
-    left_edge_disparity = baseline * focal_length / za
-    xa = baseline * (xmin - cx) / left_edge_disparity
-    ya = baseline * (bh - cy) / left_edge_disparity
+        bh_px = median_bh_pixel(image=image, bh=bh)
+        za = disp_to_dist(bh_px)
+        zb = za
+        print(f"Depth of breast height: {round(za, 2)}m")
 
-    # Coordinates of right edge of the breast height
-    right_edge_disparity = baseline * focal_length / zb
-    xb = baseline * (xmax - cx) / right_edge_disparity
-    yb = baseline * (bh - cy) / right_edge_disparity
+        # Coordinates of left edge of the breast height
+        left_edge_disparity = baseline * focal_length / za
+        xa = baseline * (xmin - cx) / left_edge_disparity
+        ya = baseline * (bh - cy) / left_edge_disparity
 
-    print(f"Left BH edge coordinates: {round(xa, 2), round(ya, 2), round(za, 2)}")
-    print(f"Right BH edge coordinates: {round(xb, 2), round(yb, 2), round(zb, 2)}")
+        # Coordinates of right edge of the breast height
+        right_edge_disparity = baseline * focal_length / zb
+        xb = baseline * (xmax - cx) / right_edge_disparity
+        yb = baseline * (bh - cy) / right_edge_disparity
 
-    visible_dbh = xb - xa
-    tangent_a = cv2.norm(np.array([xa, ya, za]))
-    actual_dbh = visible_dbh * tangent_a / (np.sqrt(tangent_a ** 2 - (visible_dbh / 2) ** 2))
-    print(f"Tangent A: {round(tangent_a, 2)}, \tTangent B: {round(cv2.norm(np.array([xb, yb, zb])), 2)}")
-    print(f"Other DBH: {actual_dbh}")
+        print(f"Left BH edge coordinates: {round(xa, 2), round(ya, 2), round(za, 2)}")
+        print(f"Right BH edge coordinates: {round(xb, 2), round(yb, 2), round(zb, 2)}")
 
-    h, w = image.shape
-    hfov, _ = calculate_fields_of_view(dfov, w, h)
-    theta = np.arctan(sd * (np.tan(hfov / 2) / w))
-    print(f"Angle subtended by trunk width at camera: {round(np.rad2deg(theta), 2)} degrees.")
-    D = 2 * za * np.tan(theta)
+        visible_dbh = xb - xa
+        tangent_a = cv2.norm(np.array([xa, ya, za]))
+        actual_dbh = visible_dbh * tangent_a / (np.sqrt(tangent_a ** 2 - (visible_dbh / 2) ** 2))
+        print(f"Tangent A: {round(tangent_a, 2)}, \tTangent B: {round(cv2.norm(np.array([xb, yb, zb])), 2)}")
+        print(f"Other DBH: {actual_dbh}")
+
+        h, w = image.shape
+        hfov, _ = calculate_fields_of_view(dfov, w, h)
+        theta = np.arctan(sd * (np.tan(hfov / 2) / w))
+        print(f"Angle subtended by trunk width at camera: {round(np.rad2deg(theta), 2)} degrees.")
+        D = 2 * za * np.tan(theta)
+    
     return actual_dbh
 
 

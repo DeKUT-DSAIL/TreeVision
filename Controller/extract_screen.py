@@ -463,7 +463,7 @@ class ExtractScreenController:
             if not os.path.exists(path):
                 os.makedirs(path, exist_ok=True)
         
-        log_text = "[color=ffffff]Project folders have been created![/color]"
+        log_text = "[color=ffffff]\nProject folders have been created![/color]"
         self.LOG_TEXT += log_text
         self.create_log_widget()
 
@@ -574,15 +574,21 @@ class ExtractScreenController:
             bh = algorithms.compute_bh(dmap, base_depth, baseline, focal_length, dfov, cx, cy)
 
             cols = np.nonzero(dmap[bh, :])[0]
-            left_edge = (cols.min(), bh)
-            right_edge = (cols.max(), bh)
 
-            left_image = cv2.arrowedLine(left_image, (0, bh) ,left_edge, (0,0,255), 5)
-            left_image = cv2.arrowedLine(left_image, (w-1, bh) ,right_edge, (0,0,255), 5)
-            left_image = cv2.arrowedLine(left_image, (base[1]-200, bh), base_loc, (0,0,255), 5)
+            if cols.size != 0:
+                left_edge = (cols.min(), bh)
+                right_edge = (cols.max(), bh)
 
-            left_image = cv2.putText(left_image, f'{round(values_dict["DBH"], 2)}cm', (cols.min()+5, bh+50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
-            left_image = cv2.putText(left_image, '1.3m', (base[1]-180, int(h/2)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2, cv2.LINE_AA)
+                left_image = cv2.arrowedLine(left_image, (0, bh) ,left_edge, (0,0,255), 5)
+                left_image = cv2.arrowedLine(left_image, (w-1, bh) ,right_edge, (0,0,255), 5)
+                left_image = cv2.arrowedLine(left_image, (base[1]-200, bh), base_loc, (0,0,255), 5)
+
+                left_image = cv2.putText(left_image, f'{round(values_dict["DBH"], 2)}cm', (cols.min()+5, bh+50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+                left_image = cv2.putText(left_image, '1.3m', (base[1]-180, int(h/2)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2, cv2.LINE_AA)
+            
+            else:
+                left_image = cv2.putText(left_image, '0 trunk pixels at', (int(w/2), int(h/2)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2, cv2.LINE_AA)
+                left_image = cv2.putText(left_image, 'Breast Height!', (int(w/2), int(h/2) + 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2, cv2.LINE_AA)
 
             return left_image
         
