@@ -2,6 +2,7 @@ import importlib
 import os.path
 import time
 from functools import partial
+from sys import platform
 
 import cv2
 from PIL import Image
@@ -95,6 +96,7 @@ class MainScreenController:
                 cap.release()
             index += 1
             i -= 1
+        print(f"CAMS: {self.cameras}")
         return self.cameras
 
 
@@ -263,7 +265,10 @@ class MainScreenController:
             cam_id = self.prev_cam_id
         
         self.image = self.view.ids.camera_screen.ids.camera_canvas
-        self.capture = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW)
+        if platform == 'win32':
+            self.capture = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW)
+        elif platform in ['linux', 'linux2']:
+            self.capture = cv2.VideoCapture(cam_id, cv2.CAP_V4L)
         self.capture.set(3, self.FRAME_WIDTH)
         self.capture.set(4, self.FRAME_HEIGHT)
         self.video_event = Clock.schedule_interval(partial(self.load_video, "single"), 1.0 / 60.0)
@@ -289,13 +294,19 @@ class MainScreenController:
         
         if len(self.cameras) >= 2:
             self.left_camera = self.view.ids.stereo_camera_screen.ids.left_camera
-            self.left_capture = cv2.VideoCapture(self.left_cam_index, cv2.CAP_DSHOW)
+            if platform == 'win32':
+                self.left_capture = cv2.VideoCapture(self.left_cam_index, cv2.CAP_DSHOW)
+            elif platform in ['linux', 'linux2']:
+                self.left_capture = cv2.VideoCapture(self.left_cam_index, cv2.CAP_V4L)
             self.left_capture.set(3, self.FRAME_WIDTH)
             self.left_capture.set(4, self.FRAME_HEIGHT)
             self.left_video_event = Clock.schedule_interval(partial(self.load_video, "left"), 1.0 / 66.0)
 
             self.right_camera = self.view.ids.stereo_camera_screen.ids.right_camera
-            self.right_capture = cv2.VideoCapture(self.right_cam_index, cv2.CAP_DSHOW)
+            if platform == 'win32':
+                self.right_capture = cv2.VideoCapture(self.right_cam_index, cv2.CAP_DSHOW)
+            elif platform in ['linux', 'linux2']:
+                self.right_capture = cv2.VideoCapture(self.right_cam_index, cv2.CAP_V4L)
             self.right_capture.set(3, self.FRAME_WIDTH)
             self.right_capture.set(4, self.FRAME_HEIGHT)
             self.right_video_event = Clock.schedule_interval(partial(self.load_video, "right"), 1.0 / 66.0)
