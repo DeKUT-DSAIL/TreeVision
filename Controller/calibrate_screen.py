@@ -822,6 +822,8 @@ class CalibrateScreenController:
             self.create_log_widget()
         else:
             toast('User Guide has been launched')
+            self.LOG_TEXT = "[color=00ff00]User Guide has been opened in your default application.[/color]"
+            self.create_log_widget()
 
 
 
