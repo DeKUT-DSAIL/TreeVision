@@ -29,6 +29,6 @@ class RefreshConfirm(MDBoxLayout):
 
 class InfoPopup(MDBoxLayout):
     '''
-    Popup modal that provides information about the TreeVision software
+    Popup modal that provides information about the DSAIL-TreeVision software
     '''
     pass

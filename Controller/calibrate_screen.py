@@ -43,7 +43,7 @@ class CalibrateScreenController:
     RIGHT_IMS = None
     UNPAIRED_IMS = None
 
-    LOG_TEXT = "[color=ffffff]Welcome to DSAIL's TreeVision Software ...[/color]\n"
+    LOG_TEXT = "[color=ffffff]Welcome to the DSAIL-TreeVision Software ...[/color]\n"
     READY_FOR_CALIBRATION = False
     CALIB_MODE = None
 
@@ -316,7 +316,7 @@ class CalibrateScreenController:
 
     def do_preliminary_checks(self):
         '''
-        Performs all preliminary checks to ensure TreeVision is ready for calibration
+        Performs all preliminary checks to ensure DSAIL-TreeVision is ready for calibration
         @param mode: Mode of calibration which is either 'single' or 'stereo'
         '''
         if self.verify_user_input():
@@ -768,11 +768,11 @@ class CalibrateScreenController:
     def show_info_popup_modal(self):
         '''
         Called when the user clicks on the 'About' button in the user interface. It displays a popup modal with
-        information about the TreeVision software
+        information about the DSAIL-TreeVision software
         '''
         if not self.info_popup:
             self.info_popup = MDDialog(
-                title="About TreeVision",
+                title="About DSAIL-TreeVision",
                 type="custom",
                 content_cls = InfoPopup(),
                 auto_dismiss=False,
@@ -807,10 +807,10 @@ class CalibrateScreenController:
 
     def open_user_guide(self):
         '''
-        Opens the User Guide of TreeVision using the the system default application
+        Opens the User Guide of DSAIL-TreeVision using the the system default application
         '''
         try:
-            os.startfile("TreeVision User Guide.pdf")
+            os.startfile("DSAIL_TreeVision_User_Guide.pdf")
         except FileNotFoundError:
             toast('User guide not found!')
             self.LOG_TEXT = "[color=ff0000]Couldn't find the user guide.[/color]"
@@ -847,7 +847,7 @@ class CalibrateScreenController:
 
         self.view.ids.scroll_layout.clear_widgets()
         self.dialog.dismiss()
-        self.LOG_TEXT = f"[color=ffffff]DSAIL TreeVision \nApp has been reset and all configurations cleared.[/color]"
+        self.LOG_TEXT = f"[color=ffffff]DSAIL-TreeVision \nApp has been reset and all configurations cleared.[/color]"
         self.create_log_widget()
 
     

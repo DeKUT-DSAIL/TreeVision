@@ -61,7 +61,7 @@ class ExtractScreenController:
     RIGHT_IMS = None
     MASKS = None
 
-    LOG_TEXT = "[color=ffffff]Welcome to DSAIL's TreeVision Software ...[/color]\n"
+    LOG_TEXT = "[color=ffffff]Welcome to the DSAIL-TreeVision Software ...[/color]\n"
 
     def __init__(self):
         self.view = View.ExtractScreen.extract_screen.ExtractScreenView(controller=self)
@@ -157,7 +157,7 @@ class ExtractScreenController:
         )
         self.rectification_menu.bind()
 
-        self.LOG_TEXT = "[color=ffffff]Welcome to DSAIL TreeVision ...[/color]"
+        self.LOG_TEXT = "[color=ffffff]Welcome to DSAIL-TreeVision ...[/color]"
         self.create_log_widget()
         self.set_display_images()
         self.toggle_scrolling_icons()
@@ -586,7 +586,7 @@ class ExtractScreenController:
                 left_image = cv2.arrowedLine(left_image, (w-1, bh) ,right_edge, (0,0,255), 5)
                 left_image = cv2.arrowedLine(left_image, (base[1]-200, bh), base_loc, (0,0,255), 5)
 
-                left_image = cv2.putText(left_image, f'{round(values_dict["DBH"], 2)}cm', (cols.min()+5, bh+50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+                left_image = cv2.putText(left_image, f'{round(values_dict["DBH"] * 100, 2)}cm', (cols.min()+5, bh+50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
                 left_image = cv2.putText(left_image, '1.3m', (base[1]-180, int(h/2)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,0,255), 2, cv2.LINE_AA)
             
             else:
@@ -1123,11 +1123,11 @@ class ExtractScreenController:
     def show_info(self):
         '''
         Called when the user clicks on the 'About' button in the user interface. It displays a popup modal with
-        information about the TreeVision software
+        information about the DSAIL-TreeVision software
         '''
         if not self.info_popup_modal:
             self.info_popup_modal = MDDialog(
-                title="About TreeVision",
+                title="About DSAIL-TreeVision",
                 type="custom",
                 content_cls = InfoPopupModal(),
                 auto_dismiss=False,
@@ -1162,10 +1162,10 @@ class ExtractScreenController:
 
     def open_user_guide(self):
         '''
-        Opens the User Guide of TreeVision using the the system default application
+        Opens the User Guide of DSAIL-TreeVision using the the system default application
         '''
         try:
-            os.startfile("TreeVision User Guide.pdf")
+            os.startfile("DSAIL_TreeVision_User_Guide.pdf")
         except FileNotFoundError:
             toast('User guide not found!')
             self.LOG_TEXT = "[color=ff0000]Couldn't find the user guide.[/color]"
@@ -1200,7 +1200,7 @@ class ExtractScreenController:
         self.view.ids.progress_bar.value = 0
         self.view.ids.scroll_layout.clear_widgets()
 
-        self.LOG_TEXT = "[color=ffffff]DSAIL TreeVision ... \nApp has been reset and all configurations cleared.[/color]"
+        self.LOG_TEXT = "[color=ffffff]DSAIL-TreeVision ... \nApp has been reset and all configurations cleared.[/color]"
         self.dialog.dismiss()
         self.create_log_widget()
     
