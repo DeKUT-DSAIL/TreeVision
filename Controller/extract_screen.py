@@ -1,6 +1,7 @@
 import os
 import importlib
 import matplotlib.pyplot as plt
+import subprocess
 import cv2
 import numpy as np
 import pandas as pd
@@ -1164,14 +1165,20 @@ class ExtractScreenController:
         '''
         Opens the User Guide of DSAIL-TreeVision using the the system default application
         '''
+        path = "TreeVision User Guide.pdf"
         try:
-            os.startfile("DSAIL_TreeVision_User_Guide.pdf")
+            if platform == 'win32':
+                os.startfile(path)
+            elif platform in ['linux', 'linux2']:
+                subprocess.run(['xdg-open', path])
         except FileNotFoundError:
             toast('User guide not found!')
             self.LOG_TEXT = "[color=ff0000]Couldn't find the user guide.[/color]"
             self.create_log_widget()
         else:
             toast('User Guide has been launched')
+            self.LOG_TEXT = "[color=00ff00]User Guide has been opened in your default application.[/color]"
+            self.create_log_widget()
     
     
     def reset(self, instance):
