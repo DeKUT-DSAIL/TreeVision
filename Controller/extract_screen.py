@@ -1165,7 +1165,7 @@ class ExtractScreenController:
         '''
         Opens the User Guide of DSAIL-TreeVision using the the system default application
         '''
-        path = "TreeVision User Guide.pdf"
+        path = "DSAIL_TreeVision_User_Guide.pdf"
         try:
             if platform == 'win32':
                 os.startfile(path)
