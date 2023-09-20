@@ -542,7 +542,7 @@ class ExtractScreenController:
     
 
 
-    def annotate_image(self, dmap_path, parameter, dfov, values_dict):
+    def annotate_image(self, dmap_path, mask_path, parameter, dfov, values_dict):
         '''
         Annotates an image by showing the location of its boundaries and superimposing the values of the estimated parameters
         '''
@@ -562,6 +562,8 @@ class ExtractScreenController:
         h, w = dmap.shape
 
         left_image = cv2.imread(self.view.left_im.source)
+        mask = cv2.imread(mask_path, 0)
+
         B, G, R = cv2.split(left_image)
 
         B = algorithms.rectify(B, self.CONFIG_FILE_PATH, 'left')
@@ -569,11 +571,12 @@ class ExtractScreenController:
         R = algorithms.rectify(R, self.CONFIG_FILE_PATH, 'left')
 
         left_image = cv2.merge([B,G,R])
+        mask_rectified = algorithms.rectify(mask, self.CONFIG_FILE_PATH, 'left')
 
         if parameter.lower() == 'dbh':
             bh = algorithms.compute_bh(dmap, base_depth, baseline, focal_length, dfov, cx, cy)
 
-            cols = np.nonzero(dmap[bh, :])[0]
+            cols = np.nonzero(mask_rectified[bh, :])[0]
 
             if cols.size != 0:
                 left_edge = (cols.min(), bh)
@@ -788,7 +791,7 @@ class ExtractScreenController:
             for i in range(len(parameters)):
                 values_dict[parameters[i]] = values[i]
 
-            annotated_image = self.annotate_image(dmap_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
+            annotated_image = self.annotate_image(dmap_path, mask_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
 
             left_filename = os.path.basename(self.view.left_im.source)
 
@@ -849,7 +852,7 @@ class ExtractScreenController:
             values_dict[parameters[i]] = values[i]
 
         parameter = self.view.parameter_dropdown_item.text
-        annotated_image = self.annotate_image(dmap_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
+        annotated_image = self.annotate_image(dmap_path, mask_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
 
         left_filename = os.path.basename(self.view.left_im.source)
         if platform == 'win32':
