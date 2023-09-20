@@ -704,22 +704,29 @@ class ExtractScreenController:
     
 
 
-    def verify_reference_file(self, path, param):
+    def verify_reference_file(self, path, results_file_path, param):
         '''
         Verifies that the file of reference values conforms to the expected format
         '''
-        if path:
+        if path and results_file_path:
             try:
                 df = pd.read_csv(path)
+                df_res = pd.read_csv(results_file_path)
                 cols = list(df.columns)
 
                 if param.lower() == 'dbh':
                     if cols == ['Filename','Ref_DBH']:
-                        try:
-                            mean_dbh = df['Ref_DBH'].mean()
+                        if df['Filename'].sort_values().equals(df_res['Filename'].sort_values()):
+                            try:
+                                mean_dbh = df['Ref_DBH'].mean()
 
-                        except TypeError:
-                            self.LOG_TEXT = "[color=ff0000]Your CSV file has non-numeric values for DBH.[/color]"
+                            except TypeError:
+                                self.LOG_TEXT = "[color=ff0000]Your CSV file has non-numeric values for DBH.[/color]"
+                                self.create_log_widget()
+                                return False
+                        
+                        else:
+                            self.LOG_TEXT = "[color=ff0000]The image filenames in your RESULTS FILE are not the same as those in the REFERENCE VALUES FILE![/color]"
                             self.create_log_widget()
                             return False
                     
@@ -730,12 +737,18 @@ class ExtractScreenController:
                 
                 elif param.lower() == 'cd & th':
                     if cols == ['Filename','Ref_CD','Ref_TH']:
-                        try:
-                            mean_cd = df['Ref_CD'].mean()
-                            mean_th = df['Ref_TH'].mean()
+                        if df['Filename'].sort_values().equals(df_res['Filename'].sort_values()):
+                            try:
+                                mean_cd = df['Ref_CD'].mean()
+                                mean_th = df['Ref_TH'].mean()
+                            
+                            except TypeError:
+                                self.LOG_TEXT = "[color=ff0000]Some columns in your CSV file have non-numeric values.[/color]"
+                                self.create_log_widget()
+                                return False
                         
-                        except TypeError:
-                            self.LOG_TEXT = "[color=ff0000]Some columns in your CSV file have non-numeric values.[/color]"
+                        else:
+                            self.LOG_TEXT = "[color=ff0000]The image filenames in your RESULTS FILE are not the same as those in the REFERENCE VALUES FILE![/color]"
                             self.create_log_widget()
                             return False
                     
@@ -978,9 +991,11 @@ class ExtractScreenController:
         Analyses the extracted results by comparing them to the ground truth values. It also shows
         regression plots for all the three parameters
         '''
-        parameter = self.view.parameter_dropdown_item.text          
+        parameter = self.view.parameter_dropdown_item.text
+        cd_th_res_file_path = glob(os.path.join(self.RESULTS_DIR, '*_cd_th.csv'))[0]
+        dbh_res_file_path = glob(os.path.join(self.RESULTS_DIR, '*_dbh.csv'))[0]
 
-        if parameter == 'CD & TH' and self.verify_reference_file(self.REF_PARAMS_FILE, parameter):
+        if parameter == 'CD & TH' and self.verify_reference_file(self.REF_PARAMS_FILE, cd_th_res_file_path, parameter):
             file_path = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
             df = pd.read_csv(file_path, index_col='Filename')  
             df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
@@ -1022,7 +1037,7 @@ class ExtractScreenController:
             self.LOG_TEXT = "[color=00ff00]\n\nRegression plot generation complete...[/color]"
             self.create_log_widget()
             
-        elif parameter == 'DBH' and self.verify_reference_file(self.REF_PARAMS_FILE, parameter):
+        elif parameter == 'DBH' and self.verify_reference_file(self.REF_PARAMS_FILE, dbh_res_file_path, parameter):
             file_path = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
             df = pd.read_csv(file_path, index_col='Filename') 
             df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
