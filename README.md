@@ -112,6 +112,11 @@ bash setup.sh
 ```bash
 source start.sh
 ```
+#### Note for Linux Users on libGL errors
+Running Kivy applications on Linux requires having the right libGL drivers. You might find that on executing step no.6 above, you run into libGL errors that make *`DSAIL-TreeVision`* fail to start. If this happens, it is because the libGL drivers sought by the system to run the application are missing, or a specific version of the driver is missing. The driver is always installed in the virtual environment during the setup steps, and this setup process sometimes installs the wrong version of the driver. Here are some helpful links to help you go about troubleshooting and solving the problem:
+1. [libGL error: failed to load drivers iris and swrast in Ubuntu 20.04](https://askubuntu.com/questions/1352158/libgl-error-failed-to-load-drivers-iris-and-swrast-in-ubuntu-20-04)
+2. [Kivy issues with libGL errors](https://github.com/kivy/kivy/issues/7879)
+3. [libGL error: MESA-LOADER: failed to open iris](https://stackoverflow.com/questions/72110384/libgl-error-mesa-loader-failed-to-open-iris)
 
 ## Test Usage: Parameter Extraction
 A folder called `test` is included in *`DSAIL-TreeVision`'s* root directory. It contains a `full_trees` folder of 20 image pairs of full trees from which you can extract CDs and THs, and a `trunks` folder of 10 image pairs of tree trunks and their masks from which you can extract the DBHs. 
