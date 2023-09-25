@@ -992,10 +992,10 @@ class ExtractScreenController:
         regression plots for all the three parameters
         '''
         parameter = self.view.parameter_dropdown_item.text
-        cd_th_res_file_path = glob(os.path.join(self.RESULTS_DIR, '*_cd_th.csv'))[0]
-        dbh_res_file_path = glob(os.path.join(self.RESULTS_DIR, '*_dbh.csv'))[0]
+        cd_th_res_file_path = glob(os.path.join(self.RESULTS_DIR, '*_cd_th.csv'))
+        dbh_res_file_path = glob(os.path.join(self.RESULTS_DIR, '*_dbh.csv'))
 
-        if parameter == 'CD & TH' and self.verify_reference_file(self.REF_PARAMS_FILE, cd_th_res_file_path, parameter):
+        if parameter == 'CD & TH' and self.verify_reference_file(self.REF_PARAMS_FILE, cd_th_res_file_path[0], parameter):
             file_path = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
             df = pd.read_csv(file_path, index_col='Filename')  
             df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')
@@ -1037,7 +1037,7 @@ class ExtractScreenController:
             self.LOG_TEXT = "[color=00ff00]\n\nRegression plot generation complete...[/color]"
             self.create_log_widget()
             
-        elif parameter == 'DBH' and self.verify_reference_file(self.REF_PARAMS_FILE, dbh_res_file_path, parameter):
+        elif parameter == 'DBH' and self.verify_reference_file(self.REF_PARAMS_FILE, dbh_res_file_path[0], parameter):
             file_path = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
             df = pd.read_csv(file_path, index_col='Filename') 
             df2 = pd.read_csv(self.REF_PARAMS_FILE, index_col='Filename')

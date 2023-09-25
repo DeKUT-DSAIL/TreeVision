@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Activate virtual environment
-source activate treevision
+conda activate treevision
 
 # Run the application
-python main.py
+python3 main.py

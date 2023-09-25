@@ -13,7 +13,8 @@ VENV_NAME="treevision"
 conda create -n $VENV_NAME python=3.9
 
 # Activate virtual environment
-source activate $VENV_NAME
+eval "$(conda shell.bash hook)"
+conda activate $VENV_NAME
 
 REQ_FILE=requirements.txt
 
