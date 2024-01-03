@@ -13,3 +13,5 @@ params.mat
 /trunks
 /comb
 /test/diml_driveway
+/assets/models/ResNext-101_fold_01.pth
+/test/trunks/realtime_masks/*

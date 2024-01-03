@@ -25,6 +25,7 @@ from kivy.clock import Clock
 
 import View.ExtractScreen.extract_screen
 from . import algorithms
+from .utils import models
 from View.ExtractScreen.extract_screen import RefreshConfirm, InfoPopupModal, AutoSizedLabel
 
 class ExtractScreenController:
@@ -51,6 +52,7 @@ class ExtractScreenController:
     FILE_MANAGER_SELECTOR = 'folder'
     SELECT_BUTTON_ID = None
     THIS_PROJECT = None
+    SEG_MODEL = 'Masks'
 
     CONFIG_FILE_PATH = None
     REF_PARAMS_FILE = None
@@ -102,6 +104,11 @@ class ExtractScreenController:
                 "viewclass": "OneLineListItem",
                 "text": "Masks",
                 "on_release": lambda x="Masks": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": "Trunk Seg Model",
+                "on_release": lambda x="Trunk Seg Model": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
             }
         ]
 
@@ -145,12 +152,12 @@ class ExtractScreenController:
             items=self.segmentation_menu_items,
             position="center",
             background_color='brown',
-            width_mult=2,
+            width_mult=3,
         )
         self.segmentation_menu.bind()
 
         self.rectification_menu = MDDropdownMenu(
-            caller=self.view.ids.segmentation_dropdown_item,
+            caller=self.view.ids.rectification_dropdown_item,
             items=self.rectification_menu_items,
             position="center",
             background_color='brown',
@@ -333,26 +340,24 @@ class ExtractScreenController:
     
 
 
-    def verify_images(self, left_ims, right_ims, masks):
+    def verify_images(self, left_ims, right_ims):
         '''
-        Verifies that the images folder selected has an equal number of left and right images as
-        as well as segmentation masks
+        Verifies that the images folder selected has an equal number of left and right images
         @param left_ims: Left images
         @param right_ims: Right images
-        @param masks: Segmentation masks for left images
         '''
-        equal = len(left_ims) == len(right_ims) == len(masks)
-        loaded = len(left_ims) > 0 and len(right_ims) > 0 and len(masks) > 0
+        ims_equal = len(left_ims) == len(right_ims)
+        ims_loaded = len(left_ims) > 0 and len(right_ims) > 0
 
-        if not loaded:
+        if not ims_loaded:
             self.LOG_TEXT = f"[color=ff0000]Please choose location of images before proceeding...[/color]"
             self.create_log_widget()
         
-        elif not equal:
-            self.LOG_TEXT = f"[color=ff0000]Number of Left images, Right images, and Masks NOT equal! \nPlease check before proceeding...[/color]"
+        elif not ims_equal:
+            self.LOG_TEXT = f"[color=ff0000]Number of Left images and Right images NOT equal! \nPlease check before proceeding...[/color]"
             self.create_log_widget()
 
-        return loaded and equal
+        return ims_loaded and ims_equal
     
 
 
@@ -362,12 +367,36 @@ class ExtractScreenController:
         extraction of tree parameters from the images can begin
         '''
         rectified = self.view.ids.rectification_dropdown_item.text
-        path = self.CONFIG_FILE_PATH
-        
-        if self.verify_config_file(path, rectified) and self.verify_user_input():
-            self.view.ids.extract_btn.disabled = False
-            self.view.ids.batch_extract_btn.disabled = False
-    
+        config_file_path = self.CONFIG_FILE_PATH
+        self.SEG_MODEL = self.view.ids.segmentation_dropdown_item.text
+        masks_available = len(self.MASKS) > 0
+        masks_equal = len(self.MASKS) == len(self.LEFT_IMS) == len(self.RIGHT_IMS)                
+
+        if self.verify_config_file(config_file_path, rectified) and self.verify_user_input():
+            
+            if self.SEG_MODEL == 'Masks':
+                
+                if masks_available and masks_equal:
+                    self.view.ids.extract_btn.disabled = False
+                    self.view.ids.batch_extract_btn.disabled = False
+                
+                elif not masks_available:
+                    self.LOG_TEXT = f"[color=ffa500]Masks NOT provided! \nYou must now select a segmentation model...[/color]"
+                    self.create_log_widget()
+                    self.view.ids.segmentation_dropdown_item.text = 'Trunk Seg Model'
+                
+                elif not masks_equal:
+                    self.LOG_TEXT = f"[color=ff0000]Number of masks NOT equal to images! \nPlease check before proceeding...[/color]"
+                    self.create_log_widget()
+
+            elif self.SEG_MODEL == 'Trunk Seg Model':
+                self.LOG_TEXT = f"[color=00ff00]Segmentation model has been selected...[/color]"
+                self.create_log_widget()
+                
+                self.view.ids.extract_btn.disabled = False
+                self.view.ids.batch_extract_btn.disabled = False
+
+            # Add flow control code for other models here   
 
 
     def load_stereo_images(self):
@@ -403,7 +432,7 @@ class ExtractScreenController:
         self.num_of_images = len(left_ims)
         self.view.ids.progress_bar.max = self.num_of_images
 
-        if self.verify_images(left_ims, right_ims, masks):
+        if self.verify_images(left_ims, right_ims):
             self.view.ids.left_im.source = left_ims[0]
             self.view.ids.right_im.source = right_ims[0]
             self.view.ids.preliminary_checks_btn.disabled = False
@@ -496,6 +525,10 @@ class ExtractScreenController:
 
         left_img_path = self.view.left_im.source
         right_img_path = self.view.right_im.source
+
+        images_dir = os.path.dirname(left_img_path)
+        realtime_masks_dir = os.path.join(images_dir, 'realtime_masks')
+
         rectified = self.view.ids.rectification_dropdown_item.text
         
         if rectified == "Yes":
@@ -507,12 +540,29 @@ class ExtractScreenController:
         left_img_filename = os.path.basename(left_img_path)
         mask_filename = left_img_filename.split(".")[0] + "_mask.*"
 
-        mask_path =  glob(os.path.join(folder_path, mask_filename))[0]
-
-        left = cv2.imread(left_img_path, 0)
+        left = cv2.imread(left_img_path)
         right = cv2.imread(right_img_path, 0)
-        mask = cv2.imread(mask_path, 0)
+        
+        # mask can be provided in prior or be generated by the segmentation model
+        if self.SEG_MODEL == 'Masks':
+            mask_path =  glob(os.path.join(folder_path, mask_filename))[0]
+            mask = cv2.imread(mask_path, 0)
+
+        elif self.SEG_MODEL == 'Trunk Seg Model':
+            model_path = 'assets/models/ResNext-101_fold_01.pth'
+            out_dir = '.'
+            predictor = models.create_predictor(model_path, out_dir)
+            predictions = models.get_predictions(left, predictor)
+            mask = models.save_mask(predictions)
+            mask = (255 * mask.astype(np.uint8))
+            mask_filename = left_img_filename.split(".")[0] + "_mask.jpg"
+            mask_path = os.path.join(realtime_masks_dir, mask_filename)
+            print(mask_path)
+            cv2.imwrite(mask_path, mask)
+        
+        # mask = cv2.imread(mask_path, 0)
         kernel = np.ones((3,3), np.uint8)
+        left = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
 
         dmap = algorithms.extract(
             left_im = left, 
@@ -793,50 +843,47 @@ class ExtractScreenController:
         '''
         Called when the "Extract" button on the user interface is pressed
         '''
-        if self.verify_user_input():
-            self.create_project_directories()
-            self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
-            dmap_path, mask_path = self.compute_and_save_disparity()
-            
-            parameter = self.view.parameter_dropdown_item.text
-
-            parameters, values = self.compute_parameter(dmap_path, mask_path)
-            values_dict = {}
-            for i in range(len(parameters)):
-                values_dict[parameters[i]] = values[i]
-
-            annotated_image = self.annotate_image(dmap_path, mask_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
-
-            left_filename = os.path.basename(self.view.left_im.source)
-
-            if platform == 'win32':
-                annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
-            elif platform in ['linux', 'linux2']:
-                annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
-            
-            annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
-            cv2.imwrite(annotated_image_path, annotated_image)
-            self.view.right_im.source = annotated_image_path
-
-            self.display_parameters_on_logs(
-                image = left_filename,
-                parameters = parameters,
-                values = values
-            )
-
-            new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
-
-            if parameter == 'DBH':
-                results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
-            elif parameter == 'CD & TH':
-                results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
-
-            results_df = pd.read_csv(results_file, index_col='Filename')
-            results_df.loc[left_filename] = new_row
-            results_df.to_csv(results_file)
+        # if self.verify_user_input(): # no need to verify inputs again since they've been verified already
+        self.create_project_directories()
+        self.DIAG_FIELD_OF_VIEW = np.float32(self.view.ids.dfov.text)
+        dmap_path, mask_path = self.compute_and_save_disparity()
         
-        else:
-            toast("Missing some inputs!")
+        parameter = self.view.parameter_dropdown_item.text
+
+        parameters, values = self.compute_parameter(dmap_path, mask_path)
+        values_dict = {}
+        for i in range(len(parameters)):
+            values_dict[parameters[i]] = values[i]
+
+        annotated_image = self.annotate_image(dmap_path, mask_path, parameter, self.DIAG_FIELD_OF_VIEW, values_dict)
+
+        left_filename = os.path.basename(self.view.left_im.source)
+
+        if platform == 'win32':
+            annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
+        elif platform in ['linux', 'linux2']:
+            annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
+        
+        annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
+        cv2.imwrite(annotated_image_path, annotated_image)
+        self.view.right_im.source = annotated_image_path
+
+        self.display_parameters_on_logs(
+            image = left_filename,
+            parameters = parameters,
+            values = values
+        )
+
+        new_row = {f"Ex_{k}": round(v*100, 2) for k,v in zip(parameters, values)}
+
+        if parameter == 'DBH':
+            results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_dbh.csv')
+        elif parameter == 'CD & TH':
+            results_file = os.path.join(self.RESULTS_DIR, f'results_{self.THIS_PROJECT}_cd_th.csv')
+
+        results_df = pd.read_csv(results_file, index_col='Filename')
+        results_df.loc[left_filename] = new_row
+        results_df.to_csv(results_file)
 
 
 
