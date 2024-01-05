@@ -165,6 +165,10 @@ class ExtractScreenController:
         )
         self.rectification_menu.bind()
 
+        model_path = 'assets/models/ResNext-101_fold_01.pth'
+        out_dir = '.'
+        self.predictor = models.create_predictor(model_path, out_dir)
+
         self.LOG_TEXT = "[color=ffffff]Welcome to DSAIL-TreeVision ...[/color]"
         self.create_log_widget()
         self.set_display_images()
@@ -549,10 +553,7 @@ class ExtractScreenController:
             mask = cv2.imread(mask_path, 0)
 
         elif self.SEG_MODEL == 'Trunk Seg Model':
-            model_path = 'assets/models/ResNext-101_fold_01.pth'
-            out_dir = '.'
-            predictor = models.create_predictor(model_path, out_dir)
-            predictions = models.get_predictions(left, predictor)
+            predictions = models.get_predictions(left, self.predictor)
             mask = models.save_mask(predictions)
             mask = (255 * mask.astype(np.uint8))
             mask_filename = left_img_filename.split(".")[0] + "_mask.jpg"
