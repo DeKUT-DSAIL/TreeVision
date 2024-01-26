@@ -36,18 +36,18 @@ One can switch between the stereo and single camera modes using the tab switch b
 Skip this section if you already have python installed.
 
 ### Windows
-1. Download the [Miniconda3 setup](https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe) and double click on it and follow the prompts to install. In the installation prompt, make sure to enable `conda` to be added to the PATH environmental variable as show in the screenshot below.
+1. Download the [Miniconda3 setup](https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Windows-x86_64.exe) and double click on it and follow the prompts to install. In the installation prompt, make sure to enable `conda` to be added to the PATH environmental variable as show in the screenshot below.
 
 ![add path](./assets/images/readme/conda_install.png)
 
-2. To confirm that Python was installed successfully, open command prompt and run the following command. The output should be the python version installed.
+2. To confirm that Python was installed successfully, open command prompt and run the following command. The output should be the python version 3.8.
 ```bash
 python --version
 ```
 
 3. If the installation is verified, you can delete the installation file by running the following command on command prompt.
 ```bash
-del Miniconda3-latest-Windows-x86_64.exe
+del Miniconda3-py38_23.11.0-2-Windows-x86_64.exe
 ```
 
 4. Download the [Git Bash setup](https://git-scm.com/download/win) and install it. Leave the defaults when following the installation prompts. Once installation is complete, proceed to launch `Git Bash`.
@@ -66,22 +66,22 @@ conda activate
 ### Linux
 1. Download the Miniconda3 installation file by running the following command in your terminal.
 ```bash
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
 ```
 
 2. Without closing the terminal, run the following command and follow the prompts to install Miniconda3.
 ```bash
-bash Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
 ```
 
-3. Confirm that python is installed by running this command in terminal. The output should the python version you just installed.
+3. Confirm that python is installed by running this command in terminal. The output should be python version 3.8.
 ```bash
 python --version
 ```
 
 4. Once Python is installed, you can delete the installation file by running the following command.
 ```bash
-rm Miniconda3-latest-Linux-x86_64.sh
+rm Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
 ```
 
 ### Other platforms
@@ -108,11 +108,34 @@ cd TreeVision
 bash setup.sh
 ```
 
-6. Run the `start.sh` script using the command:
+6. Activate the virtual environment by running this command:
+```bash
+conda activate treevision
+```
+
+7. *DSAIL-TreeVision* runs an image segmentation model for segmentation which requires PyTorch and Detectron2 packages. Follow the instructions for [installing PyTorch](https://pytorch.org/get-started/locally/) and [installing detectron2](https://detectron2.readthedocs.io/en/latest/tutorials/install.html) in your platform.
+
+8. With the virutal environment still active, check that PyTorch and detectron2 were correctly installed by verifying that they import successfully.
+```bash
+python
+import torch
+print(torch.__version__)
+import detectron2
+print(detectron2.__version__)
+```
+
+9. If you have commpleted steps 1-8 successfully, you can start *DSAIL-TreeVision* by running the `start.sh` script using the command:
 ```bash
 source start.sh
 ```
-#### Note for Linux Users on libGL errors
+#### Notes for Linux Users 
+##### A. Install xclip and xsel
+Run these commands to install the 2 packages:
+```bash
+sudo apt-get install xclip xsel
+```
+
+##### B. on libGL errors
 Running Kivy applications on Linux requires having the right libGL drivers. You might find that on executing step no.6 above, you run into libGL errors that make *`DSAIL-TreeVision`* fail to start. If this happens, it is because the libGL drivers sought by the system to run the application are missing, or a specific version of the driver is missing. The driver is always installed in the virtual environment during the setup steps, and this setup process sometimes installs the wrong version of the driver. Here are some helpful links to help you go about troubleshooting and solving the problem:
 1. [libGL error: failed to load drivers iris and swrast in Ubuntu 20.04](https://askubuntu.com/questions/1352158/libgl-error-failed-to-load-drivers-iris-and-swrast-in-ubuntu-20-04)
 2. [Kivy issues with libGL errors](https://github.com/kivy/kivy/issues/7879)
