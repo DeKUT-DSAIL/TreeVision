@@ -109,6 +109,11 @@ class ExtractScreenController:
                 "viewclass": "OneLineListItem",
                 "text": "Trunk Seg Model",
                 "on_release": lambda x="Trunk Seg Model": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
+            },
+            {
+                "viewclass": "OneLineListItem",
+                "text": "SAM",
+                "on_release": lambda x="SAM": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
             }
         ]
 
@@ -165,15 +170,42 @@ class ExtractScreenController:
         )
         self.rectification_menu.bind()
 
-        model_path = 'assets/models/ResNext-101_fold_01.pth'
-        out_dir = '.'
-        self.predictor = models.create_predictor(model_path, out_dir)
+        # Trunk Segmentation Model
+        self.trunk_predictor = self.load_trunk_model()
+
+        # Load SAM Model
+        self.sam_predictor = models.create_sam_predictor()
 
         self.LOG_TEXT = "[color=ffffff]Welcome to DSAIL-TreeVision ...[/color]"
         self.create_log_widget()
         self.set_display_images()
         self.toggle_scrolling_icons()
         self.initialize_sgbm_values()
+
+
+
+    def load_trunk_model(self):
+        '''
+        Loads a pretrained MASK-RCNN trunk segmentation model. The model was created by Grondin et al. whose research is available at https://doi.org/10.1093/forestry/cpac043 and https://github.com/norlab-ulaval/PercepTreeV1/tree/main
+        '''
+        model_path = 'assets/models/ResNext-101_fold_01.pth'
+        predictor = models.create_trunk_predictor(model_path)
+
+        return predictor
+    
+
+    
+    def get_sam_mask(self, image):
+        '''
+        Loads FAIR's pretrained SAM model and makes a forward pass of "image" to generate the masks
+        @param image: The image to be passed to the SAM model
+
+        The SAM model was published by Facebook's Kirillov et al. and can be found at https://arxiv.org/abs/2304.02643 and https://github.com/facebookresearch/segment-anything
+        '''
+        self.sam_predictor.set_image(image)
+        masks, scores, logits = models.predict_sam_mask(self.sam_predictor)
+
+        return masks, scores, logits
     
 
 
@@ -387,7 +419,7 @@ class ExtractScreenController:
                 elif not masks_available:
                     self.LOG_TEXT = f"[color=ffa500]Masks NOT provided! \nYou must now select a segmentation model...[/color]"
                     self.create_log_widget()
-                    self.view.ids.segmentation_dropdown_item.text = 'Trunk Seg Model'
+                    self.view.ids.segmentation_dropdown_item.text = 'SAM'
                 
                 elif not masks_equal:
                     self.LOG_TEXT = f"[color=ff0000]Number of masks NOT equal to images! \nPlease check before proceeding...[/color]"
@@ -395,6 +427,13 @@ class ExtractScreenController:
 
             elif self.SEG_MODEL == 'Trunk Seg Model':
                 self.LOG_TEXT = f"[color=00ff00]Segmentation model has been selected...[/color]"
+                self.create_log_widget()
+                
+                self.view.ids.extract_btn.disabled = False
+                self.view.ids.batch_extract_btn.disabled = False
+            
+            elif self.SEG_MODEL == 'SAM':
+                self.LOG_TEXT = f"[color=00ff00]SAM segmentation has been selected...[/color]"
                 self.create_log_widget()
                 
                 self.view.ids.extract_btn.disabled = False
@@ -553,8 +592,16 @@ class ExtractScreenController:
             mask = cv2.imread(mask_path, 0)
 
         elif self.SEG_MODEL == 'Trunk Seg Model':
-            predictions = models.get_predictions(left, self.predictor)
-            mask = models.save_mask(predictions)
+            predictions = models.get_trunk_predictions(left, self.trunk_predictor)
+            mask = models.save_trunk_mask(predictions)
+            mask = (255 * mask.astype(np.uint8))
+            mask_filename = left_img_filename.split(".")[0] + "_mask.jpg"
+            mask_path = os.path.join(realtime_masks_dir, mask_filename)
+            print(mask_path)
+            cv2.imwrite(mask_path, mask)
+        
+        elif self.SEG_MODEL == 'SAM':
+            mask, _, _ = self.get_sam_mask(left)
             mask = (255 * mask.astype(np.uint8))
             mask_filename = left_img_filename.split(".")[0] + "_mask.jpg"
             mask_path = os.path.join(realtime_masks_dir, mask_filename)

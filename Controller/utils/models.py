@@ -2,17 +2,21 @@ import os
 import cv2
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image
+
 from detectron2 import model_zoo
 from detectron2.config import get_cfg
 from detectron2.engine import DefaultPredictor
 from detectron2.data import MetadataCatalog
 from detectron2.utils.visualizer import Visualizer
-import matplotlib.pyplot as plt
+
+import segment_anything as sam
 
 
 
-def create_predictor(model_path, out_dir):
+
+def create_trunk_predictor(model_path):
   '''
   Creates a DefaultPredictor object from a saved model
   '''
@@ -30,7 +34,6 @@ def create_predictor(model_path, out_dir):
   cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS = 5
   cfg.MODEL.MASK_ON = True
 
-  cfg.OUTPUT_DIR = out_dir
   cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, model_path)
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
 
@@ -40,7 +43,7 @@ def create_predictor(model_path, out_dir):
 
 
 
-def get_predictions(image, predictor):
+def get_trunk_predictions(image, predictor):
   '''
   Makes a forward pass on the image through the model to yield predictions
   '''
@@ -48,7 +51,7 @@ def get_predictions(image, predictor):
 
 
 
-def save_mask(predictions):
+def save_trunk_mask(predictions):
   '''
   The mask of interest among all the predicted masks. This function takes in all the predictions and returns the largest mask
   '''
@@ -65,3 +68,40 @@ def save_mask(predictions):
   mask_oi = masks[index]
 
   return mask_oi.cpu().numpy()
+
+
+
+def create_sam_predictor() -> sam.SamPredictor:
+  '''
+  Predict an image mask using the SAM predictor object
+  '''
+  model_path = 'assets/models/sam_vit_h_4b8939.pth'
+  sam_checkpoint = model_path
+  model_type = "vit_h"
+
+  device = "cuda" if torch.cuda.is_available() else "cpu"
+
+  sam_model = sam.sam_model_registry[model_type](checkpoint=sam_checkpoint)
+  sam_model.to(device=device)
+
+  predictor = sam.SamPredictor(sam_model)
+
+  return predictor
+
+
+
+def predict_sam_mask(predictor: sam.predictor.SamPredictor):
+  '''
+  Runs an inference on the SAM model to generate predictions based on the prompts given
+  '''
+  h, w = predictor.original_size
+  input_point = np.array([[int(w/2), int(h/2)]])
+  input_label = np.array([1])
+
+  masks, scores, logits = predictor.predict(
+      point_coords = input_point,
+      point_labels = input_label,
+      multimask_output=True
+  )
+
+  return masks, scores, logits
