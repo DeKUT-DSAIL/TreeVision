@@ -34,7 +34,7 @@ def create_trunk_predictor(model_path):
   cfg.MODEL.ROI_KEYPOINT_HEAD.NUM_KEYPOINTS = 5
   cfg.MODEL.MASK_ON = True
 
-  cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, model_path)
+  cfg.MODEL.WEIGHTS = model_path
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
 
   predictor_synth = DefaultPredictor(cfg)

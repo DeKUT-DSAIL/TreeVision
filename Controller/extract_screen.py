@@ -204,8 +204,9 @@ class ExtractScreenController:
         '''
         self.sam_predictor.set_image(image)
         masks, scores, logits = models.predict_sam_mask(self.sam_predictor)
+        mask_oi = masks[np.argmax(scores)]
 
-        return masks, scores, logits
+        return mask_oi
     
 
 
@@ -571,6 +572,7 @@ class ExtractScreenController:
 
         images_dir = os.path.dirname(left_img_path)
         realtime_masks_dir = os.path.join(images_dir, 'realtime_masks')
+        os.mkdir(realtime_masks_dir) if not os.path.exists(realtime_masks_dir) else None
 
         rectified = self.view.ids.rectification_dropdown_item.text
         
@@ -601,8 +603,8 @@ class ExtractScreenController:
             cv2.imwrite(mask_path, mask)
         
         elif self.SEG_MODEL == 'SAM':
-            mask, _, _ = self.get_sam_mask(left)
-            mask = (255 * mask.astype(np.uint8))
+            mask = self.get_sam_mask(left)
+            mask = 255 * mask.astype(np.uint8)
             mask_filename = left_img_filename.split(".")[0] + "_mask.jpg"
             mask_path = os.path.join(realtime_masks_dir, mask_filename)
             print(mask_path)
