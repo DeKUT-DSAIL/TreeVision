@@ -16,3 +16,7 @@ segment_anything.ipynb
 /test/diml_driveway
 /assets/models/*
 /test/trunks/realtime_masks/*
+/test/full_trees/realtime_masks/*
+/.ipynb_checkpoints
+/Controller/.ipynb_checkpoints
+/Controller/utils/.ipynb_checkpoints
