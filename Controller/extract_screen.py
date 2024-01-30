@@ -10,6 +10,7 @@ from glob import glob
 from sys import platform
 from pandas.errors import ParserError, EmptyDataError
 from sklearn.metrics import mean_squared_error
+from sklearn.cluster import KMeans
 
 from kivy.core.window import Window
 from kivy.properties import StringProperty
@@ -207,6 +208,41 @@ class ExtractScreenController:
         mask_oi = masks[np.argmax(scores)]
 
         return mask_oi
+
+
+
+    def get_kmeans_mask(self, image):
+        '''
+        Creates an image mask by applying K-Means clustering on the image
+        @param image: Image to be segmented
+        '''
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        blur = cv2.GaussianBlur(image, (5,5), 0)
+        blur = np.array(blur, dtype=np.float64) / 255
+        blur = blur[:, 400:800:, :]
+        
+        h, w, d = blur.shape
+        H, W, _ = image.shape
+        image_array = np.reshape(blur, (w*h, d))
+    
+        kmeans = KMeans(n_clusters=2, random_state=0, n_init=10).fit(image_array)
+        labels = kmeans.predict(image_array)
+    
+        fitted = kmeans.cluster_centers_[labels].reshape(h, w, -1)
+        fitted = (255.0 * fitted).astype(np.uint8)
+    
+        gray_fit = cv2.cvtColor(fitted, cv2.COLOR_BGR2GRAY)
+        ret, mask = cv2.threshold(gray_fit, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        
+        background = np.zeros_like(image)[:,:,0]
+        background[:, 400:800:] = mask
+    
+        strip = background[int(H/2), int(W/2 - 5): int(W/2 + 5)]
+        
+        if strip.mean() > 100:
+            return background
+        else:
+            return 255 - background
     
 
 
