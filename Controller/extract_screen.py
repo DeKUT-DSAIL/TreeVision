@@ -108,6 +108,11 @@ class ExtractScreenController:
             },
             {
                 "viewclass": "OneLineListItem",
+                "text": "K-Means",
+                "on_release": lambda x="K-Means": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
+            },
+            {
+                "viewclass": "OneLineListItem",
                 "text": "Trunk Seg Model",
                 "on_release": lambda x="Trunk Seg Model": self.set_item(self.segmentation_menu, self.view.segmentation_dropdown_item, x),
             },
@@ -211,18 +216,22 @@ class ExtractScreenController:
 
 
 
-    def get_kmeans_mask(self, image):
+    def get_kmeans_mask(self, image, parameter):
         '''
         Creates an image mask by applying K-Means clustering on the image
-        @param image: Image to be segmented
+        @param image: The image to be segmented
         '''
+        H, W, _ = image.shape
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         blur = cv2.GaussianBlur(image, (5,5), 0)
         blur = np.array(blur, dtype=np.float64) / 255
-        blur = blur[:, 400:800:, :]
+    
+        crop_x1 = int(0.31 * W) if parameter.lower() == 'dbh' else int(0.24 * W)
+        crop_x2 = int(0.63 * W) if parameter.lower() == 'dbh' else int(0.78 * W)
+        
+        blur = blur[:, crop_x1:crop_x2:, :]
         
         h, w, d = blur.shape
-        H, W, _ = image.shape
         image_array = np.reshape(blur, (w*h, d))
     
         kmeans = KMeans(n_clusters=2, random_state=0, n_init=10).fit(image_array)
@@ -232,17 +241,19 @@ class ExtractScreenController:
         fitted = (255.0 * fitted).astype(np.uint8)
     
         gray_fit = cv2.cvtColor(fitted, cv2.COLOR_BGR2GRAY)
-        ret, mask = cv2.threshold(gray_fit, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        ret, th = cv2.threshold(gray_fit, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         
-        background = np.zeros_like(image)[:,:,0]
-        background[:, 400:800:] = mask
+        mask = np.zeros_like(image)[:,:,0]
+        mask[:, crop_x1:crop_x2] = th
     
-        strip = background[int(H/2), int(W/2 - 5): int(W/2 + 5)]
+        strip = mask[int(H/2), int(W/2 - 5): int(W/2 + 5)]
         
         if strip.mean() > 100:
-            return background
+            return mask
         else:
-            return 255 - background
+            mask = 255 - mask
+            mask[:, 0:crop_x1] = mask[:, crop_x2:] = 0
+            return mask
     
 
 
@@ -462,8 +473,15 @@ class ExtractScreenController:
                     self.LOG_TEXT = f"[color=ff0000]Number of masks NOT equal to images! \nPlease check before proceeding...[/color]"
                     self.create_log_widget()
 
+            elif self.SEG_MODEL == 'K-Means':
+                self.LOG_TEXT = f"[color=00ff00]K-Means segmentation has been selected...[/color]"
+                self.create_log_widget()
+                
+                self.view.ids.extract_btn.disabled = False
+                self.view.ids.batch_extract_btn.disabled = False
+                
             elif self.SEG_MODEL == 'Trunk Seg Model':
-                self.LOG_TEXT = f"[color=00ff00]Segmentation model has been selected...[/color]"
+                self.LOG_TEXT = f"[color=00ff00]Trunk segmentation model has been selected...[/color]"
                 self.create_log_widget()
                 
                 self.view.ids.extract_btn.disabled = False
@@ -643,7 +661,13 @@ class ExtractScreenController:
             mask = 255 * mask.astype(np.uint8)
             mask_filename = left_img_filename.split(".")[0] + "_mask.jpg"
             mask_path = os.path.join(realtime_masks_dir, mask_filename)
-            print(mask_path)
+            cv2.imwrite(mask_path, mask)
+
+        elif self.SEG_MODEL == 'K-Means':
+            parameter = self.view.parameter_dropdown_item.text
+            mask = self.get_kmeans_mask(left, parameter)
+            mask_filename = left_img_filename.split(".")[0] + "_mask.jpg"
+            mask_path = os.path.join(realtime_masks_dir, mask_filename)
             cv2.imwrite(mask_path, mask)
         
         # mask = cv2.imread(mask_path, 0)
@@ -914,7 +938,7 @@ class ExtractScreenController:
                 return False
 
             else:
-                self.LOG_TEXT = "[color=ff0000]Reference parameters CSV file successfully validated.[/color]"
+                self.LOG_TEXT = "[color=ffff00]Reference parameters CSV file successfully validated.[/color]"
                 self.create_log_widget()
                 return True
         
