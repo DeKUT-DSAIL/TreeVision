@@ -459,6 +459,8 @@ class ExtractScreenController:
         if self.verify_config_file(config_file_path, rectified) and self.verify_user_input():
             
             if self.SEG_MODEL == 'Masks':
+                self.LOG_TEXT = f"[color=00ff00]Segmentation with pre-obtained masks has been selected...[/color]"
+                self.create_log_widget()
                 
                 if masks_available and masks_equal:
                     self.view.ids.extract_btn.disabled = False
@@ -482,6 +484,8 @@ class ExtractScreenController:
                 
             elif self.SEG_MODEL == 'Trunk Seg Model':
                 self.LOG_TEXT = f"[color=00ff00]Trunk segmentation model has been selected...[/color]"
+                self.create_log_widget()
+                self.LOG_TEXT = f"[color=ffff00]Applies to tree trunk segmentation ONLY[/color]"
                 self.create_log_widget()
                 
                 self.view.ids.extract_btn.disabled = False

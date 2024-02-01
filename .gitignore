@@ -12,7 +12,10 @@ segment_anything.ipynb
 /kieni/kieni-13-03-23/right
 /assets/projects/*
 /trunks
+/results
+/masks
 /comb
+/dsail_stereo_forest_dataset
 /test/diml_driveway
 /assets/models/*
 /test/trunks/realtime_masks/*
