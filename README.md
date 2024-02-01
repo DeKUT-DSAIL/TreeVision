@@ -85,7 +85,17 @@ rm Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
 ```
 
 ### Other platforms
-Installation instructions for Miniconda3 ona all platforms can be found [here](https://docs.conda.io/projects/miniconda/en/latest/).
+Installation instructions for Miniconda3 on all platforms can be found [here](https://docs.conda.io/projects/miniconda/en/latest/).
+
+## Note on Image Segmentation
+An important step in the process of extracting tree biophysical parameters from stereoscopic images is image segmentation. It is necessary in order to retain only the foreground pixels (full tree or tree trunks) in the depth maps. The algorithms implemented in *DSAIL-TreeVision* extract the tree parameters from the segmented depth map.
+
+We have incorporated two deep learning segmentation models in this application: Meta's Segment Anything Model (SAM) and the PerceptTreeV1 Mask R-CNN model finetuned on real images.You can read about them here:
+
+* [SAM](https://github.com/facebookresearch/segment-anything)
+* [PerceptTreeV1 Mask R-CNN model](https://github.com/norlab-ulaval/PercepTreeV1)
+
+Down below, we have provided instructions on how to download and use their pretrained models in the application.
 
 ## Setting Up *DSAIL-TreeVision*
 #### Note for Windows Users: Install [`Git Bash`](https://git-scm.com/download/win) before proceeding
@@ -98,24 +108,33 @@ Installation instructions for Miniconda3 ona all platforms can be found [here](h
 git clone https://github.com/DeKUT-DSAIL/DSAIL-TreeVision.git
 ```
 
-4. On command line, open the application's root folder (`TreeVision`) by running the following command:
+4. Download the pretrained segmentation models:
+
+* Meta's Segment Anything Model (SAM) checkpoint can be downloaded from [here](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth).
+* The PercepTree pretrained model can be downloaded from [here](https://drive.usercontent.google.com/download?id=108tORWyD2BFFfO5kYim9jP0wIVNcw0OJ&export=download&authuser=0).
+
+5. Copy the models downloaded in step 4 above to the [assets/models](assets/models) path found in the application's root directory.
+
+6. On command line, open the application's root folder (`TreeVision`) by running the following command:
 ```bash
 cd TreeVision
 ```
 
-5. On command line, run the `setup.sh` script from the `DSAIL-TreeVision`'s root directory, using the command:
+7. On command line, run the `setup.sh` script from the `DSAIL-TreeVision`'s root directory, using the command:
 ```bash
 bash setup.sh
 ```
 
-6. Activate the virtual environment by running this command:
+8. Activate the virtual environment by running this command:
 ```bash
 conda activate treevision
 ```
 
-7. *DSAIL-TreeVision* runs an image segmentation model for segmentation which requires PyTorch and Detectron2 packages. Follow the instructions for [installing PyTorch](https://pytorch.org/get-started/locally/) and [installing detectron2](https://detectron2.readthedocs.io/en/latest/tutorials/install.html) in your platform.
+9. *DSAIL-TreeVision* runs inferences on pretrained image segmentation models which require PyTorch and Detectron2 packages. Follow the instructions for [installing PyTorch](https://pytorch.org/get-started/locally/) on your platform and [installing detectron2](https://detectron2.readthedocs.io/en/latest/tutorials/install.html) on Linux or MacOS. Windows users see below.
 
-8. With the virutal environment still active, check that PyTorch and detectron2 were correctly installed by verifying that they import successfully.
+* **NOTE for Windows users**: There is a Detectron2 fork that can be installed on Windows. You can get the installation instructions [here](https://github.com/augmentedstartups/detectron2).
+
+11. With the virutal environment still active, check that PyTorch and detectron2 were correctly installed by verifying that they import successfully.
 ```bash
 python
 import torch
@@ -124,7 +143,7 @@ import detectron2
 print(detectron2.__version__)
 ```
 
-9. If you have commpleted steps 1-8 successfully, you can start *DSAIL-TreeVision* by running the `start.sh` script using the command:
+11. If you have commpleted steps 1-8 successfully, you can start *DSAIL-TreeVision* by running the `start.sh` script using the command:
 ```bash
 source start.sh
 ```
