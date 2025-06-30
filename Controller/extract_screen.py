@@ -264,7 +264,7 @@ class ExtractScreenController:
         if platform == "win32":
             self.view.ids.left_im.source = "assets\\images\\extraction\\FT01_IMG_20230309_103936_LEFT.jpg"
             self.view.ids.right_im.source = "assets\\images\\extraction\\FT01_IMG_20230309_103936_RIGHT.jpg"
-        elif platform in ["linux", "linux2"]:
+        elif platform in ["linux", "linux2", "darwin"]:
             self.view.ids.left_im.source = "assets/images/extraction/FT01_IMG_20230309_103936_LEFT.jpg"
             self.view.ids.right_im.source = "assets/images/extraction/FT01_IMG_20230309_103936_RIGHT.jpg"
 
@@ -697,7 +697,7 @@ class ExtractScreenController:
         # change to left_img_path.split('\\') for Windows
         if platform == "win32":
             dmap_filename = left_img_path.split('\\')[-1].split('.')[0] + '_disparity.jpg'
-        elif platform == "linux" or platform == "linux2":
+        elif platform == "linux" or platform == "linux2" or platform == "darwin":
             dmap_filename = left_img_path.split('/')[-1].split('.')[0] + '_disparity.jpg'
         
         dmap_path = os.path.join(self.DISPARITY_MAPS_DIR, dmap_filename)
@@ -975,7 +975,7 @@ class ExtractScreenController:
 
         if platform == 'win32':
             annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
-        elif platform in ['linux', 'linux2']:
+        elif platform in ['linux', 'linux2', 'darwin']:
             annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
         
         annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
@@ -1032,7 +1032,7 @@ class ExtractScreenController:
         left_filename = os.path.basename(self.view.left_im.source)
         if platform == 'win32':
             annotated_image_name = left_filename.split('\\')[-1].split('.')[0] + '_annotated.jpg'
-        elif platform in ['linux', 'linux2']:
+        elif platform in ['linux', 'linux2', 'darwin']:
             annotated_image_name = left_filename.split('/')[-1].split('.')[0] + '_annotated.jpg'
         
         annotated_image_path = os.path.join(self.ANNOTATED_IMAGES_DIR, annotated_image_name)
@@ -1347,6 +1347,8 @@ class ExtractScreenController:
                 os.startfile(path)
             elif platform in ['linux', 'linux2']:
                 subprocess.run(['xdg-open', path])
+            elif platform == 'darwin':
+                subprocess.run(['open', path])                
         except FileNotFoundError:
             toast('User guide not found!')
             self.LOG_TEXT = "[color=ff0000]Couldn't find the user guide.[/color]"
